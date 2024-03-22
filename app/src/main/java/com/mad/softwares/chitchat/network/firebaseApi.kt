@@ -97,12 +97,12 @@ class NetworkFirebaseApi(
                     .addOnCompleteListener(OnCompleteListener { task ->
                         if (!task.isSuccessful) {
                             Log.w(TAG, "Fetching FCM registration token failed", task.exception)
-                            continuation.resume("Failed to fetch the token")
+                            continuation.resume("")
                             return@OnCompleteListener
                         }
 
                         val token = task.result
-                        continuation.resume(token?:"Token is null")
+                        continuation.resume(token?:"")
                         Log.d(TAG, "token: $token")
                     })
 

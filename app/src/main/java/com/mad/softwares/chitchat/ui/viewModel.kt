@@ -61,17 +61,16 @@ class chitChatViewModel(
     private fun getFCMTokenAndUser() {
         Log.d(TAG,"Inside teh getfcmtoken")
         viewModelScope.launch{
-            try{
-                val ton = dataRepository.getToken()
-                Log.d(TAG,"Token is $ton")
-                _uiState.update { current ->current.copy(fcmToken = ton?:"Null token") }
-                getUserFromToken(ton?:"")
-            }
-            catch (e:Exception){
-                Log.d(TAG,"Exception to get the token")
-                _uiState.update { current ->current.copy(fcmToken = "Unable to get fetch the token") }
-            }
+            val ton = dataRepository.getToken()
 
+            if(ton!=""){
+                Log.d(TAG, "Token is $ton")
+                _uiState.update { current -> current.copy(fcmToken = ton ?: "Null token") }
+                getUserFromToken(ton ?: "Blank")
+            }
+            else{
+                Log.e(TAG,"Error to get token properly should no go anywhere")
+            }
         }
 
     }
