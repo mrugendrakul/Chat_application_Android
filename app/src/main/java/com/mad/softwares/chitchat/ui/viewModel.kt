@@ -26,11 +26,11 @@ import java.util.UUID
 
 val TAG = "ViewModel_Tags"
 
-enum class isChatButton(){
-    Loading,
-    Yes,
-    No
-}
+//enum class isChatButton(){
+//    Loading,
+//    Yes,
+//    No
+//}
 enum class isPasswordReset(){
     maybe,
     Yes,
@@ -60,6 +60,9 @@ class chitChatViewModel(
     var extUiState : StateFlow<uiState> = _uiState.asStateFlow()
     private fun getFCMTokenAndUser() {
         Log.d(TAG,"Inside teh getfcmtoken")
+        _uiState.update { cr->cr.copy(
+            isLoading = true
+        ) }
         viewModelScope.launch{
             val ton = dataRepository.getToken()
 
@@ -69,7 +72,9 @@ class chitChatViewModel(
                 getUserFromToken(ton ?: "Blank")
             }
             else{
+                Log.e(TAG,"Error token is : $ton")
                 Log.e(TAG,"Error to get token properly should no go anywhere")
+//                getFCMTokenAndUser()
             }
         }
 
@@ -164,7 +169,7 @@ class chitChatViewModel(
                 ) }
                 try{
 //                    delay(Random.nextLong(2000, 5001))
-                    if(_uiState.value.isChatsButtonEnabled == isChatButton.No){
+                    if(_uiState.value.isChatsButtonEnabled == ChatScreens.Start){
                         Log.d(TAG,"Registerd the user")
                        val docId: Deferred<String> =async {
                            dataRepository.registerUser(
@@ -391,7 +396,7 @@ class chitChatViewModel(
     fun authenSuccess(){
         _uiState.update { cr->cr.copy(
             navAuthenticate = false,
-            isChatsButtonEnabled = isChatButton.Yes
+            isChatsButtonEnabled = ChatScreens.AllChats
         ) }
     }
 
@@ -410,7 +415,7 @@ class chitChatViewModel(
                 _uiState.update { cr ->
                     cr.copy(
                         myUserData = user,
-                        isChatsButtonEnabled = isChatButton.Yes,
+                        isChatsButtonEnabled = ChatScreens.AllChats,
                         isLoading = false,
                         userName = user.username,
 //                        isMyChatsLoading = isChatsLoading.Loading
@@ -421,7 +426,7 @@ class chitChatViewModel(
             else{
                 _uiState.update { cr ->
                     cr.copy(
-                        isChatsButtonEnabled = isChatButton.No,
+                        isChatsButtonEnabled = ChatScreens.Start,
                         isLoading = false
                     )
                 }
@@ -442,7 +447,7 @@ class chitChatViewModel(
                 dataRepository.logoutUser(_uiState.value.myUserData)
                 _uiState.update {cr->cr.copy(
                     isLoading = false,
-                    isChatsButtonEnabled = isChatButton.No
+                    isChatsButtonEnabled = ChatScreens.Start
                 )
                 }
                 Log.d(TAG,"Logout Success full ")
@@ -450,7 +455,7 @@ class chitChatViewModel(
                 Log.d(TAG, "unable to logout from viewmodel")
                 _uiState.update {cr->cr.copy(
                     isLoading = false,
-                    isChatsButtonEnabled = isChatButton.Yes,
+                    isChatsButtonEnabled = ChatScreens.Start,
                     overAllError = true
                 )
                 }

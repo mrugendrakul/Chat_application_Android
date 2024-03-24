@@ -138,19 +138,19 @@ fun StartScreen(
     )
 
 
-    val startDestination: ChatScreens = when (appUiState.isChatsButtonEnabled) {
-        isChatButton.Yes -> {
-            ChatScreens.AllChats
-        }
-
-        isChatButton.No -> {
-            ChatScreens.Start
-        }
-
-        isChatButton.Loading -> {
-            ChatScreens.FiringUp
-        }
-    }
+//    val startDestination: ChatScreens = when (appUiState.isChatsButtonEnabled) {
+//        isChatButton.Yes -> {
+//            ChatScreens.AllChats
+//        }
+//
+//        isChatButton.No -> {
+//            ChatScreens.Start
+//        }
+//
+//        isChatButton.Loading -> {
+//            ChatScreens.FiringUp
+//        }
+//    }
 
     Scaffold(
         topBar = {
@@ -167,7 +167,7 @@ fun StartScreen(
     ) {
         NavHost(
             navController = navController,
-            startDestination = startDestination.name,
+            startDestination = appUiState.isChatsButtonEnabled.name,
             modifier = modifier.padding(it),
         ) {
             composable(

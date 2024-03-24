@@ -102,9 +102,12 @@ class NetworkFirebaseApi(
                         }
 
                         val token = task.result
-                        continuation.resume(token?:"")
+                        continuation.resume(token?:"Invalid")
                         Log.d(TAG, "token: $token")
                     })
+                    .addOnFailureListener {
+                        Log.e(TAG,"error to get fcm token $it")
+                    }
 
             }
         }
@@ -129,19 +132,20 @@ class NetworkFirebaseApi(
         )
 
         val newUser = userCollection
-            .add(user)
+            .document(fcmToken)
+            .set(user)
             .addOnSuccessListener {
-                Log.d(TAG,"registration success doc id : ${it.id}")
-                docId.add(it.id)
+                Log.d(TAG,"registration success doc id : ${fcmToken}")
+                docId.add(fcmToken)
             }
             .addOnFailureListener{e->
                 Log.d(TAG,"error adding because :" ,e)
                 throw e
             }
 
-        newUser.await().id
+        newUser.await()
        return if (docId.isNotEmpty()) {
-           newUser.await().id
+           fcmToken
         }
         else{
             sub
@@ -330,10 +334,11 @@ class NetworkFirebaseApi(
         )
 
         val newUserId = userCollection
-            .add(user)
+            .document(currUser.fcmToken)
+            .set(user)
             .addOnSuccessListener {
-                Log.d(TAG,"registration success doc id : ${it.id}")
-                docId.add(it.id)
+                Log.d(TAG,"registration success doc id : ${currUser.fcmToken}")
+                docId.add(currUser.fcmToken)
             }
             .addOnFailureListener{e->
                 Log.d(TAG,"error adding because :" ,e)
@@ -346,7 +351,7 @@ class NetworkFirebaseApi(
                 currUser.profilePic,
                 currUser.uniqueId,
                 currUser.username,
-                docId = newUserId.await().id?:"not valid"
+                docId = currUser.fcmToken
             )
 
         return newUser
@@ -406,25 +411,10 @@ class NetworkFirebaseApi(
     }
 
     override suspend fun sendNotificationApi(token: String, title: String, body: String) {
-//        val jsonObject = JSONObject().apply {
-//            put("to","c4JAaCjSQZaCxuZLOx_B45:APA91bEUtXCmupogMhD1T5a7pZerIWp3nP0kNy6PYgox_gvps4WEaO4NihkJqANt5OJmxVixx95ACjHZq6AWdFxyRxiaQzneyKBNboB-deoP4g1EqVCQesQuFuoBu9xxrKL1m41OduaM")
-//            put("notification", JSONObject().apply {
-//                put("body", body)
-//                put("title", title)
-//            })
-//        }
+
         Log.d(TAG,"TOKEN IS $token")
 
         Log.d(TAG,"Notification trigger in api")
-//        try {
-////            service.sendNotification(jsonObject.toString())
-//            val response = service.sendNotification(jsonObject.toString())
-//            Log.d(TAG,"Notification sent successfully")
-//        } catch (e: Exception) {
-//            Log.d(TAG,"Error sending notification: ${e.message} ")
-//
-//            throw e
-//        }
 
         val notificationRequest = NotificationRequest(
             to = token,
@@ -432,7 +422,6 @@ class NetworkFirebaseApi(
         )
 
         try{
-//            val response = service.sendNotification(notificationRequest).awaitResponse()
             val response = service.sendNotification(notificationRequest)
 
             Log.d(TAG,"Successfully send notification api ${response.toString()}")
@@ -482,7 +471,8 @@ class NetworkFirebaseApi(
         )
 
         chatsCollection
-            .add(newChat)
+            .document(chatId)
+            .set(newChat)
             .addOnSuccessListener {
                 Log.d(TAG,"added chat successfully")
             }
@@ -520,7 +510,7 @@ class NetworkFirebaseApi(
             chats.add(singleChat)
         }
 
-        Log.d(TAG,"Chats in api are $chats")
+        Log.d(TAG,"Chats in api are ${chats.size}")
         return chats
     }
 

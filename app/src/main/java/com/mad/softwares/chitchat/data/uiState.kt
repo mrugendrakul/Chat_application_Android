@@ -1,6 +1,6 @@
 package com.mad.softwares.chitchat.data
 
-import com.mad.softwares.chitchat.ui.isChatButton
+import com.mad.softwares.chitchat.ui.ChatScreens
 import com.mad.softwares.chitchat.ui.isChatsLoading
 import com.mad.softwares.chitchat.ui.isPasswordReset
 import com.mad.softwares.chitchat.ui.isUsernamesLoading
@@ -41,7 +41,7 @@ data class uiState(
     //for chats purpose
     val allAvailableUsers:List<String> = listOf(),
     val allAvailableChats:List<Chats> = listOf(),
-    val isChatsButtonEnabled:isChatButton = isChatButton.Loading,
+    val isChatsButtonEnabled: ChatScreens = ChatScreens.FiringUp,
     val isMyChatsLoading:isChatsLoading = isChatsLoading.Loading,
 
     //All Users

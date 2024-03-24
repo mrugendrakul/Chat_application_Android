@@ -86,47 +86,7 @@ fun StartHere(
             }
         }
         Spacer(modifier = modifier.height(20.dp))
-        Card (
-            colors = CardDefaults.cardColors(
-                containerColor = if(appUiState.isChatsButtonEnabled == isChatButton.Yes){
-                    MaterialTheme.colorScheme.secondaryContainer
-                }else{
-                    MaterialTheme.colorScheme.errorContainer
-                }
-            ),
-            modifier = modifier
-                .fillMaxWidth()
-                .padding(horizontal = 20.dp)
-                .height(80.dp)
-                .clickable(onClick = {
-                    if (appUiState.isChatsButtonEnabled == isChatButton.Yes) {
-                        chatsButton()
-                    }
-                },enabled = !appUiState.isLoading)
-            ,
-        ){
-            Column(
-                modifier = modifier.fillMaxHeight(),
-                verticalArrangement = Arrangement.Center
-            ){
-                Text(
-                    modifier = modifier
-                        .fillMaxWidth(),
-                    text = "Your Chats",
-                    textAlign = TextAlign.Center,
-                    fontSize = 30.sp
-                )
-                if(appUiState.isChatsButtonEnabled == isChatButton.No){
-                    Text(
-                        modifier = modifier
-                            .fillMaxWidth(),
-                        text = "Please register first",
-                        textAlign = TextAlign.Center,
-                        color = MaterialTheme.colorScheme.error
-                        )
-                }
-            }
-        }
+//        n
     }
     LoadingIndicator(isLoading = appUiState.isLoading)
 }

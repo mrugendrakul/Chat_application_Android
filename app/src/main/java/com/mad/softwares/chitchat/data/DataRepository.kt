@@ -68,6 +68,7 @@ class NetworkDataRepository(
     private val apiService: FirebaseApi
 ):DataRepository{
     override suspend fun getToken(): String? {
+        Log.d(TAG,"Token in data started")
         val token: String = coroutineScope {
             val token = async { apiService.getFCMToken() }
             token.await()
