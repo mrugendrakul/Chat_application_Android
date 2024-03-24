@@ -20,7 +20,8 @@ interface DataRepository {
     suspend fun loginUser(
         username: String,
         password: String,
-        currFcmToken: String
+        currFcmToken: String,
+        uniqueId:String
     ):User
 
     suspend fun verifyUserByUniqueId(
@@ -62,6 +63,8 @@ interface DataRepository {
     suspend fun getTokenForMemebers(members:List<String>,currentFcmToken:String):List<String>
 
     suspend fun getMyMessages(currentChatId:String):List<MessageReceived>
+
+    suspend fun deleteMessage(chatId: String)
 }
 
 class NetworkDataRepository(
@@ -107,35 +110,56 @@ class NetworkDataRepository(
             Log.d(TAG,"throw error in datarepo user regw")
             throw e
         }
+        Log.d(TAG,"Doc id for register in data is : $docId" )
        return docId
     }
 
-    override suspend fun loginUser(username: String, password: String, currFcmToken:String):User {
+    override suspend fun loginUser(
+        username: String,
+        password: String,
+        currFcmToken: String,
+        uniqueId: String
+    ):User {
         val loginUsers= coroutineScope{
             val logSuc = async{ apiService.loginUserAndPasswordSuccess(username, password) }
             logSuc.await()
         }
-        for(user in loginUsers){
-            if(user.fcmToken==""){
-                Log.d(TAG,"data login for ${user.username}")
-                val userr = user.copy(fcmToken = currFcmToken)
-                val newUser = coroutineScope {
-                    val logSuc = async { apiService.updateUserToDatabase(currUser = userr) }
-                    logSuc.await()
-                }
-                 return newUser
-            }
-            else if(user.fcmToken == "not valid"){
-                return user
-            }
-        }
-        val user = loginUsers[0].copy(fcmToken = currFcmToken)
+//        for(user in loginUsers){
+//            if(user.fcmToken==""){
+//                Log.d(TAG,"data login for ${user.username}")
+//                val userr = user.copy(fcmToken = currFcmToken)
+//                val newUser = coroutineScope {
+//                    val logSuc = async { apiService.updateUserToDatabase(currUser = userr) }
+//                    logSuc.await()
+//                }
+//                 return newUser
+//            }
+//            else if(user.fcmToken == "not valid"){
+//                return user
+//            }
+//        }
+//        val user = loginUsers[0].copy(fcmToken = currFcmToken)
+//
+//        val userr = coroutineScope {
+//            val logsuc = async { apiService.registerUserToDatabase(currUser = user) }
+//            logsuc.await()
+//        }
 
-        val userr = coroutineScope {
-            val logsuc = async { apiService.registerUserToDatabase(currUser = user) }
-            logsuc.await()
+        return  if(currFcmToken == "") {
+            Log.d(TAG,"User login in data started")
+            loginUsers[0]
+        } else{
+            Log.d(TAG,"user auth started in data")
+            val newUser = coroutineScope {
+                val logSuc = async { apiService.updateUserToDatabase(
+                    currUser = loginUsers[0],
+                    currFcmToken=currFcmToken,
+                    uniqueId = uniqueId
+                ) }
+                logSuc.await()
+            }
+             newUser
         }
-        return userr
     }
 
     override suspend fun verifyUserByUniqueId(uniqueId: String): Boolean {
@@ -304,5 +328,14 @@ class NetworkDataRepository(
             mess.await()
         }
         return messages.sortedBy { t->t.timeStamp }
+    }
+
+    override suspend fun deleteMessage(chatId: String) {
+        try{
+            apiService.deleteChat(chatId)
+        }
+        catch (e:Exception){
+            Log.d(TAG,"Error in data delete chatId: $chatId : $e")
+        }
     }
 }

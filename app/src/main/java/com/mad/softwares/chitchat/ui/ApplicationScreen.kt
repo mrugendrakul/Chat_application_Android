@@ -1,10 +1,5 @@
 package com.mad.softwares.chitchat.ui
 
-//import androidx.compose.material.icons.Icons
-//import androidx.compose.material.icons.filled.ArrowBack
-//import androidx.compose.material.icons.Icons
-//import androidx.compose.material.icons.filled.ArrowBack
-
 import android.util.Log
 import androidx.annotation.StringRes
 import androidx.compose.foundation.layout.padding
@@ -81,7 +76,8 @@ fun ApplicationScreen(
         sendMessageTo = {appViewModel.sendMessageTo()},
         updateMessage = {appViewModel.updateMessageToSend(it)},
         sendNotification = { appViewModel.sendNotification(it)},
-        getNewMessages = { appViewModel.getMessages()}
+        getNewMessages = { appViewModel.getMessages()},
+        chatDelete = {appViewModel.deleteChatUi()}
     )
 }
 
@@ -129,7 +125,8 @@ fun StartScreen(
     sendMessageTo : ()->Unit,
     updateMessage :(String)->Unit,
     sendNotification:(String)->Unit,
-    getNewMessages:()->Unit
+    getNewMessages:()->Unit,
+    chatDelete:()->Unit
 ) {
     val navController: NavHostController = rememberNavController()
     val backStackEntry by navController.currentBackStackEntryAsState()
@@ -302,7 +299,7 @@ fun StartScreen(
                         refreshing = appUiState.isRefreshing,
                         onRefresh = { reloadChats(true) }),
                     reloadChats = { reloadChats(false) },
-
+                    chatDelete = {chatDelete()}
                 )
             }
 

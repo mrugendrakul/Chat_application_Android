@@ -45,7 +45,9 @@ interface FirebaseApi {
     )
 
     suspend fun updateUserToDatabase(
-        currUser:User
+        currUser:User,
+        currFcmToken:String,
+        uniqueId: String
     ):User
 
     suspend fun registerUserToDatabase(
@@ -81,6 +83,8 @@ interface FirebaseApi {
     suspend fun getTokenForMemebers(members:List<String>):List<String>
 
     suspend fun getMessagesForChat(currentChatId: String):List<MessageReceived>
+
+    suspend fun deleteChat(chatId:String)
 }
 
 class NetworkFirebaseApi(
@@ -123,8 +127,10 @@ class NetworkFirebaseApi(
         Log.d(TAG,"updateCalled here")
         val docId = mutableListOf<String>()
         val sub = "no ID"
+        val tokens:ArrayList<String> = arrayListOf(fcmToken)
         val user = hashMapOf(
-            "fcmToken" to fcmToken,
+//            "fcmToken" to fcmToken,
+            "fcmTokens" to tokens,
             "password" to password,
             "profilePic" to profilePic,
             "uniqueId" to uniqueId,
@@ -132,24 +138,25 @@ class NetworkFirebaseApi(
         )
 
         val newUser = userCollection
-            .document(fcmToken)
+            .document(uniqueId)
             .set(user)
             .addOnSuccessListener {
-                Log.d(TAG,"registration success doc id : ${fcmToken}")
-                docId.add(fcmToken)
+                Log.d(TAG,"registration success doc id : ${uniqueId}")
+                docId.add(uniqueId)
             }
             .addOnFailureListener{e->
                 Log.d(TAG,"error adding because :" ,e)
                 throw e
             }
 
-        newUser.await()
-       return if (docId.isNotEmpty()) {
-           fcmToken
-        }
-        else{
-            sub
-        }
+        Log.d(TAG,"User details are : ${uniqueId}")
+        return uniqueId
+//       return if (docId.isNotEmpty()) {
+//           newUser.await().id
+//        }
+//        else{
+//            sub
+//        }
 
     }
 
@@ -208,17 +215,18 @@ class NetworkFirebaseApi(
                 .await()
 
             for(doc in querySnap.documents){
-                val fcmToken = doc.getString("fcmToken")?:""
                 val pass = doc.getString("password")?:""
                 val profilePic = doc.getString("profielPic")?:""
-                val uniqueId = doc.getString("uniqueId")?:""
+//                val uniqueId = doc.getString("uniqueId")?:""
                 val usern = doc.getString("username")?:""
-
+//
                 val docId = doc.id
-                val user = User(fcmToken,pass,profilePic,uniqueId, usern,docId)
+                val user = User("fcmToken",pass,profilePic,"uniqueId", usern,docId)
                 Log.d(TAG,"Login Found user with id : ${user.uniqueId} and doc id : ${doc.id}")
                 Users.add(user)
-
+//                userCollection
+//                    .document(uniqueId)
+//                    .update("fcmTokens",FieldValue.arrayUnion())
             }
 
         }
@@ -255,7 +263,7 @@ class NetworkFirebaseApi(
 
         try {
             val querySnapshop = userCollection
-                .whereEqualTo("fcmToken",Token)
+                .whereArrayContains("fcmTokens",Token)
                 .get()
                 .await()
             for(doc in querySnapshop.documents){
@@ -286,36 +294,51 @@ class NetworkFirebaseApi(
     }
 
     override suspend fun updateUserToDatabase(
-        currUser: User
+        currUser: User,
+        currFcmToken: String,
+        uniqueId: String
     ):User{
 
-        val newData = hashMapOf(
-            "fcmToken" to currUser.fcmToken,
-            "password" to currUser.password,
-            "profilePic" to currUser.profilePic,
-            "uniqueId" to currUser.uniqueId,
-            "username" to currUser.username
-        )
+//        val newData = hashMapOf(
+//            "fcmToken" to currUser.fcmToken,
+//            "password" to currUser.password,
+//            "profilePic" to currUser.profilePic,
+//            "uniqueId" to currUser.uniqueId,
+//            "username" to currUser.username
+//        )
 
+//        val updateUser = userCollection
+//            .document(currUser.docId)
+//            .update(newData as Map<String, Any>)
+//            .addOnSuccessListener {
+//                Log.d(TAG,"Successfully updated : ${currUser.docId}")
+////                docIds.add(it.id)
+//            }
+//            .addOnFailureListener{e->
+//                Log.d(TAG,"Failure to update")
+//                throw e
+//            }
+        Log.d(TAG,"Update started in api ")
         val updateUser = userCollection
-            .document(currUser.docId)
-            .update(newData as Map<String, Any>)
-            .addOnSuccessListener {
-                Log.d(TAG,"Successfully updated : ${currUser.docId}")
-//                docIds.add(it.id)
-            }
-            .addOnFailureListener{e->
-                Log.d(TAG,"Failure to update")
-                throw e
-            }
+            .document(uniqueId)
+            .update("fcmTokens",FieldValue.arrayUnion(currFcmToken))
+
+        try
+        { updateUser.await() }
+        catch (e:Exception){
+            Log.d(TAG,"Unable to add te user : $e")
+        }
+        Log.d(TAG,"Update ended in the api")
         return User(
-            fcmToken = currUser.fcmToken,
+            fcmToken = currFcmToken,
             password = currUser.password,
             profilePic = currUser.profilePic,
             uniqueId = currUser.uniqueId,
             username = currUser.username,
             docId = currUser.docId
         )
+
+
     }
 
     override suspend fun registerUserToDatabase(
@@ -334,11 +357,10 @@ class NetworkFirebaseApi(
         )
 
         val newUserId = userCollection
-            .document(currUser.fcmToken)
-            .set(user)
+            .add(user)
             .addOnSuccessListener {
-                Log.d(TAG,"registration success doc id : ${currUser.fcmToken}")
-                docId.add(currUser.fcmToken)
+                Log.d(TAG,"registration success doc id : ${it.id}")
+                docId.add(it.id)
             }
             .addOnFailureListener{e->
                 Log.d(TAG,"error adding because :" ,e)
@@ -351,9 +373,9 @@ class NetworkFirebaseApi(
                 currUser.profilePic,
                 currUser.uniqueId,
                 currUser.username,
-                docId = currUser.fcmToken
+                docId = newUserId.await().id
             )
-
+        Log.d(TAG,"User details are : ${newUser}")
         return newUser
 
     }
@@ -374,7 +396,7 @@ class NetworkFirebaseApi(
                 Log.d(TAG,"Logout for user id success : ${currUser.uniqueId}")
             }
             .addOnFailureListener{e->
-                Log.d(TAG,"Failure to Logout")
+                Log.d(TAG,"Failure to Logout : $e")
                 throw e
             }
     }
@@ -530,6 +552,7 @@ class NetworkFirebaseApi(
             .addOnFailureListener{e->
                 Log.d(TAG,"failed to add to the database : $e")
             }
+//        chatsCollection.document(message.chatId).collection("messages")
     }
 
     override suspend fun getTokenForMemebers(members: List<String>): List<String> {
@@ -591,5 +614,17 @@ class NetworkFirebaseApi(
         }
 
         return messages
+    }
+
+    override suspend fun deleteChat(chatId: String) {
+        try {
+            chatsCollection
+                .document(chatId)
+                .delete()
+        }
+        catch (e:Exception){
+            Log.d(TAG,"Error in api to delete chatId ${chatId} : ${e}")
+            throw e
+        }
     }
 }

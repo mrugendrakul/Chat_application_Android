@@ -65,17 +65,18 @@ class chitChatViewModel(
         ) }
         viewModelScope.launch{
             val ton = dataRepository.getToken()
-
-            if(ton!=""){
-                Log.d(TAG, "Token is $ton")
-                _uiState.update { current -> current.copy(fcmToken = ton ?: "Null token") }
-                getUserFromToken(ton ?: "Blank")
-            }
-            else{
-                Log.e(TAG,"Error token is : $ton")
-                Log.e(TAG,"Error to get token properly should no go anywhere")
-//                getFCMTokenAndUser()
-            }
+            _uiState.update { current -> current.copy(fcmToken = ton ?: "Null token") }
+            getUserFromToken(ton ?: "Blank")
+//            if(ton!=""){
+//                Log.d(TAG, "Token is $ton")
+//                _uiState.update { current -> current.copy(fcmToken = ton ?: "Null token") }
+//                getUserFromToken(ton ?: "Blank")
+//            }
+//            else{
+//                Log.e(TAG,"Error token is : $ton")
+//                Log.e(TAG,"Error to get token properly should no go anywhere")
+////                getFCMTokenAndUser()
+//            }
         }
 
     }
@@ -168,68 +169,32 @@ class chitChatViewModel(
                     isLoading = true
                 ) }
                 try{
-//                    delay(Random.nextLong(2000, 5001))
-                    if(_uiState.value.isChatsButtonEnabled == ChatScreens.Start){
-                        Log.d(TAG,"Registerd the user")
-                       val docId: Deferred<String> =async {
-                           dataRepository.registerUser(
-                               fcmToken = _uiState.value.fcmToken,
-                               password = _uiState.value.password,
-                               profilePic = _uiState.value.profilePic,
-                               uniqueId = _uiState.value.uniqueAuth,
-                               username = _uiState.value.userName,
-                           )
-                       }
+                    Log.d(TAG,"Registerd the user")
+                   val docId: Deferred<String> =async {
+                       dataRepository.registerUser(
+                           fcmToken = _uiState.value.fcmToken,
+                           password = _uiState.value.password,
+                           profilePic = _uiState.value.profilePic,
+                           uniqueId = _uiState.value.uniqueAuth,
+                           username = _uiState.value.userName,
+                       )
+                   }
 //                        docId.await()
-                        val newMyUserData:User = _uiState.value.myUserData.copy(
-                            fcmToken = _uiState.value.fcmToken,
-                            password = _uiState.value.password,
-                            uniqueId = _uiState.value.uniqueAuth,
-                            username = _uiState.value.userName,
-                            profilePic = _uiState.value.profilePic,
-                            docId = docId.await()
-                        )
-                        _uiState.update { cr->cr.copy(
-                            passIsSuccess = true,
-                            isLoading = false,
-                            regsSuccess = true,
-//                            isChatsButtonEnabled = isChatButton.Yes,
-                            myUserData = newMyUserData
-                        ) }
-                    }
-                    else{
-                        Log.d(TAG,"Updated the user")
-                       dataRepository.updateUser(
-                            fcmToken = _uiState.value.fcmToken,
-                            password = _uiState.value.password,
-                            profilePic = _uiState.value.profilePic,
-                            uniqueId = _uiState.value.uniqueAuth,
-                            username = _uiState.value.userName,
-                            docId = _uiState.value.myUserData.docId
-                        )
-                        val newMyUserData:User = _uiState.value.myUserData.copy(
-                            fcmToken = _uiState.value.fcmToken,
-                            password = _uiState.value.password,
-                            uniqueId = _uiState.value.uniqueAuth,
-                            username = _uiState.value.userName,
-                            profilePic = _uiState.value.profilePic,
-                            docId = _uiState.value.myUserData.docId
-                        )
-                        _uiState.update { cr->cr.copy(
-                            passIsSuccess = true,
-                            isLoading = false,
-                            regsSuccess = true,
-//                            isChatsButtonEnabled = isChatButton.Yes,
-                            myUserData = newMyUserData
-                        ) }
-                    }
-
+                    val newMyUserData:User = _uiState.value.myUserData.copy(
+                        fcmToken = _uiState.value.fcmToken,
+                        password = _uiState.value.password,
+                        uniqueId = _uiState.value.uniqueAuth,
+                        username = _uiState.value.userName,
+                        profilePic = _uiState.value.profilePic,
+                        docId = docId.await()
+                    )
+                    Log.d(TAG,"User regs in viewmodel is : $newMyUserData")
                     _uiState.update { cr->cr.copy(
                         passIsSuccess = true,
                         isLoading = false,
                         regsSuccess = true,
-//                        isChatsButtonEnabled = isChatButton.Yes,
-//                        myUserData = newMyUserData
+//                            isChatsButtonEnabled = isChatButton.Yes,
+                        myUserData = newMyUserData
                     ) }
                     Log.d(TAG,"myUserData is : ${_uiState.value.myUserData}")
                 }
@@ -267,17 +232,19 @@ class chitChatViewModel(
         Log.d(TAG,"login viewmodel called")
         _uiState.update { cr->cr.copy(
             loginSuccess = false,
-            isLoading = true
+            isLoading = true,
+            uniqueAuth = ""
         ) }
         viewModelScope.launch{
 //            delay(Random.nextLong(2000, 5001))
             if(!dataRepository.usernameExist(_uiState.value.userName)) {
                 val logSucc: User = try {
                     val login: Deferred<User> = async{dataRepository.loginUser(
-                        _uiState.value.userName,
-                        _uiState.value.password,
+                        username = _uiState.value.userName,
+                        password = _uiState.value.password,
 //                        _uiState.value.fcmToken,
-                        ""
+                        currFcmToken = "",
+                        uniqueId = ""
                     )}
                     login.await()
                 } catch (e: Exception) {
@@ -365,7 +332,8 @@ class chitChatViewModel(
                 dataRepository.loginUser(
                     username = _uiState.value.userName,
                     password = _uiState.value.password,
-                    currFcmToken = _uiState.value.fcmToken
+                    currFcmToken = _uiState.value.fcmToken,
+                    uniqueId = _uiState.value.uniqueAuth
                 )
                 _uiState.update { cr ->
                     cr.copy(
@@ -517,7 +485,7 @@ class chitChatViewModel(
     }
 
     fun updateAllTheUsers(isForced:Boolean = false){
-        if(_uiState.value.isUsersLoading == isUsernamesLoading.Loading || _uiState.value.isUsersLoading == isUsernamesLoading.Failed || isForced || true)
+        if(_uiState.value.isUsersLoading == isUsernamesLoading.Loading || _uiState.value.isUsersLoading == isUsernamesLoading.Failed || isForced == true)
         {
             Log.d(TAG, "Update user trigged")
             _uiState.update {
@@ -751,6 +719,18 @@ class chitChatViewModel(
                 } catch (e: Exception) {
                     Log.d(TAG, "unable to send notification viewmodel")
                 }
+            }
+        }
+    }
+
+    fun deleteChatUi(){
+        viewModelScope.launch {
+            try {
+                dataRepository.deleteMessage(chatId = _uiState.value.currentChat.chatId)
+                getAllAvailableChats(true)
+            }
+            catch (e:Exception){
+                Log.e(TAG,"Error in viewmodel for delete chat")
             }
         }
     }

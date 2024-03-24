@@ -4,7 +4,6 @@ import android.app.Activity
 import android.content.Context
 import android.content.res.Configuration
 import android.util.Log
-import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
@@ -14,6 +13,8 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.wrapContentSize
+import androidx.compose.foundation.layout.wrapContentWidth
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.material.ExperimentalMaterialApi
@@ -44,12 +45,10 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
-import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.tooling.preview.Wallpapers
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import com.mad.softwares.chitchat.R
 import com.mad.softwares.chitchat.data.Chats
 import com.mad.softwares.chitchat.data.User
 import com.mad.softwares.chitchat.data.uiState
@@ -63,13 +62,16 @@ fun AllChats(
     user: User,
     addChat: () -> Unit,
     refreshState: PullRefreshState,
-    reloadChats:()->Unit,
+    reloadChats: () -> Unit,
     currentChat: (Chats) -> Unit,
-){
-    Log.d(TAG,"Naviaged to all chats")
-    Box(modifier = Modifier
-        .pullRefresh(refreshState)
-        .padding(horizontal = 10.dp)){
+    chatDelete:()->Unit
+) {
+    Log.d(TAG, "Naviaged to all chats")
+    Box(
+        modifier = Modifier
+            .pullRefresh(refreshState)
+            .padding(horizontal = 10.dp)
+    ) {
         when (appUiState.isMyChatsLoading) {
             isChatsLoading.Success -> {
                 AllChatsSuccess(
@@ -79,8 +81,8 @@ fun AllChats(
                     addChat = addChat,
                     refreshState = refreshState,
                     currentChat = currentChat,
-
-                )
+                    chatDelete = chatDelete
+                    )
             }
 
             isChatsLoading.Loading -> {
@@ -120,33 +122,35 @@ fun AllChats(
 @OptIn(ExperimentalMaterialApi::class)
 @Composable
 fun AllChatsSuccess(
-    backHandler:()->Unit,
-    appUiState:uiState,
+    backHandler: () -> Unit,
+    appUiState: uiState,
     user: User,
-    addChat:()->Unit,
+    addChat: () -> Unit,
     refreshState: PullRefreshState,
     currentChat: (Chats) -> Unit,
-){
-    var isCardEnabled by remember{
+    chatDelete:()->Unit
+) {
+    var isCardEnabled by remember {
         mutableStateOf(true)
     }
     Scaffold(
         topBar = {},
         floatingActionButton = {
-            FloatingActionButton(onClick = { addChat()}) {
+            FloatingActionButton(onClick = { addChat() }) {
                 Icon(
                     imageVector = Icons.Rounded.Add,
                     tint = MaterialTheme.colorScheme.onSecondaryContainer,
-                    contentDescription = "")
+                    contentDescription = ""
+                )
             }
         }
-    ){
+    ) {
         Box(
             modifier = Modifier
                 .fillMaxSize()
                 .padding(it)
                 .pullRefresh(refreshState)
-        ){
+        ) {
 //            Column{
 //                Text(text = "Here all The chats wiil be displayed")
 //                Text(text = "Current userId is : ${appUiState.myUserData.username}")
@@ -156,13 +160,17 @@ fun AllChatsSuccess(
                     .fillMaxSize(),
 //                    .padding(bottom = 100.dp),
                 contentPadding = PaddingValues(bottom = 100.dp)
-            ){
-                items(appUiState.allAvailableChats){chat->
-                    Chat(chat = chat,
-                        currentChat = { currentChat(it)
-                            isCardEnabled = !isCardEnabled},
+            ) {
+                items(appUiState.allAvailableChats) { chat ->
+                    Chat(
+                        chat = chat,
+                        currentChat = {
+                            currentChat(it)
+                            isCardEnabled = !isCardEnabled
+                        },
 
-                        isCardEnabled = isCardEnabled
+                        isCardEnabled = isCardEnabled,
+                        chatDelete = chatDelete
                     )
                 }
             }
@@ -170,7 +178,7 @@ fun AllChatsSuccess(
 
         }
     }
-    
+
     val context = LocalContext.current
     BackHandler {
         backHandler()
@@ -181,13 +189,13 @@ fun AllChatsSuccess(
 @OptIn(ExperimentalMaterialApi::class)
 @Composable
 fun AllChatsLoading(
-    backHandler:()->Unit,
-    appUiState:uiState,
+    backHandler: () -> Unit,
+    appUiState: uiState,
     user: User,
-    addChat:()->Unit,
+    addChat: () -> Unit,
     refreshState: PullRefreshState,
 //    currentChat: (String) -> Unit
-){
+) {
     Scaffold(
         topBar = {},
 //        floatingActionButton = {
@@ -198,13 +206,13 @@ fun AllChatsLoading(
 //                    contentDescription = "")
 //            }
 //        }
-    ){
+    ) {
         Box(
             modifier = Modifier
                 .fillMaxSize()
                 .padding(it)
 //                .pullRefresh(state = refreshState)
-        ){
+        ) {
 //            Column{
 //                Text(text = "Here all The chats wiil be displayed")
 //                Text(text = "Current userId is : ${appUiState.myUserData.username}")
@@ -213,8 +221,8 @@ fun AllChatsLoading(
                 modifier = Modifier,
 //                    .padding(bottom = 100.dp),
                 contentPadding = PaddingValues(bottom = 100.dp)
-            ){
-                items(8){chat->
+            ) {
+                items(8) { chat ->
                     ChatLoading()
                 }
             }
@@ -237,7 +245,7 @@ fun AllChatsLoading(
 }
 
 @Composable
-fun ChatLoading(){
+fun ChatLoading() {
     Card(
         modifier = Modifier
             .fillMaxWidth()
@@ -258,7 +266,7 @@ fun ChatLoading(){
                     containerColor = MaterialTheme.colorScheme.onSecondary
                 )
             )
-             {}
+            {}
             Spacer(Modifier.height(15.dp))
             Card(
                 modifier = Modifier
@@ -276,12 +284,12 @@ fun ChatLoading(){
 @Composable
 fun Chat(
     chat: Chats,
-    currentChat:(Chats)->Unit,
-
-    isCardEnabled:Boolean
-){
+    currentChat: (Chats) -> Unit,
+    isCardEnabled: Boolean,
+    chatDelete: () -> Unit
+) {
     var expanded by remember {
-        mutableStateOf(true)
+        mutableStateOf(false)
     }
     Card(
         modifier = Modifier
@@ -293,14 +301,15 @@ fun Chat(
 
         },
         enabled = isCardEnabled
-//        border = BorderStroke(5.dp,MaterialTheme.colorScheme.primary)
-//        onClick = currentChat(chat.chatId)
-    ) {
+        //        border = BorderStroke(5.dp,MaterialTheme.colorScheme.primary)
+        //        onClick = currentChat(chat.chatId)
+    )
+    {
         Row(
             modifier = Modifier
                 .fillMaxWidth(),
             verticalAlignment = Alignment.CenterVertically
-        ){
+        ) {
             Column(
                 modifier = Modifier
                     .padding(10.dp)
@@ -316,21 +325,30 @@ fun Chat(
                 )
             }
             Spacer(modifier = Modifier.weight(1f))
-            IconButton(onClick = { expanded = !expanded }) {
-                Icon(
-                    imageVector = Icons.Default.MoreVert,
-                    contentDescription = "Delete Chat")
+            Box(modifier = Modifier
+//                .fillMaxWidth()
+                .wrapContentSize(Alignment.BottomEnd)
+            ){
+                IconButton(onClick = { expanded = !expanded }) {
+                    Icon(
+                        imageVector = Icons.Default.MoreVert,
+                        contentDescription = "Delete Chat"
+                    )
+                }
+                DropdownMenu(
+                    expanded = expanded,
+                    onDismissRequest = { expanded = false },
+                )
+                {
+                    DropdownMenuItem(
+                        text = { Text(text = "Delete chat") },
+                        onClick = { chatDelete() })
+                }
             }
         }
-        DropdownMenu(
-            expanded = expanded,
-            onDismissRequest = { expanded = false },
-        )
-        {
-            DropdownMenuItem(
-                text = { Text(text = "Delete chat") },
-                onClick = { expanded = false })
-        }
+
+
+
     }
 
 }
@@ -338,12 +356,12 @@ fun Chat(
 @Composable
 fun AllChatsFailed(
     reloadChats: () -> Unit
-){
+) {
     Column {
         Text(text = "Unable to load the chats please refresh this page")
         Button(
             onClick = reloadChats
-        ){
+        ) {
             Text(text = "Reload Chats")
         }
     }
@@ -356,7 +374,7 @@ fun AllChatsFailed(
     wallpaper = Wallpapers.GREEN_DOMINATED_EXAMPLE
 )
 @Composable
-fun PreviewAllChats(){
+fun PreviewAllChats() {
     ChitChatTheme(
         dynamicColor = false
     ) {
@@ -376,7 +394,7 @@ fun PreviewAllChats(){
                     Chats(chatName = "friend1"),
                     Chats(chatName = "friend1"),
 
-                ),
+                    ),
                 isMyChatsLoading = isChatsLoading.Success
             ),
             user = User(),
@@ -384,24 +402,25 @@ fun PreviewAllChats(){
             refreshState = rememberPullRefreshState(refreshing = false, onRefresh = { /*TODO*/ }),
             currentChat = {},
             reloadChats = {},
-
+            chatDelete = {}
             )
     }
 }
 
 @Preview(uiMode = Configuration.UI_MODE_NIGHT_NO or Configuration.UI_MODE_TYPE_NORMAL)
 @Composable
-fun PreviewAChat(){
+fun PreviewAChat() {
     ChitChatTheme {
         Chat(
-            chat = Chats("","MyFriend"),
+            chat = Chats("", "MyFriend"),
             currentChat = {},
-            isCardEnabled = false
+            isCardEnabled = false,
+            chatDelete = {}
         )
     }
 }
 
-fun onBackPressed(context: Context){
+fun onBackPressed(context: Context) {
     (context as? Activity)?.finishAffinity()
 //    System.exit(0)
 }

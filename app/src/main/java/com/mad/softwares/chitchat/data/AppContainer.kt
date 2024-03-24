@@ -17,7 +17,6 @@ class DefaultAppContainer : AppContainer{
     private val messagesCollection = db.collection("Messages")
 
 
-
     override val apiService: FirebaseApi = NetworkFirebaseApi(db,userCollection,chatsCollection,messagesCollection,)
     override val dataRepository: DataRepository = NetworkDataRepository(apiService)
 }
