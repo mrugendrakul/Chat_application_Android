@@ -452,7 +452,8 @@ class chitChatViewModel(
                     _uiState.update { cr ->
                         cr.copy(
                             isPasswordResetSuccess = isPasswordReset.Yes,
-                            isLoading = false
+                            isLoading = false,
+                            userNameExist = true
                         )
                     }
                 }else{
@@ -723,10 +724,10 @@ class chitChatViewModel(
         }
     }
 
-    fun deleteChatUi(){
+    fun deleteChatUi(chatId:String){
         viewModelScope.launch {
             try {
-                dataRepository.deleteMessage(chatId = _uiState.value.currentChat.chatId)
+                dataRepository.deleteChat(chatId = chatId)
                 getAllAvailableChats(true)
             }
             catch (e:Exception){

@@ -30,14 +30,14 @@ interface DataRepository {
 
     suspend fun getUserDataUsingtoken(Token:String):User
 
-    suspend fun updateUser(
-        fcmToken:String,
-        password:String,
-        profilePic:String,
-        uniqueId:String,
-        username:String,
-        docId:String
-    )
+//    suspend fun updateUser(
+//        fcmToken:String,
+//        password:String,
+//        profilePic:String,
+//        uniqueId:String,
+//        username:String,
+//        docId:String
+//    )
 
     suspend fun logoutUser(currUser:User)
 
@@ -64,7 +64,7 @@ interface DataRepository {
 
     suspend fun getMyMessages(currentChatId:String):List<MessageReceived>
 
-    suspend fun deleteMessage(chatId: String)
+    suspend fun deleteChat(chatId: String)
 }
 
 class NetworkDataRepository(
@@ -151,7 +151,7 @@ class NetworkDataRepository(
         } else{
             Log.d(TAG,"user auth started in data")
             val newUser = coroutineScope {
-                val logSuc = async { apiService.updateUserToDatabase(
+                val logSuc = async { apiService.loginUserToDatabase(
                     currUser = loginUsers[0],
                     currFcmToken=currFcmToken,
                     uniqueId = uniqueId
@@ -178,36 +178,37 @@ class NetworkDataRepository(
         return userData
     }
 
-    override suspend fun updateUser(
-        fcmToken: String,
-        password: String,
-        profilePic: String,
-        uniqueId: String,
-        username: String,
-        docId: String
-    ){
-        try{
-           coroutineScope{
-                val regs = async{
-                    apiService.updateUserToDatabase(
-                        fcmToken, password, profilePic, uniqueId, username,docId
-                    )
-                }
-                regs.await()
-            }
-        }
-        catch (e:Exception){
-            Log.d(TAG,"throw error in datarepo user regw")
-            throw e
-        }
-
-    }
+//    override suspend fun updateUser(
+//        fcmToken: String,
+//        password: String,
+//        profilePic: String,
+//        uniqueId: String,
+//        username: String,
+//        docId: String
+//    ){
+//        try{
+//           coroutineScope{
+//                val regs = async{
+//                    apiService.updateUserToDatabase(
+//                        fcmToken, password, profilePic, uniqueId, username,docId
+//                    )
+//                }
+//                regs.await()
+//            }
+//        }
+//        catch (e:Exception){
+//            Log.d(TAG,"throw error in datarepo user regw")
+//            throw e
+//        }
+//
+//    }
 
     override suspend fun logoutUser(currUser: User) {
         try{
-            Log.d(TAG,"Logout startd in data")
-            val curr = currUser.copy(fcmToken = "")
-            apiService.logoutUser(curr)
+            Log.d(TAG,"Logout startd in data for usr : $currUser")
+//            val curr = currUser.copy(fcmToken = "")
+            apiService.logoutUser(currUser)
+            Log.d(TAG,"Logout successful")
         }
         catch (e:Exception){
             Log.d(TAG,"unable to logout from datarepo")
@@ -330,7 +331,7 @@ class NetworkDataRepository(
         return messages.sortedBy { t->t.timeStamp }
     }
 
-    override suspend fun deleteMessage(chatId: String) {
+    override suspend fun deleteChat(chatId: String) {
         try{
             apiService.deleteChat(chatId)
         }

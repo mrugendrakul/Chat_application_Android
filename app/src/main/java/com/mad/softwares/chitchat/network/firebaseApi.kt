@@ -35,16 +35,16 @@ interface FirebaseApi {
     suspend fun loginUserAndPasswordSuccess(username: String,password: String):List<User>
     suspend fun authenticateWithUniqueId(uniqueId: String):Boolean
     suspend fun getUserFromTokenInDatabase(Token:String):User
-    suspend fun updateUserToDatabase(
-        fcmToken:String,
-        password:String,
-        profilePic:String,
-        uniqueId:String,
-        username:String,
-        docId:String
-    )
+//    suspend fun updateUserToDatabase(
+//        fcmToken:String,
+//        password:String,
+//        profilePic:String,
+//        uniqueId:String,
+//        username:String,
+//        docId:String
+//    )
 
-    suspend fun updateUserToDatabase(
+    suspend fun loginUserToDatabase(
         currUser:User,
         currFcmToken:String,
         uniqueId: String
@@ -160,35 +160,35 @@ class NetworkFirebaseApi(
 
     }
 
-    override suspend fun updateUserToDatabase(
-        fcmToken:String,
-        password:String,
-        profilePic:String,
-        uniqueId:String,
-        username:String,
-        docId:String
-    ){
-
-        val newData = hashMapOf(
-            "fcmToken" to fcmToken,
-            "password" to password,
-            "profilePic" to profilePic,
-            "uniqueId" to uniqueId,
-            "username" to username
-        )
-        userCollection
-            .document(docId)
-            .update(newData as Map<String, Any>)
-            .addOnSuccessListener {
-                Log.d(TAG,"Successfully updated : ${docId}")
-
-            }
-            .addOnFailureListener{e->
-                Log.d(TAG,"Failure to update")
-                throw e
-            }
-
-    }
+//    override suspend fun updateUserToDatabase(
+//        fcmToken:String,
+//        password:String,
+//        profilePic:String,
+//        uniqueId:String,
+//        username:String,
+//        docId:String
+//    ){
+//
+//        val newData = hashMapOf(
+//            "fcmToken" to fcmToken,
+//            "password" to password,
+//            "profilePic" to profilePic,
+//            "uniqueId" to uniqueId,
+//            "username" to username
+//        )
+//        userCollection
+//            .document(docId)
+//            .update(newData as Map<String, Any>)
+//            .addOnSuccessListener {
+//                Log.d(TAG,"Successfully updated : ${docId}")
+//
+//            }
+//            .addOnFailureListener{e->
+//                Log.d(TAG,"Failure to update")
+//                throw e
+//            }
+//
+//    }
 
     override suspend fun checkUsernameExist(username: String): Boolean {
         return try{
@@ -267,14 +267,14 @@ class NetworkFirebaseApi(
                 .get()
                 .await()
             for(doc in querySnapshop.documents){
-                val fcmToken = doc.getString("fcmToken")?:""
+
                 val password = doc.getString("password")?:""
                 val profilePic = doc.getString("profielPic")?:""
                 val uniqueId = doc.getString("uniqueId")?:""
                 val username = doc.getString("username")?:""
 
                 val docId = doc.id
-                val user = User(fcmToken,password,profilePic,uniqueId, username,docId)
+                val user = User(Token,password,profilePic,uniqueId, username,docId)
                 Log.d(TAG,"Got user with id : ${user.uniqueId} and doc id : ${doc.id}")
                 Users.add(user)
             }
@@ -293,7 +293,7 @@ class NetworkFirebaseApi(
 
     }
 
-    override suspend fun updateUserToDatabase(
+    override suspend fun loginUserToDatabase(
         currUser: User,
         currFcmToken: String,
         uniqueId: String
@@ -381,24 +381,38 @@ class NetworkFirebaseApi(
     }
 
     override suspend fun logoutUser(currUser: User){
-        val newData = hashMapOf(
-            "fcmToken" to currUser.fcmToken,
-            "password" to currUser.password,
-            "profilePic" to currUser.profilePic,
-            "uniqueId" to currUser.uniqueId,
-            "username" to currUser.username
-        )
+//        val newData = hashMapOf(
+//            "fcmToken" to currUser.fcmToken,
+//            "password" to currUser.password,
+//            "profilePic" to currUser.profilePic,
+//            "uniqueId" to currUser.uniqueId,
+//            "username" to currUser.username
+//        )
 
-        userCollection
-            .document(currUser.docId)
-            .update(newData as Map<String, Any>)
-            .addOnSuccessListener {
-                Log.d(TAG,"Logout for user id success : ${currUser.uniqueId}")
-            }
-            .addOnFailureListener{e->
-                Log.d(TAG,"Failure to Logout : $e")
-                throw e
-            }
+//        userCollection
+//            .document(currUser.docId)
+//            .update(newData as Map<String, Any>)
+//            .addOnSuccessListener {
+//                Log.d(TAG,"Logout for user id success : ${currUser.uniqueId}")
+//            }
+//            .addOnFailureListener{e->
+//                Log.d(TAG,"Failure to Logout : $e")
+//                throw e
+//            }
+        Log.d(TAG,"Logout started for userId: ${currUser.uniqueId}")
+        val updateUser = userCollection
+            .document(currUser.uniqueId)
+            .update("fcmTokens",FieldValue.arrayRemove(currUser.fcmToken))
+
+        try
+        {
+            updateUser.await()
+            Log.d(TAG,"Logout successful : ${updateUser.await()}")
+        }
+        catch (e:Exception){
+            Log.d(TAG,"Unable to logout the user : $e")
+            throw e
+        }
     }
 
     override suspend fun resetPassword(
@@ -410,7 +424,7 @@ class NetworkFirebaseApi(
         val list = mutableListOf<String>()
         Log.d(TAG,"reset Started api")
         try{
-            Log.d(TAG,"reset Success api")
+
             val querySnapshot = userCollection
                 .whereEqualTo("username", username)
                 .whereEqualTo("uniqueId", uniqueId)
@@ -421,9 +435,10 @@ class NetworkFirebaseApi(
                 Log.d(TAG,"Updated user with id ${document.id}")
                 userCollection
                     .document(document.id)
-                    .update("password", newPassword,"fcmToken","")
+                    .update("password", newPassword,"fcmTokens", arrayListOf<String>())
                 list.add(document.id)
             }
+            Log.d(TAG,"reset Success api")
         }catch (e:Exception){
             Log.d(TAG,"reset failed api")
             return listOf()
@@ -544,13 +559,13 @@ class NetworkFirebaseApi(
             "timeStamp" to FieldValue.serverTimestamp()
         )
 
-        messagesCollection
+        chatsCollection.document(message.chatId,).collection("messages")
             .add(newMessage)
             .addOnSuccessListener {
                 Log.d(TAG,"message added successfully")
             }
             .addOnFailureListener{e->
-                Log.d(TAG,"failed to add to the database : $e")
+                Log.e(TAG,"failed to add to the database : $e")
             }
 //        chatsCollection.document(message.chatId).collection("messages")
     }
@@ -566,7 +581,7 @@ class NetworkFirebaseApi(
                    Log.d(TAG,"Successfully got token for $member")
                }
                .addOnFailureListener { e->
-                   Log.d(TAG,"Failed to get the token for $member")
+                   Log.e(TAG,"Failed to get the token for $member")
                }
 //            val currToken = querySnap.await().documents
             for(doc in querySnap.await().documents){
@@ -592,14 +607,13 @@ class NetworkFirebaseApi(
         val messages = mutableListOf<MessageReceived>()
 
         Log.d(TAG,"message getting started in api")
-        val messageGet = messagesCollection
-            .whereEqualTo("chatId",currentChatId)
+        val messageGet = chatsCollection.document(currentChatId).collection("messages")
             .get()
             .addOnSuccessListener {
                 Log.d(TAG,"message got successfully")
             }
             .addOnFailureListener{e->
-                Log.d(TAG,"Failed to get messages : $e")
+                Log.e(TAG,"Failed to get messages : $e")
                 throw e
             }
 
@@ -621,9 +635,10 @@ class NetworkFirebaseApi(
             chatsCollection
                 .document(chatId)
                 .delete()
+            Log.d(TAG,"Success to delete the chat : $chatId")
         }
         catch (e:Exception){
-            Log.d(TAG,"Error in api to delete chatId ${chatId} : ${e}")
+            Log.e(TAG,"Error in api to delete chatId ${chatId} : ${e}")
             throw e
         }
     }

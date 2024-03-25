@@ -77,7 +77,7 @@ fun ApplicationScreen(
         updateMessage = {appViewModel.updateMessageToSend(it)},
         sendNotification = { appViewModel.sendNotification(it)},
         getNewMessages = { appViewModel.getMessages()},
-        chatDelete = {appViewModel.deleteChatUi()}
+        chatDelete = {appViewModel.deleteChatUi(it)}
     )
 }
 
@@ -126,7 +126,7 @@ fun StartScreen(
     updateMessage :(String)->Unit,
     sendNotification:(String)->Unit,
     getNewMessages:()->Unit,
-    chatDelete:()->Unit
+    chatDelete:(String)->Unit
 ) {
     val navController: NavHostController = rememberNavController()
     val backStackEntry by navController.currentBackStackEntryAsState()
@@ -299,7 +299,7 @@ fun StartScreen(
                         refreshing = appUiState.isRefreshing,
                         onRefresh = { reloadChats(true) }),
                     reloadChats = { reloadChats(false) },
-                    chatDelete = {chatDelete()}
+                    chatDelete = {chatDelete(it)}
                 )
             }
 

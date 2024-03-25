@@ -64,7 +64,7 @@ fun AllChats(
     refreshState: PullRefreshState,
     reloadChats: () -> Unit,
     currentChat: (Chats) -> Unit,
-    chatDelete:()->Unit
+    chatDelete:(String)->Unit
 ) {
     Log.d(TAG, "Naviaged to all chats")
     Box(
@@ -81,7 +81,7 @@ fun AllChats(
                     addChat = addChat,
                     refreshState = refreshState,
                     currentChat = currentChat,
-                    chatDelete = chatDelete
+                    chatDelete = { chatDelete(it) }
                     )
             }
 
@@ -128,7 +128,7 @@ fun AllChatsSuccess(
     addChat: () -> Unit,
     refreshState: PullRefreshState,
     currentChat: (Chats) -> Unit,
-    chatDelete:()->Unit
+    chatDelete:(String)->Unit
 ) {
     var isCardEnabled by remember {
         mutableStateOf(true)
@@ -170,7 +170,7 @@ fun AllChatsSuccess(
                         },
 
                         isCardEnabled = isCardEnabled,
-                        chatDelete = chatDelete
+                        chatDelete = { chatDelete(chat.chatId) }
                     )
                 }
             }
