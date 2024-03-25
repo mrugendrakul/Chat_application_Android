@@ -1,33 +1,29 @@
 package com.mad.softwares.chitchat.ui
 
-import android.annotation.SuppressLint
-import androidx.compose.foundation.gestures.scrollBy
-import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.animation.AnimatedVisibility
+import androidx.compose.animation.animateContentSize
+import androidx.compose.animation.core.LinearOutSlowInEasing
+import androidx.compose.animation.core.Spring
+import androidx.compose.animation.core.spring
+import androidx.compose.animation.core.tween
+import androidx.compose.animation.slideInHorizontally
+import androidx.compose.animation.slideOutHorizontally
+import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
-import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.foundation.layout.fillMaxHeight
-import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.layout.height
-import androidx.compose.foundation.layout.ime
-import androidx.compose.foundation.layout.imePadding
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
-import androidx.compose.foundation.layout.systemBars
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.lazy.rememberLazyListState
-import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.Send
-import androidx.compose.material.icons.filled.Send
-import androidx.compose.material3.Button
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.ElevatedCard
@@ -37,18 +33,14 @@ import androidx.compose.material3.IconButton
 import androidx.compose.material3.IconButtonDefaults
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedTextField
+import androidx.compose.material3.OutlinedTextFieldDefaults
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
-import androidx.compose.material3.TopAppBar
-import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.LaunchedEffect
-import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.platform.LocalDensity
-import androidx.compose.ui.platform.LocalSoftwareKeyboardController
-import androidx.compose.ui.platform.LocalView
+import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
@@ -58,8 +50,6 @@ import com.mad.softwares.chitchat.data.MessageReceived
 import com.mad.softwares.chitchat.data.User
 import com.mad.softwares.chitchat.data.uiState
 import com.mad.softwares.chitchat.ui.theme.ChitChatTheme
-import kotlinx.coroutines.coroutineScope
-import kotlinx.coroutines.launch
 import java.text.SimpleDateFormat
 import java.util.Date
 
@@ -92,13 +82,16 @@ fun MyMessages(
 //                     ))
 //        },
         bottomBar = {
+
             BottomMessageSend(
                 appUistate = appUistate,
                 sendMessage = {
-                    sendMessage ()
+                    sendMessage()
                     getNewMessages()
-                              },
-                updateMessage = updateMessage)
+                },
+                updateMessage = updateMessage,
+            )
+
         }
     ) {
         LazyColumn(
@@ -237,44 +230,121 @@ fun ReceiverChat(
 fun BottomMessageSend(
     appUistate: uiState,
     sendMessage: () -> Unit,
-    updateMessage:(String)->Unit
+    updateMessage:(String)->Unit,
 ){
-    Row(
-        modifier = Modifier
-            .fillMaxWidth(),
-        verticalAlignment = Alignment.CenterVertically
+
+    ElevatedCard(
+        Modifier
+//            .animateContentSize(
+//
+//                animationSpec = spring(
+//                    dampingRatio = Spring.DampingRatioNoBouncy,
+//                    stiffness = Spring.StiffnessLow,
+//                )
+
+//            )
+            .fillMaxWidth()
+        ,
+        colors = CardDefaults.elevatedCardColors(
+            containerColor = MaterialTheme.colorScheme.surface,
+
+        )
     ){
-        ElevatedCard(
-            Modifier
-//                .fillMaxWidth()
-        ){
-            OutlinedTextField(
+        Column(
+            modifier = Modifier
+                .fillMaxWidth()
+//                .padding(vertical = 16.dp, horizontal = 16.dp)
+        )
+        {
+            Row(
                 modifier = Modifier
-//                    .fillMaxWidth()
-                    .padding(10.dp),
-                value = appUistate.messageToSend,
-                onValueChange = { updateMessage(it) })
-        }
-        IconButton(onClick = sendMessage,
-                modifier = Modifier
-                    .fillMaxWidth()
-//                    .size(80.dp)
-            ,
-            colors = IconButtonDefaults.iconButtonColors(
-                containerColor = MaterialTheme.colorScheme.primary
-            )
+                    .fillMaxWidth(),
+//                .height(height)
+                verticalAlignment = Alignment.Bottom,
+
+                ) {
+                OutlinedTextField(
+                    modifier = Modifier
+                        .weight(1f)
+//                    .padding(end=40.dp)
+                        .fillMaxWidth()
+                        .padding(4.dp)
+                        .animateContentSize(
+                            animationSpec = spring(
+                                dampingRatio = Spring.DampingRatioNoBouncy,
+                                stiffness = Spring.StiffnessLow,
+                            )
+                        )
+                    ,
+
+//                    .padding(end = 80.dp)
+                    value = appUistate.messageToSend,
+                    onValueChange = { updateMessage(it) },
+                    textStyle = TextStyle.Default.copy(
+                        fontSize = 20.sp,
+
+                    ),
+                    maxLines = 3,
+                    placeholder = { Text(text = "Message...") },
+                    colors = OutlinedTextFieldDefaults.colors(
+                        focusedBorderColor = Color(0,0,0,alpha = 0),
+                        unfocusedBorderColor = Color(0,0,0,alpha = 0),
+                        disabledBorderColor = Color(0,0,0,alpha = 0)
+                    )
+//                trailingIcon =
+//                {
+//
+//                }
+
+                )
+//            if(appUistate.messageToSend!="")
+                AnimatedVisibility(
+                    visible = appUistate.messageToSend.isNotEmpty(),
+                    enter = slideInHorizontally(
+                        initialOffsetX = { fullWidth -> fullWidth },
+                        animationSpec = tween(
+                            durationMillis = 100,
+                            easing = LinearOutSlowInEasing
+                        )
+                    ),
+                    exit = slideOutHorizontally(
+                        targetOffsetX = { fullWidth -> fullWidth },
+                        animationSpec = tween(
+                            durationMillis = 100,
+                            easing = LinearOutSlowInEasing
+                        )
+                    )
+                )
+                {
+                    IconButton(
+                        onClick = sendMessage,
+                        modifier = Modifier
+//                        .fillMaxWidth()
+                            .padding(bottom = 10.dp, end = 10.dp)
+                            .size(45.dp),
+                        colors = IconButtonDefaults.iconButtonColors(
+                            containerColor = MaterialTheme.colorScheme.primary
+                        )
                     ) {
-            Icon(imageVector = Icons.AutoMirrored.Filled.Send,
-                modifier = Modifier
-                    .size(80.dp)
-                        ,
-                tint = MaterialTheme.colorScheme.onPrimary,
-                contentDescription = "send")
+                        Icon(
+                            imageVector = Icons.AutoMirrored.Filled.Send,
+                            modifier = Modifier
+                                .fillMaxHeight()
+                                .padding(10.dp)
+                                .size(80.dp),
+                            tint = MaterialTheme.colorScheme.onPrimary,
+                            contentDescription = "send"
+                        )
+                    }
+                }
+
+            }
         }
     }
+
 }
 
-@Preview
+@Preview(device = "spec:parent=pixel_5")
 @Composable
 fun PreviewMyMessage(){
     ChitChatTheme (
@@ -346,7 +416,11 @@ fun PreviewMyMessage(){
                 ),
                 myUserData = User(
                     username = "mySelf"
-                )
+                ),
+                messageToSend = "typed something \n" +
+                        "new line i guess\n"+
+                        "third not visible"
+
             ),
             sendMessage = {},
             updateMessage = {},
