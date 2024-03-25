@@ -10,12 +10,12 @@
               <deviceKey>
                 <Key>
                   <type value="VIRTUAL_DEVICE_PATH" />
-                  <value value="C:\Users\Mruge\.android\avd\Medium_Phone_API_31.avd" />
+                  <value value="C:\Users\Mruge\.android\avd\Medium_Phone_API_34.avd" />
                 </Key>
               </deviceKey>
             </Target>
           </targetSelectedWithDropDown>
-          <timeTargetWasSelectedWithDropDown value="2024-03-24T19:59:44.970868600Z" />
+          <timeTargetWasSelectedWithDropDown value="2024-03-25T22:29:09.277941700Z" />
           <targetsSelectedWithDialog>
             <Target>
               <type value="QUICK_BOOT_TARGET" />

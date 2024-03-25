@@ -1,6 +1,9 @@
 package com.mad.softwares.chitchat.ui
 
+import android.Manifest
+import android.os.Build
 import android.util.Log
+import androidx.annotation.RequiresApi
 import androidx.annotation.StringRes
 import androidx.compose.foundation.layout.padding
 import androidx.compose.material.ExperimentalMaterialApi
@@ -38,6 +41,9 @@ import androidx.navigation.compose.currentBackStackEntryAsState
 import androidx.navigation.compose.rememberNavController
 import com.android.volley.RequestQueue
 import com.android.volley.toolbox.Volley
+import com.google.accompanist.permissions.ExperimentalPermissionsApi
+import com.google.accompanist.permissions.PermissionState
+import com.google.accompanist.permissions.rememberPermissionState
 import com.mad.softwares.chitchat.R
 import com.mad.softwares.chitchat.data.Chats
 import com.mad.softwares.chitchat.data.User
@@ -45,6 +51,8 @@ import com.mad.softwares.chitchat.data.uiState
 import com.mad.softwares.chitchat.ui.theme.ChitChatTheme
 
 
+@RequiresApi(Build.VERSION_CODES.TIRAMISU)
+@OptIn(ExperimentalPermissionsApi::class)
 @Composable
 fun ApplicationScreen(
     appViewModel: chitChatViewModel,
@@ -77,7 +85,8 @@ fun ApplicationScreen(
         updateMessage = {appViewModel.updateMessageToSend(it)},
         sendNotification = { appViewModel.sendNotification(it)},
         getNewMessages = { appViewModel.getMessages()},
-        chatDelete = {appViewModel.deleteChatUi(it)}
+        chatDelete = {appViewModel.deleteChatUi(it)},
+        permissionState = rememberPermissionState(permission = Manifest.permission.POST_NOTIFICATIONS),
     )
 }
 
@@ -96,7 +105,7 @@ enum class ChatScreens(@StringRes val title: Int) {
 
 //val TAG = "ui_LOG"
 
-@OptIn(ExperimentalMaterialApi::class)
+@OptIn(ExperimentalMaterialApi::class, ExperimentalPermissionsApi::class)
 @Composable
 fun StartScreen(
     appUiState: uiState,
@@ -126,7 +135,8 @@ fun StartScreen(
     updateMessage :(String)->Unit,
     sendNotification:(String)->Unit,
     getNewMessages:()->Unit,
-    chatDelete:(String)->Unit
+    chatDelete:(String)->Unit,
+    permissionState: PermissionState,
 ) {
     val navController: NavHostController = rememberNavController()
     val backStackEntry by navController.currentBackStackEntryAsState()
@@ -299,7 +309,8 @@ fun StartScreen(
                         refreshing = appUiState.isRefreshing,
                         onRefresh = { reloadChats(true) }),
                     reloadChats = { reloadChats(false) },
-                    chatDelete = {chatDelete(it)}
+                    chatDelete = {chatDelete(it)},
+                    permissionState = permissionState
                 )
             }
 

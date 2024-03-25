@@ -38,6 +38,7 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -45,16 +46,21 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.tooling.preview.Wallpapers
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import com.google.accompanist.permissions.ExperimentalPermissionsApi
+import com.google.accompanist.permissions.PermissionState
+import com.google.accompanist.permissions.isGranted
+import com.google.android.gms.auth.api.phone.SmsCodeAutofillClient
 import com.mad.softwares.chitchat.data.Chats
 import com.mad.softwares.chitchat.data.User
 import com.mad.softwares.chitchat.data.uiState
 import com.mad.softwares.chitchat.ui.theme.ChitChatTheme
 
-@OptIn(ExperimentalMaterialApi::class)
+@OptIn(ExperimentalMaterialApi::class, ExperimentalPermissionsApi::class)
 @Composable
 fun AllChats(
     backHandler: () -> Unit,
@@ -64,7 +70,8 @@ fun AllChats(
     refreshState: PullRefreshState,
     reloadChats: () -> Unit,
     currentChat: (Chats) -> Unit,
-    chatDelete:(String)->Unit
+    chatDelete:(String)->Unit,
+    permissionState: PermissionState?
 ) {
     Log.d(TAG, "Naviaged to all chats")
     Box(
@@ -81,7 +88,8 @@ fun AllChats(
                     addChat = addChat,
                     refreshState = refreshState,
                     currentChat = currentChat,
-                    chatDelete = { chatDelete(it) }
+                    chatDelete = { chatDelete(it) },
+                    permissionState = permissionState
                     )
             }
 
@@ -119,7 +127,7 @@ fun AllChats(
 //    )
 }
 
-@OptIn(ExperimentalMaterialApi::class)
+@OptIn(ExperimentalMaterialApi::class, ExperimentalPermissionsApi::class)
 @Composable
 fun AllChatsSuccess(
     backHandler: () -> Unit,
@@ -128,11 +136,13 @@ fun AllChatsSuccess(
     addChat: () -> Unit,
     refreshState: PullRefreshState,
     currentChat: (Chats) -> Unit,
-    chatDelete:(String)->Unit
+    chatDelete:(String)->Unit,
+    permissionState: PermissionState?
 ) {
     var isCardEnabled by remember {
         mutableStateOf(true)
     }
+
     Scaffold(
         topBar = {},
         floatingActionButton = {
@@ -155,6 +165,32 @@ fun AllChatsSuccess(
 //                Text(text = "Here all The chats wiil be displayed")
 //                Text(text = "Current userId is : ${appUiState.myUserData.username}")
 //            }
+            LaunchedEffect(key1 = Unit) {
+                permissionState?.launchPermissionRequest()
+            }
+            if(permissionState?.status?.isGranted == true){
+//                Text(text = "Notification permission granted")
+            }
+            else{
+                Card(
+                    modifier = Modifier
+                        .padding(20.dp),
+                    colors = CardDefaults.cardColors(
+                        containerColor = MaterialTheme.colorScheme.errorContainer
+                    )
+                ) {
+                    Text(
+                        modifier  = Modifier
+                            .padding(10.dp)
+                        ,
+                        text = "Notification permission missing, grant them from setting",
+                        fontSize = 20.sp,
+                        lineHeight = 20.sp,
+                        textAlign = TextAlign.Center
+                    )
+
+                }
+            }
             LazyColumn(
                 modifier = Modifier
                     .fillMaxSize(),
@@ -367,7 +403,7 @@ fun AllChatsFailed(
     }
 }
 
-@OptIn(ExperimentalMaterialApi::class)
+@OptIn(ExperimentalMaterialApi::class, ExperimentalPermissionsApi::class)
 @Preview(
     uiMode = Configuration.UI_MODE_NIGHT_NO or Configuration.UI_MODE_TYPE_NORMAL,
     device = "spec:width=1080px,height=2340px,dpi=440,isRound=true,chinSize=10px",
@@ -402,7 +438,8 @@ fun PreviewAllChats() {
             refreshState = rememberPullRefreshState(refreshing = false, onRefresh = { /*TODO*/ }),
             currentChat = {},
             reloadChats = {},
-            chatDelete = {}
+            chatDelete = {},
+            permissionState = null
             )
     }
 }

@@ -88,6 +88,7 @@ dependencies {
     implementation ("com.squareup.retrofit2:converter-moshi:2.9.0")
     implementation ("com.squareup.retrofit2:converter-gson:2.9.0")
     implementation ("com.squareup.moshi:moshi:1.12.0")
+    implementation("com.google.accompanist:accompanist-permissions:0.30.1")
 
     testImplementation("junit:junit:4.13.2")
     testImplementation("org.jetbrains.kotlinx:kotlinx-coroutines-test:1.7.3")
