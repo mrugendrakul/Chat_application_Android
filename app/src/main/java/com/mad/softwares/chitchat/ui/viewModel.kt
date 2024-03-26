@@ -533,7 +533,7 @@ class chitChatViewModel(
         }
         Log.d(TAG,"Chat creation Started in viewmodel")
         Log.d(TAG,"members are ${_uiState.value.members}")
-        val chatsId = generateSixDigitUUID(10)
+        val chatsId = generateSixDigitUUID(11)
         viewModelScope.launch{
             try{
                 dataRepository.addChatToDatabase(
@@ -584,13 +584,14 @@ class chitChatViewModel(
                             isMyChatsLoading = isChatsLoading.Success
                         )
                     }
+                    Log.d(TAG,"chats are : ${myChats.await()}")
                     Log.d(TAG,"reached at 2")
 //                    _uiState.update {it.copy(
 //                        members = _uiState.value.allAvailableChats.map { it.chatName }
 //                    )
 //                    }
                 } catch (e: Exception) {
-                    Log.d(TAG, "unable to get all the chats")
+                    Log.e(TAG, "unable to get all the chats : $e")
                     _uiState.update {
                         it.copy(
 //                            allAvailableChats = myChats.await(),

@@ -14,7 +14,6 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.wrapContentSize
-import androidx.compose.foundation.layout.wrapContentWidth
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.material.ExperimentalMaterialApi
@@ -54,11 +53,13 @@ import androidx.compose.ui.unit.sp
 import com.google.accompanist.permissions.ExperimentalPermissionsApi
 import com.google.accompanist.permissions.PermissionState
 import com.google.accompanist.permissions.isGranted
-import com.google.android.gms.auth.api.phone.SmsCodeAutofillClient
+import com.google.firebase.Timestamp
 import com.mad.softwares.chitchat.data.Chats
 import com.mad.softwares.chitchat.data.User
+import com.mad.softwares.chitchat.data.lastMessage
 import com.mad.softwares.chitchat.data.uiState
 import com.mad.softwares.chitchat.ui.theme.ChitChatTheme
+import java.text.SimpleDateFormat
 
 @OptIn(ExperimentalMaterialApi::class, ExperimentalPermissionsApi::class)
 @Composable
@@ -74,6 +75,9 @@ fun AllChats(
     permissionState: PermissionState?
 ) {
     Log.d(TAG, "Naviaged to all chats")
+    var isCardEnabled by remember {
+        mutableStateOf(true)
+    }
     Box(
         modifier = Modifier
             .pullRefresh(refreshState)
@@ -88,9 +92,11 @@ fun AllChats(
                     addChat = addChat,
                     refreshState = refreshState,
                     currentChat = currentChat,
-                    chatDelete = { chatDelete(it) },
-                    permissionState = permissionState
-                    )
+                    { chatDelete(it) },
+                    permissionState = permissionState,
+                    isCardEnabled = isCardEnabled,
+                    cardPressed = {isCardEnabled = !isCardEnabled}
+                )
             }
 
             isChatsLoading.Loading -> {
@@ -137,14 +143,40 @@ fun AllChatsSuccess(
     refreshState: PullRefreshState,
     currentChat: (Chats) -> Unit,
     chatDelete:(String)->Unit,
-    permissionState: PermissionState?
+    permissionState :PermissionState?,
+    isCardEnabled: Boolean,
+    cardPressed:()->Unit
 ) {
-    var isCardEnabled by remember {
-        mutableStateOf(true)
-    }
+
 
     Scaffold(
-        topBar = {},
+        topBar = {
+            LaunchedEffect(key1 = Unit) {
+                permissionState?.launchPermissionRequest()
+            }
+            if(permissionState?.status?.isGranted == true){
+//                Text(text = "Notification permission granted")
+            }
+            else{
+                Card(
+                    modifier = Modifier
+                        .padding(20.dp),
+                    colors = CardDefaults.cardColors(
+                        containerColor = MaterialTheme.colorScheme.errorContainer
+                    )
+                ) {
+                    Text(
+                        modifier = Modifier
+                            .padding(10.dp),
+                        text = "Notification permission missing, grant them from setting",
+                        fontSize = 20.sp,
+                        lineHeight = 20.sp,
+                        textAlign = TextAlign.Center
+                    )
+
+                }
+            }
+        },
         floatingActionButton = {
             FloatingActionButton(onClick = { addChat() }) {
                 Icon(
@@ -165,44 +197,19 @@ fun AllChatsSuccess(
 //                Text(text = "Here all The chats wiil be displayed")
 //                Text(text = "Current userId is : ${appUiState.myUserData.username}")
 //            }
-            LaunchedEffect(key1 = Unit) {
-                permissionState?.launchPermissionRequest()
-            }
-            if(permissionState?.status?.isGranted == true){
-//                Text(text = "Notification permission granted")
-            }
-            else{
-                Card(
-                    modifier = Modifier
-                        .padding(20.dp),
-                    colors = CardDefaults.cardColors(
-                        containerColor = MaterialTheme.colorScheme.errorContainer
-                    )
-                ) {
-                    Text(
-                        modifier  = Modifier
-                            .padding(10.dp)
-                        ,
-                        text = "Notification permission missing, grant them from setting",
-                        fontSize = 20.sp,
-                        lineHeight = 20.sp,
-                        textAlign = TextAlign.Center
-                    )
 
-                }
-            }
             LazyColumn(
                 modifier = Modifier
                     .fillMaxSize(),
 //                    .padding(bottom = 100.dp),
                 contentPadding = PaddingValues(bottom = 100.dp)
             ) {
-                items(appUiState.allAvailableChats) { chat ->
+                items((appUiState.allAvailableChats.sortedByDescending { it.lastMessage.timestamp })) { chat ->
                     Chat(
                         chat = chat,
                         currentChat = {
                             currentChat(it)
-                            isCardEnabled = !isCardEnabled
+                            cardPressed()
                         },
 
                         isCardEnabled = isCardEnabled,
@@ -324,6 +331,8 @@ fun Chat(
     isCardEnabled: Boolean,
     chatDelete: () -> Unit
 ) {
+    val sdf = SimpleDateFormat("YYYY/MM/dd hh:mm a")
+    val newDate = sdf.format(chat.lastMessage.timestamp.toDate())
     var expanded by remember {
         mutableStateOf(false)
     }
@@ -356,7 +365,11 @@ fun Chat(
                 )
                 Spacer(Modifier.height(15.dp))
                 Text(
-                    text = "Chat id: ${chat.chatId}",
+                    text = if(chat.lastMessage.timestamp == Timestamp(0,0)){
+                                                                           "Not yet contacted"
+                                                                           } else {
+                                                                                  "${newDate}"
+                    },
                     fontSize = 25.sp
                 )
             }
@@ -418,17 +431,17 @@ fun PreviewAllChats() {
             backHandler = {},
             appUiState = uiState(
                 allAvailableChats = listOf(
-                    Chats(chatName = "friend1"),
-                    Chats(chatName = "friend1"),
-                    Chats(chatName = "friend1"),
-                    Chats(chatName = "friend1"),
-                    Chats(chatName = "friend1"),
-                    Chats(chatName = "friend1"),
-                    Chats(chatName = "friend1"),
-                    Chats(chatName = "friend1"),
-                    Chats(chatName = "friend1"),
-                    Chats(chatName = "friend1"),
-                    Chats(chatName = "friend1"),
+                    Chats(chatName = "friend1",),
+                    Chats(chatName = "friend1",),
+                    Chats(chatName = "friend1",lastMessage = lastMessage("hello friend",Timestamp.now())),
+                    Chats(chatName = "friend1",lastMessage = lastMessage("hello friend",Timestamp.now())),
+                    Chats(chatName = "friend1",lastMessage = lastMessage("hello friend",Timestamp.now())),
+                    Chats(chatName = "friend1",lastMessage = lastMessage("hello friend",Timestamp.now())),
+                    Chats(chatName = "friend1",lastMessage = lastMessage("hello friend",Timestamp.now())),
+                    Chats(chatName = "friend1",lastMessage = lastMessage("hello friend",Timestamp.now())),
+                    Chats(chatName = "friend1",lastMessage = lastMessage("hello friend",Timestamp.now())),
+                    Chats(chatName = "friend1",lastMessage = lastMessage("hello friend",Timestamp.now())),
+                    Chats(chatName = "friend1",lastMessage = lastMessage("hello friend",Timestamp.now())),
 
                     ),
                 isMyChatsLoading = isChatsLoading.Success

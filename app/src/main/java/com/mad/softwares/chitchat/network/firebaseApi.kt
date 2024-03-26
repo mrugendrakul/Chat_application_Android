@@ -11,6 +11,7 @@ import com.google.firebase.messaging.FirebaseMessaging
 import com.mad.softwares.chitchat.data.Chats
 import com.mad.softwares.chitchat.data.MessageReceived
 import com.mad.softwares.chitchat.data.User
+import com.mad.softwares.chitchat.data.lastMessage
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.tasks.await
 import kotlinx.coroutines.withContext
@@ -504,7 +505,8 @@ class NetworkFirebaseApi(
             "chatName" to chatName,
             "profilePhoto" to  profilePhoto,
             "isGroup" to isGroup,
-            "members" to newMembers
+            "members" to newMembers,
+            "lastMessage" to listOf("NO message",Timestamp(0,0))
         )
 
         chatsCollection
@@ -537,12 +539,14 @@ class NetworkFirebaseApi(
             val chatName = doc.getString("chatName")?:""
             val isGroup = doc.getBoolean("isGroup")?:false
             val members:List<Any> = doc.get("members") as List<Any>
-//
+            val lastMsg:List<Any> = doc.get("lastMessage")as List<Any>
+          Log.d(TAG,"members are : $members")
             val singleChat = Chats(
                 chatId = chatId,
                 chatName = chatName,
                 isGroup = isGroup,
-                members = members.map { it.toString() }
+                members = members.map { it.toString() },
+                lastMessage = lastMessage(content = lastMsg[0].toString(), timestamp = lastMsg[1] as Timestamp)
             )
             chats.add(singleChat)
         }
@@ -567,26 +571,46 @@ class NetworkFirebaseApi(
             .addOnFailureListener{e->
                 Log.e(TAG,"failed to add to the database : $e")
             }
+        val lastMessage = arrayListOf(
+            message.content,
+            message.timeStamp
+        )
+        chatsCollection.document(message.chatId)
+            .update("lastMessage",lastMessage)
+            .addOnSuccessListener {
+                Log.d(TAG,"Added lastMessage to : ${message.chatId}")
+            }
+            .addOnFailureListener { e->
+                Log.e(TAG,"Unable to add the last Message :${message.chatId}  error : ${e}")
+             }
 //        chatsCollection.document(message.chatId).collection("messages")
     }
 
     override suspend fun getTokenForMemebers(members: List<String>): List<String> {
         val tokenList = mutableListOf<String>()
 
-        for(member in members){
-           val querySnap = userCollection
-                .whereEqualTo("username",member)
-                .get()
-               .addOnSuccessListener{
-                   Log.d(TAG,"Successfully got token for $member")
-               }
-               .addOnFailureListener { e->
-                   Log.e(TAG,"Failed to get the token for $member")
-               }
+        try{
+            for (member in members) {
+                val querySnap = userCollection
+                    .whereEqualTo("username", member)
+                    .get()
+                    .addOnSuccessListener {
+                        Log.d(TAG, "Successfully got token for $member ")
+                    }
+                    .addOnFailureListener { e ->
+                        Log.e(TAG, "Failed to get the token for $member")
+                    }
 //            val currToken = querySnap.await().documents
-            for(doc in querySnap.await().documents){
-                tokenList.add(doc.getString("fcmToken")?:"")
+                for (doc in querySnap.await().documents) {
+                    val tokens:List<Any> = doc.get("fcmTokens") as List<Any>
+                    Log.d(TAG, "Token for $member is : $tokens")
+                    tokens.map {
+                        tokenList.add(it.toString())
+                    }
+                }
             }
+        }catch(e:Exception){
+            Log.e(TAG,"Unable to send token to data : $e")
         }
 
 //        val queries = members.map { member ->
