@@ -110,6 +110,7 @@ class MessagesViewModel(
 
     override fun onCleared() {
         super.onCleared()
+        viewModelScope.launch{ dataRepository.stopLiveMessages() }
 //        viewModelJob.cancel()
     }
 

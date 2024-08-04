@@ -1,5 +1,6 @@
 package com.mad.softwares.chitchat.ui.messages
 
+import androidx.annotation.FloatRange
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.animateContentSize
 import androidx.compose.animation.core.LinearOutSlowInEasing
@@ -11,6 +12,7 @@ import androidx.compose.animation.slideOutHorizontally
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.IntrinsicSize
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxHeight
@@ -18,6 +20,8 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.layout.wrapContentWidth
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.RoundedCornerShape
@@ -205,13 +209,14 @@ fun SenderChat(
     val fDate = sdf.format(date)
     Row(
         modifier = Modifier
-            .fillMaxWidth()
+            .fillMaxWidth(),
+        horizontalArrangement = Arrangement.End
     ) {
-        Spacer(modifier = Modifier.weight(1f))
+
         Card(
             modifier = Modifier
-                .fillMaxWidth()
-                .weight(5f)
+//                .fillMaxWidth()
+//                .weight(5f)
                 .padding(vertical = 10.dp, horizontal = 5.dp),
 //                .height(60.dp),
             shape = RoundedCornerShape(20.dp, 0.dp, 20.dp, 20.dp),
@@ -226,10 +231,15 @@ fun SenderChat(
                     .padding(10.dp),
                 fontSize = 20.sp
             )
-            Card {
+            Card(
+                modifier = Modifier
+                    .wrapContentWidth(unbounded = true)
+                    .fillMaxWidth()
+                    .padding(0.dp),
+            ) {
                 Row(
-                    modifier = Modifier
-                        .fillMaxWidth(),
+                    modifier = Modifier,
+//                        .fillMaxWidth(),
                     horizontalArrangement = Arrangement.SpaceBetween
                 ) {
                     Text(
@@ -282,13 +292,14 @@ fun ReceiverChat(
     val fDate = sdf.format(date)
     Row(
         modifier = Modifier
-            .fillMaxWidth()
+            .fillMaxWidth(0.8f),
+//            .fillMaxWidth()
     ) {
         Card(
             modifier = Modifier
-                .fillMaxWidth()
-                .weight(5f)
-                .padding(vertical = 10.dp, horizontal = 5.dp),
+                .padding(vertical = 10.dp, horizontal = 5.dp)
+//                .fillMaxWidth(1f)
+            ,
 //                .height(60.dp),
             shape = RoundedCornerShape(0.dp, 20.dp, 20.dp, 20.dp),
             colors = CardDefaults.cardColors(
@@ -298,13 +309,22 @@ fun ReceiverChat(
             Text(
                 text = message.content,
                 modifier = Modifier
-                    .padding(10.dp),
+                    .padding(10.dp)
+
+                ,
                 fontSize = 20.sp
             )
-            Card {
+            Card(
+                modifier = Modifier
+//                    .wrapContentWidth(unbounded = true)
+//                    .fillMaxWidth()
+
+                    .padding(0.dp),
+
+            ) {
                 Text(
                     modifier = Modifier
-                        .fillMaxWidth()
+
                         .padding(horizontal = 15.dp)
                         .padding(vertical = 2.dp),
                     text = fDate.toString(),
@@ -314,7 +334,7 @@ fun ReceiverChat(
                 )
             }
         }
-        Spacer(modifier = Modifier.weight(1f))
+//        Spacer(modifier = Modifier.weight(1f))
 
     }
 }
@@ -461,60 +481,60 @@ fun PreviewMessagebodySuccess() {
                         timeStamp = Timestamp(Date(2024 - 1900, 1, 25, 20, 15))
                     ),
                     MessageReceived(
-                        content = "Hey there",
+                        content = "Hey there How are you",
+                        senderId = "ThereSelf",
+                        timeStamp = Timestamp(Date(2024 - 1900, 3, 25, 20, 17))
+                    ),
+                    MessageReceived(
+                        content = "good to say This is a long message and we are gonint ot test this too",
+                        senderId = "mySelf",
+                        timeStamp = Timestamp(Date(2024 - 1900, 2, 25, 20, 15))
+                    ),
+                    MessageReceived(
+                        content = "Ok Bye",
+                        senderId = "ThereSelf",
+                        timeStamp = Timestamp(Date(2024 - 1900, 2, 25, 20, 15))
+                    ),
+                    MessageReceived(
+                        content = "Hello Friend",
+                        senderId = "mySelf",
+                        timeStamp = Timestamp(Date(2024 - 1900, 1, 25, 20, 15))
+                    ),
+                    MessageReceived(
+                        content = "Hey there How are you",
                         senderId = "ThereSelf",
                         timeStamp = Timestamp(Date(2024 - 1900, 1, 25, 20, 17))
                     ),
-//                    MessageReceived(
-//                        content = "good to say",
-//                        senderId = "mySelf",
-//                        timeStamp = Timestamp(Date(2024 - 1900, 2, 25, 20, 15))
-//                    ),
-//                    MessageReceived(
-//                        content = "Ok Bye",
-//                        senderId = "ThereSelf",
-//                        timeStamp = Timestamp(Date(2024 - 1900, 2, 25, 20, 15))
-//                    ),
-//                    MessageReceived(
-//                        content = "Hello Friend",
-//                        senderId = "mySelf",
-//                        timeStamp = Timestamp(Date(2024 - 1900, 1, 25, 20, 15))
-//                    ),
-//                    MessageReceived(
-//                        content = "Hey there",
-//                        senderId = "ThereSelf",
-//                        timeStamp = Timestamp(Date(2024 - 1900, 1, 25, 20, 17))
-//                    ),
-//                    MessageReceived(
-//                        content = "good to say",
-//                        senderId = "mySelf",
-//                        timeStamp = Timestamp(Date(2024 - 1900, 2, 25, 20, 15))
-//                    ),
-//                    MessageReceived(
-//                        content = "Ok Bye",
-//                        senderId = "ThereSelf",
-//                        timeStamp = Timestamp(Date(2024 - 1900, 2, 25, 20, 15))
-//                    ),
-//                    MessageReceived(
-//                        content = "Hello Friend",
-//                        senderId = "mySelf",
-//                        timeStamp = Timestamp(Date(2024 - 1900, 1, 25, 20, 15))
-//                    ),
-//                    MessageReceived(
-//                        content = "Hey there",
-//                        senderId = "ThereSelf",
-//                        timeStamp = Timestamp(Date(2024 - 1900, 1, 25, 20, 17))
-//                    ),
-//                    MessageReceived(
-//                        content = "good to say",
-//                        senderId = "mySelf",
-//                        timeStamp = Timestamp(Date(2024 - 1900, 2, 25, 20, 15))
-//                    ),
-//                    MessageReceived(
-//                        content = "Ok Bye",
-//                        senderId = "ThereSelf",
-//                        timeStamp = Timestamp(Date(2024 - 1900, 2, 25, 20, 15))
-//                    ),
+                    MessageReceived(
+                        content = "Customize Toolbar...",
+                        senderId = "mySelf",
+                        timeStamp = Timestamp(Date(2024 - 1900, 2, 25, 20, 15))
+                    ),
+                    MessageReceived(
+                        content = "This is a long message an this is goinh yo occupy whole screen and we have to avoid that now.",
+                        senderId = "ThereSelf",
+                        timeStamp = Timestamp(Date(2024 - 1900, 2, 25, 20, 15))
+                    ),
+                    MessageReceived(
+                        content = "Hello Friend",
+                        senderId = "mySelf",
+                        timeStamp = Timestamp(Date(2024 - 1900, 1, 25, 20, 15))
+                    ),
+                    MessageReceived(
+                        content = "Hey there How are you",
+                        senderId = "ThereSelf",
+                        timeStamp = Timestamp(Date(2024 - 1900, 1, 25, 20, 17))
+                    ),
+                    MessageReceived(
+                        content = "good to say fda and we ate goin to teshio thaio nlhasfihobphbkjwahf aw;jhflkb aweklfb ",
+                        senderId = "mySelf",
+                        timeStamp = Timestamp(Date(2024 - 1900, 2, 25, 20, 15))
+                    ),
+                    MessageReceived(
+                        content = "Ok Bye",
+                        senderId = "ThereSelf",
+                        timeStamp = Timestamp(Date(2024 - 1900, 2, 25, 20, 15))
+                    ),
                 ),
             ),
             updateMessage = {},

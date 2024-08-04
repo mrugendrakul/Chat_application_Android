@@ -585,6 +585,7 @@ class NetworkFirebaseApi(
 
     override suspend fun stopLiveMessages() {
         listenerRegistration?.remove()
+        Log.d(TAG,"Removed the listener here!!")
     }
 
     override suspend fun deleteChat(chatId: String) {

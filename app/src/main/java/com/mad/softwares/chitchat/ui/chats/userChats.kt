@@ -46,6 +46,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.input.nestedscroll.nestedScroll
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.style.TextAlign
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
@@ -54,7 +55,9 @@ import coil.ImageLoader
 import com.google.firebase.Timestamp
 import com.mad.softwares.chitchat.R
 import com.mad.softwares.chitchat.data.Chats
+import com.mad.softwares.chitchat.data.MessageReceived
 import com.mad.softwares.chitchat.data.User
+import com.mad.softwares.chitchat.data.lastMessage
 import com.mad.softwares.chitchat.ui.ApptopBar
 import com.mad.softwares.chitchat.ui.GodViewModelProvider
 import com.mad.softwares.chitchat.ui.destinationData
@@ -306,7 +309,7 @@ fun ShowChatsSuccessful(
                 .fillMaxSize(),
             contentPadding = PaddingValues(bottom = 100.dp)
         ) {
-            items(chatsUiState.chats) {
+            items(chatsUiState.chats.sortedBy { it.lastMessage.timestamp }.reversed()) {
                 SingleChat(
                     chat = it,
                     navigateToCurrentChat = navigateToCurrentChat,
@@ -326,6 +329,7 @@ fun SingleChat(
     var expanded by remember {
         mutableStateOf(false)
     }
+//    val lastMessageContent = chat.lastMessage.content.substring(20)
     Card(
         modifier = Modifier
             .fillMaxWidth()
@@ -370,10 +374,12 @@ fun SingleChat(
                     text = if(chat.lastMessage.timestamp == Timestamp(0,0)){
                         "Not yet contacted"
                     } else {
-                        "${chat.lastMessage.timestamp}"
+                        "-> ${chat.lastMessage.content}"
                     },
                     fontSize = 18.sp,
-                    lineHeight = 18.sp
+                    lineHeight = 18.sp,
+                    maxLines = 1,
+                    overflow = TextOverflow.Ellipsis
                 )
             }
 //            Spacer(modifier = Modifier.weight(1f))
@@ -432,7 +438,8 @@ fun UserChatsPreview() {
                 currentUser = User(username = "mrg@123.com"),
                 chats = listOf(
                     Chats(
-                        chatName = "mrg@123.com"
+                        chatName = "mrg@123.com",
+                        lastMessage = lastMessage(content = "Big text here goed to test the message capacity and the other things", timestamp = Timestamp(1,1))
                     ),
                     Chats(
                         chatName = "mew@test.com"
