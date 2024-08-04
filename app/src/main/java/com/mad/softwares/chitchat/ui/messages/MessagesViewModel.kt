@@ -43,7 +43,8 @@ class MessagesViewModel(
             )
         }
         getChatInfo()
-        getMessages()
+//        getMessages()
+        getLiveMessages()
     }
 
     fun getChatInfo() {
@@ -184,48 +185,70 @@ class MessagesViewModel(
         }
     }
 
-    fun getMessages(isForced: Boolean = false) {
-        if (!isForced && messagesUiState.value.messages.isNotEmpty()) {
-            return
-        }
-        messagesUiState.update {
-            it.copy(
-                messageScreen = MessageScreen.Loading
-            )
-        }
-        viewModelScope.launch {
-            try {
-                val messages = async {
-                    dataRepository.getMyMessages(
-                        currentChatId = messagesUiState.value.chatID
-                    )
-                }
-                if(messages.await().get(0).senderId == "ErrorSerious"){
-//                    messagesUiState.update {
-//                        it.copy(
-//                            messageScreen = MessageScreen.Error,
-//                            isError = true,
-//                            errorMessage = messages.await().get(0).content)}
-                    throw Exception(messages.await().get(0).content)
-                }
+//    fun getMessages(isForced: Boolean = false) {
+//        if (!isForced && messagesUiState.value.messages.isNotEmpty()) {
+//            return
+//        }
+//        messagesUiState.update {
+//            it.copy(
+//                messageScreen = MessageScreen.Loading
+//            )
+//        }
+//        viewModelScope.launch {
+//            try {
+//                val messages = async {
+//                    dataRepository.getMyMessages(
+//                        currentChatId = messagesUiState.value.chatID
+//                    )
+//                }
+//                if(messages.await().get(0).senderId == "ErrorSerious"){
+////                    messagesUiState.update {
+////                        it.copy(
+////                            messageScreen = MessageScreen.Error,
+////                            isError = true,
+////                            errorMessage = messages.await().get(0).content)}
+//                    throw Exception(messages.await().get(0).content)
+//                }
+//                messagesUiState.update {
+//                    it.copy(
+//                        messages = messages.await().toMutableList(),
+//                        messageScreen = MessageScreen.Success
+//                    )
+//                }
+//                Log.d(TAGmess, "Got the messages success")
+//            } catch (e: Exception) {
+//                Log.e(TAGmess, "Unable to get the messages : $e")
+//                messagesUiState.update {
+//                    it.copy(
+//                        messageScreen = MessageScreen.Error,
+//                        isError = true,
+//                        errorMessage = e.message.toString()
+//                    )
+//                }
+//            }
+//        }
+//    }
+    private fun getLiveMessages(){
+    viewModelScope.launch{
+        dataRepository.getLiveMessages(chatId = messagesUiState.value.chatID,
+            onMessagesChange = {
+                messageList->
+                Log.d(TAGmess,"New Message is: ${messageList.last().content}")
                 messagesUiState.update {
                     it.copy(
-                        messages = messages.await().toMutableList(),
-                        messageScreen = MessageScreen.Success
+                        messages = messageList.toMutableList()
                     )
                 }
-                Log.d(TAGmess, "Got the messages success")
-            } catch (e: Exception) {
-                Log.e(TAGmess, "Unable to get the messages : $e")
+            },
+            onError = {e->
                 messagesUiState.update {
                     it.copy(
-                        messageScreen = MessageScreen.Error,
                         isError = true,
                         errorMessage = e.message.toString()
                     )
                 }
-            }
-        }
+            })
+    }
     }
 }
 

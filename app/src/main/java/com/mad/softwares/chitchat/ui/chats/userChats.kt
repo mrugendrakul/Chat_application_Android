@@ -1,5 +1,6 @@
 package com.mad.softwares.chitchat.ui.chats
 
+import androidx.compose.foundation.Image
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -10,6 +11,7 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.wrapContentSize
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.LazyListState
@@ -19,8 +21,10 @@ import androidx.compose.material3.IconButton
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.MoreVert
+import androidx.compose.material.icons.filled.Person
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
+import androidx.compose.material3.CardElevation
 import androidx.compose.material3.DropdownMenu
 import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.ExperimentalMaterial3Api
@@ -46,6 +50,8 @@ import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.lifecycle.viewmodel.compose.viewModel
+import coil.ImageLoader
+import com.google.firebase.Timestamp
 import com.mad.softwares.chitchat.R
 import com.mad.softwares.chitchat.data.Chats
 import com.mad.softwares.chitchat.data.User
@@ -53,6 +59,7 @@ import com.mad.softwares.chitchat.ui.ApptopBar
 import com.mad.softwares.chitchat.ui.GodViewModelProvider
 import com.mad.softwares.chitchat.ui.destinationData
 import com.mad.softwares.chitchat.ui.theme.ChitChatTheme
+import org.checkerframework.common.returnsreceiver.qual.This
 
 object chatsScreenDestination : destinationData {
     override val route = "chats"
@@ -180,7 +187,7 @@ fun ShowChatsLoading(
         topBar = {
             ApptopBar(
                 destinationData = chatsScreenDestination,
-                scrollBehavior = scrollBehavior,
+//                scrollBehavior = scrollBehavior,
                 navigateUp = { /*TODO*/ }
             )
         },
@@ -229,19 +236,22 @@ fun ChatLoading() {
     Card(
         modifier = Modifier
             .fillMaxWidth()
-            .height(120.dp)
-            .padding(5.dp)
+            .height(110.dp)
+            .padding(5.dp),
+        elevation = CardDefaults.elevatedCardElevation(3.dp)
 //            .clickable(onClick = { currentChat(chat.chatId) }),
 //        border = BorderStroke(5.dp,MaterialTheme.colorScheme.primary)
 //        onClick = currentChat(chat.chatId)
     ) {
         Column(
-            modifier = Modifier.padding(10.dp)
+            modifier = Modifier.padding(10.dp),
+            verticalArrangement = Arrangement.SpaceBetween,
+            horizontalAlignment = Alignment.CenterHorizontally
         ) {
             Card(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .height(40.dp),
+                    .height(30.dp),
                 colors = CardDefaults.cardColors(
                     containerColor = MaterialTheme.colorScheme.onSecondary
                 )
@@ -251,7 +261,7 @@ fun ChatLoading() {
             Card(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .height(40.dp),
+                    .height(30.dp),
                 colors = CardDefaults.cardColors(
                     containerColor = MaterialTheme.colorScheme.onSecondary
                 )
@@ -319,62 +329,75 @@ fun SingleChat(
     Card(
         modifier = Modifier
             .fillMaxWidth()
-            .height(120.dp)
-            .padding(5.dp),
+            .height(125.dp)
+            .padding(10.dp),
         onClick = {
             navigateToCurrentChat("${chat.chatId},${chat.chatName}")
 
         },
-        enabled = isCardEnabled
+        enabled = isCardEnabled,
+        elevation = CardDefaults.elevatedCardElevation(3.dp)
         //        border = BorderStroke(5.dp,MaterialTheme.colorScheme.primary)
 
     )
     {
         Row(
             modifier = Modifier
-                .fillMaxWidth(),
-            verticalAlignment = Alignment.CenterVertically
+                .fillMaxWidth()
+                .padding(10.dp),
+            verticalAlignment = Alignment.CenterVertically,
+//            horizontalArrangement = Arrangement.SpaceBetween
         ) {
+
+            Image(
+                imageVector = Icons.Default.Person,
+                contentDescription = null,
+                modifier = Modifier
+                    .size(50.dp)
+            )
+//            Spacer(modifier = Modifier.weight(1f))
             Column(
                 modifier = Modifier
                     .padding(10.dp)
             ) {
                 Text(
                     text = chat.chatName,
-                    fontSize = 25.sp
+                    fontSize = 22.sp,
+                    lineHeight = 22.sp
                 )
                 Spacer(Modifier.height(15.dp))
-//                Text(
-//                    text = if(chat.lastMessage.timestamp == Timestamp(0,0)){
-//                        "Not yet contacted"
-//                    } else {
-//                        "${newDate}"
-//                    },
-//                    fontSize = 25.sp
-//                )
-            }
-            Spacer(modifier = Modifier.weight(1f))
-            Box(
-                modifier = Modifier
-//                .fillMaxWidth()
-                    .wrapContentSize(Alignment.BottomEnd)
-            ) {
-                IconButton(onClick = { expanded = !expanded }) {
-                    Icon(
-                        imageVector = Icons.Default.MoreVert,
-                        contentDescription = "Delete Chat"
-                    )
-                }
-                DropdownMenu(
-                    expanded = expanded,
-                    onDismissRequest = { expanded = false },
+                Text(
+                    text = if(chat.lastMessage.timestamp == Timestamp(0,0)){
+                        "Not yet contacted"
+                    } else {
+                        "${chat.lastMessage.timestamp}"
+                    },
+                    fontSize = 18.sp,
+                    lineHeight = 18.sp
                 )
-                {
-//                    DropdownMenuItem(
-//                        text = { Text(text = "Delete chat") },
-//                        onClick = { chatDelete() })
-                }
             }
+//            Spacer(modifier = Modifier.weight(1f))
+//            Box(
+//                modifier = Modifier
+////                .fillMaxWidth()
+//                    .wrapContentSize(Alignment.BottomEnd)
+//            ) {
+//                IconButton(onClick = { expanded = !expanded }) {
+//                    Icon(
+//                        imageVector = Icons.Default.MoreVert,
+//                        contentDescription = "Delete Chat"
+//                    )
+//                }
+//                DropdownMenu(
+//                    expanded = expanded,
+//                    onDismissRequest = { expanded = false },
+//                )
+//                {
+////                    DropdownMenuItem(
+////                        text = { Text(text = "Delete chat") },
+////                        onClick = { chatDelete() })
+//                }
+//            }
         }
     }
 }

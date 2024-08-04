@@ -22,6 +22,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.mad.softwares.chitchat.R
 import com.mad.softwares.chitchat.ui.destinationData
+import com.mad.softwares.chitchat.ui.theme.ChitChatTheme
 
 object welcomeDestination:destinationData {
     override val route = "welcome"
@@ -44,7 +45,7 @@ fun WelcomeScreen(
 
         Card(
             colors = CardDefaults.cardColors(
-                containerColor = MaterialTheme.colorScheme.secondaryContainer
+                containerColor = MaterialTheme.colorScheme.primaryContainer
             ),
             modifier = modifier
                 .fillMaxWidth()
@@ -68,7 +69,7 @@ fun WelcomeScreen(
         Spacer(modifier = modifier.height(20.dp))
         Card(
             colors = CardDefaults.cardColors(
-                containerColor = MaterialTheme.colorScheme.secondaryContainer
+                containerColor = MaterialTheme.colorScheme.primaryContainer
             ),
             modifier = modifier
                 .fillMaxWidth()
@@ -97,6 +98,10 @@ fun WelcomeScreen(
 @Preview
 @Composable
 fun WelcomeScreenPreview(){
-    WelcomeScreen(navigateToLogin = { /*TODO*/ },
-        navigateToSignUp = {})
+    ChitChatTheme(
+
+    ){
+        WelcomeScreen(navigateToLogin = { /*TODO*/ },
+            navigateToSignUp = {})
+    }
 }

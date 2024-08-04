@@ -353,5 +353,4 @@ class ExampleInstrumentedTest {
             delay(3000)
             assertEquals(true, status.await())
         }
-
 }

@@ -90,7 +90,7 @@ class FirebaseAuthenticationApi(
         auth.signInWithEmailAndPassword(email,password)
             .addOnCompleteListener(){task->
                 if(task.isSuccessful){
-                    Log.d(TAGauth,"Login success")
+                    Log.d(TAGauth,"Login success : $email")
                     val user = auth.currentUser
                     user?.let {
                         status("success")
@@ -98,18 +98,22 @@ class FirebaseAuthenticationApi(
                     }?:deferredUser.complete(null)
                 }
                 else{
-                    Log.d(TAGauth,"Login failed , error : ${task.exception}")
+                    Log.e(TAGauth,"Login failed , error : ${task.exception}")
                     if(task.exception.toString()
                         .contains("There is no user record corresponding to this identifier"))
                     {
-                        Log.d(TAGauth,"User not found")
+                        Log.e(TAGauth,"User not found")
                         status("User not found")
                     }
                     else if(task.exception.toString()
                             .contains("The password is invalid or the user does not have a password"))
                     {
-                        Log.d(TAGauth,"Invalid password")
+                        Log.e(TAGauth,"Invalid password")
                         status("Wrong password")
+                    }
+                    else{
+                        Log.e(TAGauth,"Another Error")
+                        status(task.exception?.message.toString())
                     }
                     deferredUser.complete(null)
 //                    status("failed")

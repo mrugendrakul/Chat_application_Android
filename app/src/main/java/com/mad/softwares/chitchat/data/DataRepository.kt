@@ -54,6 +54,14 @@ interface DataRepository {
     suspend fun deleteChat(chatId: String)
 
     suspend fun getDataChat(chatId: String, chatName: String): Chats
+
+    suspend fun getLiveMessages(
+        chatId: String,
+        onMessagesChange: (List<MessageReceived>) -> Unit,
+        onError: (e: Exception) -> Unit
+    )
+
+    suspend fun stopLiveMessages()
 }
 
 class NetworkDataRepository(
@@ -307,9 +315,9 @@ class NetworkDataRepository(
     override suspend fun sendMessage(message: MessageReceived, chatId: String) {
         try {
             val staus =
-            apiService.sendNewMessage(message, chatId = chatId)
+                apiService.sendNewMessage(message, chatId = chatId)
 
-            if(!staus){
+            if (!staus) {
                 throw Exception("Unable to send message")
             }
             Log.d(TAG, "send successfully from data ")
@@ -334,15 +342,14 @@ class NetworkDataRepository(
 //
 
     override suspend fun getMyMessages(currentChatId: String): List<MessageReceived> {
-        try{
+        try {
             val messages = coroutineScope {
                 val mess = async { apiService.getMessagesForChat(currentChatId) }
                 mess.await()
             }
             return messages.sortedBy { t -> t.timeStamp }
-        }
-        catch (e:Exception){
-            Log.e(TAG,"Unable to get the messages : $e")
+        } catch (e: Exception) {
+            Log.e(TAG, "Unable to get the messages : $e")
 //            throw e
             return listOf(
                 MessageReceived(
@@ -356,12 +363,24 @@ class NetworkDataRepository(
 
     }
 
+    override suspend fun getLiveMessages(
+        chatId: String,
+        onMessagesChange: (List<MessageReceived>) -> Unit,
+        onError: (e: Exception) -> Unit
+    ) {
+        apiService.getLiveMessagesForChat(chatId, onMessagesChange, onError)
+    }
+
     override suspend fun deleteChat(chatId: String) {
         try {
             apiService.deleteChat(chatId)
         } catch (e: Exception) {
             Log.d(TAG, "Error in data delete chatId: $chatId : $e")
         }
+    }
+
+    override suspend fun stopLiveMessages() {
+        apiService.stopLiveMessages()
     }
 
     override suspend fun getDataChat(chatId: String, chatName: String): Chats {

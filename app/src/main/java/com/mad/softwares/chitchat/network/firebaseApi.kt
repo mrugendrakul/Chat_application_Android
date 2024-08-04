@@ -4,8 +4,10 @@ import android.util.Log
 import com.google.android.gms.tasks.OnCompleteListener
 import com.google.firebase.Timestamp
 import com.google.firebase.firestore.CollectionReference
+import com.google.firebase.firestore.DocumentChange
 import com.google.firebase.firestore.FieldValue
 import com.google.firebase.firestore.FirebaseFirestore
+import com.google.firebase.firestore.ListenerRegistration
 import com.google.firebase.firestore.Source
 import com.google.firebase.messaging.FirebaseMessaging
 import com.mad.softwares.chitchat.data.Chats
@@ -23,74 +25,81 @@ import kotlin.coroutines.resume
 import kotlin.coroutines.suspendCoroutine
 
 
-
 val TAG = "ApiServiceLog"
 
 interface FirebaseApi {
-    suspend fun getFCMToken():String
+    suspend fun getFCMToken(): String
 
-    suspend fun authenticateWithUniqueId(uniqueId: String):Boolean
-//    suspend fun getUserFromTokenInDatabase(Token:String):User
+    suspend fun authenticateWithUniqueId(uniqueId: String): Boolean
+
+    //    suspend fun getUserFromTokenInDatabase(Token:String):User
     suspend fun loginAndUpdateUserToDatabase(
-        currUser:User,
-        currFcmToken:String,
+        currUser: User,
+        currFcmToken: String,
         docId: String
-    ):User
+    ): User
 
     suspend fun registerUserToDatabase(
         currUser: User,
-        docId:String
-    ):User
+        docId: String
+    ): User
 
     suspend fun logoutUser(
         currUser: User
     )
 
-    suspend fun getUserFromUid(uid:String):User
+    suspend fun getUserFromUid(uid: String): User
 
     suspend fun resetPassword(
         username: String,
         uniqueId: String,
-        newPassword:String
-    ):List<String>
+        newPassword: String
+    ): List<String>
 
-    suspend fun sendNotificationApi(token:String, title:String, body:String)
+    suspend fun sendNotificationApi(token: String, title: String, body: String)
 
-    suspend fun getAllUsers():List<chatUser>
+    suspend fun getAllUsers(): List<chatUser>
 
     suspend fun createNewChat(
-        members:List<String>,
-        chatName:String,
-        chatId:String,
-        profilePhoto:String = "",
-        isGroup:Boolean = false,
-        )
+        members: List<String>,
+        chatName: String,
+        chatId: String,
+        profilePhoto: String = "",
+        isGroup: Boolean = false,
+    )
 
-    suspend fun getChatsforMe(username:String):List<Chats>
+    suspend fun getChatsforMe(username: String): List<Chats>
 
-    suspend fun sendNewMessage(message:MessageReceived, chatId: String):Boolean
+    suspend fun sendNewMessage(message: MessageReceived, chatId: String): Boolean
 
 //    suspend fun getTokenForMemebers(members:List<String>):List<String>
 
-    suspend fun getMessagesForChat(currentChatId: String):List<MessageReceived>
+    suspend fun getMessagesForChat(currentChatId: String): List<MessageReceived>
 
-    suspend fun deleteChat(chatId:String)
+    suspend fun deleteChat(chatId: String)
 
-    suspend fun getUserChatData(username:String):chatUser
+    suspend fun getUserChatData(username: String): chatUser
 
-    suspend fun getChatData(chatId:String):Chats
+    suspend fun getChatData(chatId: String): Chats
+
+    suspend fun getLiveMessagesForChat(
+        currentChatId: String,
+        onChange: (List<MessageReceived>) -> Unit,
+        onError: (e: Exception) -> Unit
+    )
+
+    suspend fun stopLiveMessages()
 }
 
 class NetworkFirebaseApi(
-    val db:FirebaseFirestore,
-    val userCollection:CollectionReference,
-    val chatsCollection:CollectionReference,
-    val messagesCollection:CollectionReference,
-):FirebaseApi{
-    override suspend fun getFCMToken():String {
+    val db: FirebaseFirestore,
+    val userCollection: CollectionReference,
+    val chatsCollection: CollectionReference,
+    val messagesCollection: CollectionReference,
+) : FirebaseApi {
+    override suspend fun getFCMToken(): String {
         return withContext(Dispatchers.IO) {
-            return@withContext suspendCoroutine<String> {
-                    continuation->
+            return@withContext suspendCoroutine<String> { continuation ->
                 FirebaseMessaging.getInstance().token
                     .addOnCompleteListener(OnCompleteListener { task ->
                         if (!task.isSuccessful) {
@@ -100,11 +109,11 @@ class NetworkFirebaseApi(
                         }
 
                         val token = task.result
-                        continuation.resume(token?:"Invalid")
+                        continuation.resume(token ?: "Invalid")
                         Log.d(TAG, "token: $token")
                     })
                     .addOnFailureListener {
-                        Log.e(TAG,"error to get fcm token $it")
+                        Log.e(TAG, "error to get fcm token $it")
                     }
 
             }
@@ -113,16 +122,15 @@ class NetworkFirebaseApi(
 
 
     override suspend fun authenticateWithUniqueId(uniqueId: String): Boolean {
-        return try{
+        return try {
             val result = userCollection
-                .whereEqualTo("uniqueId",uniqueId)
+                .whereEqualTo("uniqueId", uniqueId)
                 .get(Source.SERVER)
                 .await()
-            Log.d(TAG,"${result.documents} login success")
+            Log.d(TAG, "${result.documents} login success")
             result.isEmpty
-        }
-        catch(e:Exception){
-            Log.d(TAG,"Backend problem")
+        } catch (e: Exception) {
+            Log.d(TAG, "Backend problem")
             false
         }
     }
@@ -132,12 +140,12 @@ class NetworkFirebaseApi(
             .document(uid)
             .get()
 
-        lateinit var user:User
-        try{
+        lateinit var user: User
+        try {
             val doc = resultUser.await()
-            val username = doc.getString("username")?:""
-            val profilePic = doc.getString("profilePic")?:""
-            val uniqueId = doc.getString("uniqueId")?:""
+            val username = doc.getString("username") ?: ""
+            val profilePic = doc.getString("profilePic") ?: ""
+            val uniqueId = doc.getString("uniqueId") ?: ""
             val docId = doc.id
 
             user = User(
@@ -147,9 +155,8 @@ class NetworkFirebaseApi(
                 docId = docId
             )
 
-        }
-        catch (e:Exception){
-            Log.e(TAG,"Unable to get user from uid : $e")
+        } catch (e: Exception) {
+            Log.e(TAG, "Unable to get user from uid : $e")
         }
 
 //        resultUser.await().getString("username")
@@ -160,24 +167,24 @@ class NetworkFirebaseApi(
         currUser: User,
         currFcmToken: String,
         docId: String
-    ):User{
+    ): User {
 
-        if (docId == "garbage"){
-            Log.d(TAG,"Doc id is garbage")
+        if (docId == "garbage") {
+            Log.d(TAG, "Doc id is garbage")
             return User()
         }
 
-        Log.d(TAG,"Update started in api ")
+        Log.d(TAG, "Update started in api ")
         val updateUser = userCollection
             .document(docId)
-            .update("fcmTokens",FieldValue.arrayUnion(currFcmToken))
+            .update("fcmTokens", FieldValue.arrayUnion(currFcmToken))
 
-        try
-        { updateUser.await() }
-        catch (e:Exception){
-            Log.d(TAG,"Unable to add te user : $e")
+        try {
+            updateUser.await()
+        } catch (e: Exception) {
+            Log.d(TAG, "Unable to add te user : $e")
         }
-        Log.d(TAG,"Update ended in the api")
+        Log.d(TAG, "Update ended in the api")
         return User(
             fcmToken = currFcmToken,
             profilePic = currUser.profilePic,
@@ -192,14 +199,14 @@ class NetworkFirebaseApi(
     override suspend fun registerUserToDatabase(
         currUser: User,
         docId: String
-    ):User{
-        Log.d(TAG,"updateCalled here")
+    ): User {
+        Log.d(TAG, "updateCalled here")
 //        val docId = mutableListOf<String>()
         val sub = "no ID"
-        val newTokens:ArrayList<String> = arrayListOf(currUser.fcmToken)
+        val newTokens: ArrayList<String> = arrayListOf(currUser.fcmToken)
 
-        if (docId == "garbage"){
-            Log.d(TAG,"Doc id is garbage")
+        if (docId == "garbage") {
+            Log.d(TAG, "Doc id is garbage")
             return User()
         }
 
@@ -215,46 +222,43 @@ class NetworkFirebaseApi(
             .document(docId)
             .set(user)
             .addOnSuccessListener {
-                Log.d(TAG,"registration success doc id : ${currUser.docId}")
+                Log.d(TAG, "registration success doc id : ${currUser.docId}")
 //                docId.add(it.)
             }
-            .addOnFailureListener{e->
-                Log.d(TAG,"error adding because :" ,e)
+            .addOnFailureListener { e ->
+                Log.d(TAG, "error adding because :", e)
                 throw e
             }
         try {
             newUserId.await()
-        }
-        catch (e:Exception){
-            Log.d(TAG,"Unable to add the user : $e")
+        } catch (e: Exception) {
+            Log.d(TAG, "Unable to add the user : $e")
         }
 
-        val newUser:User = User(
+        val newUser: User = User(
             currUser.fcmToken,
             currUser.profilePic,
             currUser.uniqueId,
             currUser.username,
             docId = docId
         )
-        Log.d(TAG,"User details are : ${newUserId.await().toString()}")
+        Log.d(TAG, "User details are : ${newUserId.await().toString()}")
         return newUser
 
     }
 
-    override suspend fun logoutUser(currUser: User){
+    override suspend fun logoutUser(currUser: User) {
         val fcmToken = getFCMToken()
-        Log.d(TAG,"Logout started for userId: ${currUser.docId} with fcm: $fcmToken")
+        Log.d(TAG, "Logout started for userId: ${currUser.docId} with fcm: $fcmToken")
         val updateUser = userCollection
             .document(currUser.docId)
-            .update("fcmTokens",FieldValue.arrayRemove(fcmToken))
+            .update("fcmTokens", FieldValue.arrayRemove(fcmToken))
 
-        try
-        {
+        try {
             updateUser.await()
-            Log.d(TAG,"Logout successful : ${updateUser.await()}")
-        }
-        catch (e:Exception){
-            Log.d(TAG,"Unable to logout the user : $e")
+            Log.d(TAG, "Logout successful : ${updateUser.await()}")
+        } catch (e: Exception) {
+            Log.d(TAG, "Unable to logout the user : $e")
             throw e
         }
     }
@@ -266,25 +270,25 @@ class NetworkFirebaseApi(
     ): List<String> {
 
         val list = mutableListOf<String>()
-        Log.d(TAG,"reset Started api")
-        try{
+        Log.d(TAG, "reset Started api")
+        try {
 
             val querySnapshot = userCollection
                 .whereEqualTo("username", username)
                 .whereEqualTo("uniqueId", uniqueId)
                 .get()
 //                .await()
-            Log.d(TAG,"query : ${querySnapshot.await().documents}")
+            Log.d(TAG, "query : ${querySnapshot.await().documents}")
             for (document in querySnapshot.await()) {
-                Log.d(TAG,"Updated user with id ${document.id}")
+                Log.d(TAG, "Updated user with id ${document.id}")
                 userCollection
                     .document(document.id)
-                    .update("password", newPassword,"fcmTokens", arrayListOf<String>())
+                    .update("password", newPassword, "fcmTokens", arrayListOf<String>())
                 list.add(document.id)
             }
-            Log.d(TAG,"reset Success api")
-        }catch (e:Exception){
-            Log.d(TAG,"reset failed api")
+            Log.d(TAG, "reset Success api")
+        } catch (e: Exception) {
+            Log.d(TAG, "reset failed api")
             return listOf()
         }
 
@@ -293,28 +297,28 @@ class NetworkFirebaseApi(
 
     override suspend fun sendNotificationApi(token: String, title: String, body: String) {
 
-        Log.d(TAG,"TOKEN IS $token")
+        Log.d(TAG, "TOKEN IS $token")
 
-        Log.d(TAG,"Notification trigger in api")
+        Log.d(TAG, "Notification trigger in api")
 
         val notificationRequest = NotificationRequest(
             to = token,
             notification = Notification(title, body)
         )
 
-        try{
+        try {
             val response = service.sendNotification(notificationRequest)
 
-            Log.d(TAG,"Successfully send notification api ${response.toString()}")
-        }catch (e:Exception){
-            Log.d(TAG,"Failed to send ${e.message}")
+            Log.d(TAG, "Successfully send notification api ${response.toString()}")
+        } catch (e: Exception) {
+            Log.d(TAG, "Failed to send ${e.message}")
         }
     }
 
     override suspend fun getAllUsers(): List<chatUser> {
-        Log.d(TAG,"started getting the users")
+        Log.d(TAG, "started getting the users")
         val users = mutableListOf<chatUser>()
-        try{
+        try {
             val allUsers = userCollection
 //                .whereNotEqualTo("username", username)
                 .get()
@@ -331,12 +335,11 @@ class NetworkFirebaseApi(
                 Log.d(TAG, "Got user with id : ${user.fcmToken}")
                 users.add(user)
             }
-        }
-        catch (e:Exception){
-            Log.e(TAG,"Unable to get the users : $e")
+        } catch (e: Exception) {
+            Log.e(TAG, "Unable to get the users : $e")
             throw e
         }
-        Log.d(TAG,"got users api")
+        Log.d(TAG, "got users api")
         return users
     }
 
@@ -348,33 +351,33 @@ class NetworkFirebaseApi(
         isGroup: Boolean
     ) {
 //        val newMembers = members.toTypedArray()
-        val newMembers:ArrayList<String> = ArrayList(members)
-        Log.d(TAG,"Chat addition started api")
+        val newMembers: ArrayList<String> = ArrayList(members)
+        Log.d(TAG, "Chat addition started api")
 
         val newChat = hashMapOf(
             "chatId" to chatId,
             "chatID" to chatName,
-            "profilePhoto" to  profilePhoto,
+            "profilePhoto" to profilePhoto,
             "isGroup" to isGroup,
             "members" to newMembers,
-            "lastMessage" to listOf("NO message",Timestamp(0,0))
+            "lastMessage" to listOf("NO message", Timestamp(0, 0))
         )
 
         chatsCollection
             .document(chatId)
             .set(newChat)
             .addOnSuccessListener {
-                Log.d(TAG,"added chat successfully")
+                Log.d(TAG, "added chat successfully")
             }
             .addOnFailureListener { e ->
-                Log.e(TAG,"Failed to add to chat : $e")
+                Log.e(TAG, "Failed to add to chat : $e")
                 throw e
             }
     }
 
     override suspend fun getChatsforMe(username: String): List<Chats> {
         val chats = mutableListOf<Chats>()
-        Log.d(TAG,"Api the chats for usr : ${username}")
+        Log.d(TAG, "Api the chats for usr : ${username}")
         val myChats = chatsCollection
             .whereArrayContains("members", username)
             .get()
@@ -385,7 +388,6 @@ class NetworkFirebaseApi(
             .addOnFailureListener { e ->
                 Log.d(TAG, "Unable to fetch the chats : $e")
             }
-
         for (doc in myChats.await().documents) {
             val chatId = doc.getString("chatId") ?: ""
             val chatName = doc.getString("chatID") ?: ""
@@ -413,35 +415,35 @@ class NetworkFirebaseApi(
     override suspend fun getUserChatData(username: String): chatUser {
         val userInfo = userCollection.whereEqualTo("username", username).get()
 
-        try{
+        try {
             val result = userInfo.await()
 //            val username = username
-            val fcmToken = result.documents[0].getString("fcmToken")?:""
-            val profilePic = result.documents[0].getString("profilePic")?:""
-            return chatUser(username,fcmToken,profilePic)
-        }catch (e:Exception){
-            Log.e(TAG,"Unable to get the user data : $e")
+            val fcmToken = result.documents[0].getString("fcmToken") ?: ""
+            val profilePic = result.documents[0].getString("profilePic") ?: ""
+            return chatUser(username, fcmToken, profilePic)
+        } catch (e: Exception) {
+            Log.e(TAG, "Unable to get the user data : $e")
             return chatUser(profilePic = e.message.toString())
 //            throw e
         }
     }
 
     override suspend fun getChatData(chatId: String): Chats {
-        Log.d(TAG,"Getting chat data Started.")
+        Log.d(TAG, "Getting chat data Started.")
         val chatData = chatsCollection.document(chatId).get()
             .addOnSuccessListener {
-                Log.d(TAG,"Got the chat data")
+                Log.d(TAG, "Got the chat data")
             }
-            .addOnFailureListener{
-                Log.e(TAG,"Unable to get the chat data : $it")
+            .addOnFailureListener {
+                Log.e(TAG, "Unable to get the chat data : $it")
 //                throw it
                 return@addOnFailureListener
             }
         val chat = chatData.await()
         return Chats(
-            chatId = chat.getString("chatId")?:"",
-            chatName = chat.getString("chatID")?:"",
-            isGroup = chat.getBoolean("isGroup")?:false,
+            chatId = chat.getString("chatId") ?: "",
+            chatName = chat.getString("chatID") ?: "",
+            isGroup = chat.getBoolean("isGroup") ?: false,
             members = chat.get("members") as List<String>,
         )
     }
@@ -455,16 +457,16 @@ class NetworkFirebaseApi(
             "timeStamp" to FieldValue.serverTimestamp()
         )
 
-        Log.d(TAG,"message sending started in api")
+        Log.d(TAG, "message sending started in api")
         val chatSuccess = CompletableDeferred<Boolean>()
 //        val chatSuccess = CompletableDeferred(false)
-        val result = withTimeoutOrNull(5000L){
+        val result = withTimeoutOrNull(5000L) {
             try {
                 chatsCollection
                     .document(chatId).collection("Messages")
 //                .get(timeout = 5000)
                     .add(newMessage)
-                .await()
+                    .await()
 //            .addOnSuccessListener {
 //                Log.d(TAG,"message added successfully")
 ////                chatSuccess.complete(true)
@@ -505,7 +507,7 @@ class NetworkFirebaseApi(
                 false
             }
         }
-        return result?:false
+        return result ?: false
 //        return chatSuccess.await()
 //        chatSuccess.await()
     }
@@ -514,40 +516,85 @@ class NetworkFirebaseApi(
     override suspend fun getMessagesForChat(currentChatId: String): List<MessageReceived> {
         val messages = mutableListOf<MessageReceived>()
 
-        Log.d(TAG,"message getting started in api")
+        Log.d(TAG, "message getting started in api")
         val messageGet = chatsCollection.document(currentChatId).collection("Messages")
             .get(Source.SERVER)
             .addOnSuccessListener {
-                Log.d(TAG,"message got successfully")
+                Log.d(TAG, "message got successfully")
             }
-            .addOnFailureListener{e->
-                Log.e(TAG,"Failed to get Messages : $e")
+            .addOnFailureListener { e ->
+                Log.e(TAG, "Failed to get Messages : $e")
                 return@addOnFailureListener
             }
 
-        for( doc in messageGet.await()) {
+        for (doc in messageGet.await()) {
             val content = doc.getString("content") ?: ""
 //            val chatId = doc.getString("chatId")?:""
-            val senderId = doc.getString("senderId")?:""
-            val timeStamp = doc.getTimestamp("timeStamp")?: Timestamp.now()
+            val senderId = doc.getString("senderId") ?: ""
+            val timeStamp = doc.getTimestamp("timeStamp") ?: Timestamp.now()
 
-            val mess = MessageReceived(content, contentType = ContentType.text, senderId,timeStamp)
+            val mess = MessageReceived(content, contentType = ContentType.text, senderId, timeStamp)
             messages.add(mess)
         }
 
         return messages
     }
 
+    private var listenerRegistration: ListenerRegistration? = null
+
+    override suspend fun getLiveMessagesForChat(
+        currentChatId: String,
+        onChange: (List<MessageReceived>) -> Unit,
+        onError: (e: Exception) -> Unit
+    ) {
+        listenerRegistration = chatsCollection.document(currentChatId).collection("Messages")
+            .addSnapshotListener{snapShot,e->
+                if(e!=null){
+                    onError(e)
+                    return@addSnapshotListener
+                }
+                for (dc in snapShot!!.documentChanges) {
+                    when (dc.type) {
+                        DocumentChange.Type.ADDED-> Log.d(TAG, "New Message: ${dc.document.data}")
+                        DocumentChange.Type.MODIFIED -> Log.d(TAG, "Modified Message: ${dc.document.data}")
+                        DocumentChange.Type.REMOVED -> Log.d(TAG, "Removed Message: ${dc.document.data}")
+                    }
+                }
+
+                val messages = mutableListOf<MessageReceived>()
+                if (snapShot!=null && !snapShot.isEmpty){
+                    for (doc in snapShot.documents) {
+                        val content = doc.getString("content") ?: ""
+//            val chatId = doc.getString("chatId")?:""
+                        val senderId = doc.getString("senderId") ?: ""
+                        val timeStamp = doc.getTimestamp("timeStamp") ?: Timestamp.now()
+
+                        val mess = MessageReceived(
+                            content,
+                            contentType = ContentType.text,
+                            senderId,
+                            timeStamp
+                        )
+//                        Log.d(TAG,"Got the message : ${mess.content}")
+                        messages.add(mess)
+                    }
+                    onChange(messages.sortedBy { it.timeStamp })
+                }
+            }
+    }
+
+    override suspend fun stopLiveMessages() {
+        listenerRegistration?.remove()
+    }
 
     override suspend fun deleteChat(chatId: String) {
         try {
             chatsCollection
                 .document(chatId)
                 .delete()
-            Log.d(TAG,"Success to delete the chat : $chatId")
-        }
-        catch (e:Exception){
-            Log.e(TAG,"Error in api to delete chatId ${chatId} : ${e}")
+            Log.d(TAG, "Success to delete the chat : $chatId")
+        } catch (e: Exception) {
+            Log.e(TAG, "Error in api to delete chatId ${chatId} : ${e}")
             throw e
         }
     }

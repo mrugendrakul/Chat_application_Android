@@ -84,7 +84,7 @@ fun Messages(
 
         MessageScreen.Error -> {
             ShowMessageError {
-                viewModel.getMessages(isForced = true)
+//                viewModel.getMessages(isForced = true)
             }
         }
 
@@ -93,7 +93,9 @@ fun Messages(
             MessagesBodySuccess(
                 uiState = uiState,
                 updateMessage = { viewModel.messageEdit(it) },
-                getMessagesAgain = { viewModel.getMessages(isForced = true) },
+                getMessagesAgain = {
+//                    viewModel.getMessages(isForced = true)
+                                   },
                 sendMessage = { viewModel.sendTextMessage() },
                 navigateUp = navigateUp
             )
@@ -117,13 +119,13 @@ fun MessagesBodySuccess(
                 destinationData = messagesdestinationData,
                 navigateUp = navigateUp,
                 title = uiState.chatName,
-                action = {
-                    IconButton(onClick = { getMessagesAgain() }) {
-                        Icon(
-                            imageVector = Icons.Default.Refresh,
-                            contentDescription = "refresh"
-                        )}
-                }
+//                action = {
+//                    IconButton(onClick = { getMessagesAgain() }) {
+//                        Icon(
+//                            imageVector = Icons.Default.Refresh,
+//                            contentDescription = "refresh"
+//                        )}
+//                }
             )
         },
         bottomBar = {
@@ -335,11 +337,13 @@ fun BottomMessageSend(
 
 //            )
             .fillMaxWidth()
+            .padding(8.dp)
             .background(MaterialTheme.colorScheme.background),
         colors = CardDefaults.elevatedCardColors(
             containerColor = MaterialTheme.colorScheme.surface,
 
-            )
+            ),
+        shape = RoundedCornerShape(30.dp)
     ) {
         Column(
             modifier = Modifier
@@ -378,7 +382,7 @@ fun BottomMessageSend(
 
                         ),
                     maxLines = 3,
-                    placeholder = { Text(text = "Message...") },
+                    placeholder = { Text(text = "Start typing...") },
 //                    placeholder = {"message..."},
                     colors = OutlinedTextFieldDefaults.colors(
                         focusedBorderColor = Color(0, 0, 0, alpha = 0),
@@ -445,22 +449,22 @@ fun BottomMessageSend(
 fun PreviewMessagebodySuccess() {
     ChitChatTheme(
         dynamicColor = false,
-        darkTheme = true
+//        darkTheme = true
     ) {
         MessagesBodySuccess(
             uiState = MessagesUiState(
                 chatName = "ThereSelf",
                 messages = mutableListOf(
-//                    MessageReceived(
-//                        content = "Hello Friend",
-//                        senderId = "mySelf",
-//                        timeStamp = Timestamp(Date(2024 - 1900, 1, 25, 20, 15))
-//                    ),
-//                    MessageReceived(
-//                        content = "Hey there",
-//                        senderId = "ThereSelf",
-//                        timeStamp = Timestamp(Date(2024 - 1900, 1, 25, 20, 17))
-//                    ),
+                    MessageReceived(
+                        content = "Hello Friend",
+                        senderId = "mySelf",
+                        timeStamp = Timestamp(Date(2024 - 1900, 1, 25, 20, 15))
+                    ),
+                    MessageReceived(
+                        content = "Hey there",
+                        senderId = "ThereSelf",
+                        timeStamp = Timestamp(Date(2024 - 1900, 1, 25, 20, 17))
+                    ),
 //                    MessageReceived(
 //                        content = "good to say",
 //                        senderId = "mySelf",
@@ -526,7 +530,7 @@ fun PreviewMessagebodySuccess() {
 fun PreviewSenderChat() {
     ChitChatTheme(
         dynamicColor = false,
-        darkTheme = true
+//        darkTheme = true
     ) {
         SenderChat(
             message = MessageReceived(
