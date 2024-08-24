@@ -356,6 +356,7 @@ fun BottomMessageSend(
 //                )
 
 //            )
+
             .fillMaxWidth()
             .padding(8.dp)
             .background(MaterialTheme.colorScheme.background),
