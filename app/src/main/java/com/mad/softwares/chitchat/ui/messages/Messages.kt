@@ -3,14 +3,19 @@ package com.mad.softwares.chitchat.ui.messages
 import androidx.annotation.FloatRange
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.animateContentSize
+import androidx.compose.animation.core.FiniteAnimationSpec
 import androidx.compose.animation.core.LinearOutSlowInEasing
 import androidx.compose.animation.core.Spring
 import androidx.compose.animation.core.spring
 import androidx.compose.animation.core.tween
+import androidx.compose.animation.scaleIn
+import androidx.compose.animation.scaleOut
 import androidx.compose.animation.slideInHorizontally
 import androidx.compose.animation.slideOutHorizontally
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
+
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.IntrinsicSize
 import androidx.compose.foundation.layout.Row
@@ -29,6 +34,7 @@ import androidx.compose.material3.Scaffold
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.Send
 import androidx.compose.material.icons.filled.ArrowOutward
+import androidx.compose.material.icons.filled.Attachment
 import androidx.compose.material.icons.filled.CloudQueue
 import androidx.compose.material.icons.filled.Error
 import androidx.compose.material.icons.filled.Refresh
@@ -99,7 +105,7 @@ fun Messages(
                 updateMessage = { viewModel.messageEdit(it) },
                 getMessagesAgain = {
 //                    viewModel.getMessages(isForced = true)
-                                   },
+                },
                 sendMessage = { viewModel.sendTextMessage() },
                 navigateUp = navigateUp
             )
@@ -112,7 +118,7 @@ fun Messages(
 fun MessagesBodySuccess(
     uiState: MessagesUiState,
     updateMessage: (String) -> Unit,
-    getMessagesAgain:()->Unit,
+    getMessagesAgain: () -> Unit,
     sendMessage: () -> Unit,
     navigateUp: () -> Unit,
     modifier: Modifier = Modifier
@@ -144,14 +150,14 @@ fun MessagesBodySuccess(
             .background(MaterialTheme.colorScheme.background)
     ) { padding ->
         if (uiState.messages.isNotEmpty()) {
-            LazyColumn (
+            LazyColumn(
                 modifier = modifier
                     .padding(padding)
                     .fillMaxSize(),
 //                    .background(MaterialTheme.colorScheme.background),
                 reverseLayout = true,
                 verticalArrangement = Arrangement.Bottom
-            ){
+            ) {
                 items(uiState.messages.reversed()) {
                     if (it.senderId == uiState.chatName) {
                         ReceiverChat(message = it)
@@ -169,7 +175,7 @@ fun MessagesBodySuccess(
                 verticalArrangement = Arrangement.Center
             ) {
                 Text(
-                    modifier= Modifier
+                    modifier = Modifier
                         .fillMaxWidth(),
                     text = stringResource(R.string.start_chating_now),
                     color = MaterialTheme.colorScheme.onBackground,
@@ -209,14 +215,16 @@ fun SenderChat(
     val fDate = sdf.format(date)
     Row(
         modifier = Modifier
-            .fillMaxWidth(),
+            .fillMaxWidth(1f),
         horizontalArrangement = Arrangement.End
     ) {
 
         Card(
             modifier = Modifier
-//                .fillMaxWidth()
+                .fillMaxWidth(0.8f)
 //                .weight(5f)
+                .wrapContentWidth(Alignment.End)
+//                .padding(start = 80.dp)
                 .padding(vertical = 10.dp, horizontal = 5.dp),
 //                .height(60.dp),
             shape = RoundedCornerShape(20.dp, 0.dp, 20.dp, 20.dp),
@@ -225,48 +233,54 @@ fun SenderChat(
             )
         ) {
 
-            Text(
-                text = message.content,
+            Column(
                 modifier = Modifier
-                    .padding(10.dp),
-                fontSize = 20.sp
-            )
-            Card(
-                modifier = Modifier
-                    .wrapContentWidth(unbounded = true)
-                    .fillMaxWidth()
-                    .padding(0.dp),
-            ) {
-                Row(
-                    modifier = Modifier,
+                    .width(IntrinsicSize.Max)
+            ){
+                Text(
+                    text = message.content,
+                    modifier = Modifier
+                        .padding(10.dp),
+                    fontSize = 20.sp
+                )
+                Card(
+                    modifier = Modifier
+//                    .wrapContentWidth(unbounded = true)
+                        .fillMaxWidth()
+                        .padding(0.dp),
+
+                    ) {
+                    Row(
+                        modifier = Modifier,
 //                        .fillMaxWidth(),
-                    horizontalArrangement = Arrangement.SpaceBetween
-                ) {
-                    Text(
-                        modifier = Modifier
+                        horizontalArrangement = Arrangement.End,
+                    ) {
+                        Text(
+                            modifier = Modifier
 //                            .fillMaxWidth()
-                            .padding(horizontal = 15.dp)
-                            .padding(vertical = 2.dp),
-                        text = fDate.toString(),
+                                .padding(horizontal = 15.dp)
+                                .padding(vertical = 2.dp),
+                            text = fDate.toString(),
 //                    text = difference.toString(),
 //                text = message.timeStamp.toDate().toString(),
-                        textAlign = TextAlign.Start
-                    )
-                    if (message.status == messageStatus.Send) {
-                        Icon(
-                            imageVector = Icons.Default.ArrowOutward,
-                            contentDescription = null
+                            textAlign = TextAlign.Start
                         )
-                    } else if (message.status == messageStatus.Sending) {
-                        Icon(
-                            imageVector = Icons.Default.CloudQueue,
-                            contentDescription = null
-                        )
-                    } else if (message.status == messageStatus.Error) {
-                        Icon(
-                            imageVector = Icons.Default.Error,
-                            contentDescription = null
-                        )
+                        if (message.status == messageStatus.Send) {
+                            Icon(
+                                imageVector = Icons.Default.ArrowOutward,
+                                contentDescription = null
+                            )
+                        } else if (message.status == messageStatus.Sending) {
+                            Icon(
+                                imageVector = Icons.Default.CloudQueue,
+                                contentDescription = null
+                            )
+                        } else if (message.status == messageStatus.Error) {
+                            Icon(
+                                imageVector = Icons.Default.Error,
+                                contentDescription = null
+                            )
+                        }
                     }
                 }
             }
@@ -298,6 +312,7 @@ fun ReceiverChat(
         Card(
             modifier = Modifier
                 .padding(vertical = 10.dp, horizontal = 5.dp)
+                .wrapContentWidth(Alignment.Start)
 //                .fillMaxWidth(1f)
             ,
 //                .height(60.dp),
@@ -306,33 +321,36 @@ fun ReceiverChat(
                 containerColor = MaterialTheme.colorScheme.secondaryContainer
             )
         ) {
-            Text(
-                text = message.content,
+            Column(
                 modifier = Modifier
-                    .padding(10.dp)
-
-                ,
-                fontSize = 20.sp
-            )
-            Card(
-                modifier = Modifier
-//                    .wrapContentWidth(unbounded = true)
-//                    .fillMaxWidth()
-
-                    .padding(0.dp),
-
-            ) {
+                    .width(IntrinsicSize.Max)
+            ){
                 Text(
+                    text = message.content,
                     modifier = Modifier
+                        .padding(10.dp)
+                        .wrapContentWidth()
+                    ,
+                    fontSize = 20.sp
+                )
 
-                        .padding(horizontal = 15.dp)
-                        .padding(vertical = 2.dp),
-                    text = fDate.toString(),
+                Card(modifier = Modifier
+                    .fillMaxWidth()
+                    .background(color = MaterialTheme.colorScheme.inverseOnSurface)){
+                    Text(
+                        modifier = Modifier
+                            .padding(horizontal = 15.dp)
+                            .padding(vertical = 2.dp)
+                            ,
+                        text = fDate.toString(),
 //                    text = difference.toString(),
 //                text = message.timeStamp.toDate().toString(),
-                    textAlign = TextAlign.End
-                )
+                        textAlign = TextAlign.End
+                    )
+                }
             }
+
+
         }
 //        Spacer(modifier = Modifier.weight(1f))
 
@@ -379,6 +397,7 @@ fun BottomMessageSend(
                 verticalAlignment = Alignment.Bottom,
 
                 ) {
+
                 OutlinedTextField(
                     modifier = Modifier
                         .weight(1f)
@@ -418,20 +437,73 @@ fun BottomMessageSend(
                 )
 //            if(appUistate.messageToSend!="")
                 AnimatedVisibility(
+                    visible = !appUistate.messageToSend.isNotEmpty(),
+//                    visible = true,
+//                    enter = slideInHorizontally(
+//                        initialOffsetX = { fullWidth -> fullWidth },
+//                        animationSpec = tween(
+//                            durationMillis = 100,
+//                            easing = LinearOutSlowInEasing
+//                        )
+//                    ),
+//                    exit = slideOutHorizontally(
+//                        targetOffsetX = { fullWidth -> fullWidth },
+//                        animationSpec = tween(
+//                            durationMillis = 100,
+//                            easing = LinearOutSlowInEasing
+//                        )
+//                    )
+                    enter = scaleIn(),
+                    exit = scaleOut()
+                )
+                {
+                    IconButton(
+                        onClick = {  },
+                        modifier = Modifier
+//                        .fillMaxWidth()
+                            .padding(bottom = 10.dp, end = 10.dp)
+                            .size(45.dp),
+                        colors = IconButtonDefaults.iconButtonColors(
+                            containerColor = MaterialTheme.colorScheme.primary
+                        )
+                    ) {
+                        Icon(
+                            imageVector = Icons.Default.Attachment,
+                            modifier = Modifier
+                                .fillMaxHeight()
+                                .padding(10.dp)
+                                .size(80.dp),
+                            tint = MaterialTheme.colorScheme.onPrimary,
+                            contentDescription = "send"
+                        )
+                    }
+                }
+                AnimatedVisibility(
                     visible = appUistate.messageToSend.isNotEmpty(),
 //                    visible = true,
-                    enter = slideInHorizontally(
-                        initialOffsetX = { fullWidth -> fullWidth },
-                        animationSpec = tween(
-                            durationMillis = 100,
-                            easing = LinearOutSlowInEasing
+//                    enter = slideInHorizontally(
+//                        initialOffsetX = { fullWidth -> fullWidth },
+//                        animationSpec = tween(
+//                            durationMillis = 100,
+//                            easing = LinearOutSlowInEasing
+//                        )
+//                    ),
+//                    exit = slideOutHorizontally(
+//                        targetOffsetX = { fullWidth -> fullWidth },
+//                        animationSpec = tween(
+//                            durationMillis = 100,
+//                            easing = LinearOutSlowInEasing
+//                        )
+//                    )
+
+                    enter = scaleIn(
+                        animationSpec = spring(
+                            stiffness = Spring.StiffnessLow
                         )
                     ),
-                    exit = slideOutHorizontally(
-                        targetOffsetX = { fullWidth -> fullWidth },
-                        animationSpec = tween(
-                            durationMillis = 100,
-                            easing = LinearOutSlowInEasing
+                    exit = scaleOut(
+                        animationSpec = spring(
+                            stiffness = Spring.StiffnessLow
                         )
                     )
                 )
@@ -507,7 +579,7 @@ fun PreviewMessagebodySuccess() {
                         timeStamp = Timestamp(Date(2024 - 1900, 1, 25, 20, 17))
                     ),
                     MessageReceived(
-                        content = "Customize Toolbar...",
+                        content = "Customize Toolbar... 124",
                         senderId = "mySelf",
                         timeStamp = Timestamp(Date(2024 - 1900, 2, 25, 20, 15))
                     ),
@@ -539,7 +611,7 @@ fun PreviewMessagebodySuccess() {
                 ),
             ),
             updateMessage = {},
-            getMessagesAgain = {  },
+            getMessagesAgain = { },
             sendMessage = {},
             navigateUp = {}
         )
