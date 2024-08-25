@@ -1,25 +1,17 @@
 package com.mad.softwares.chitchat.ui.messages
 
-import androidx.annotation.FloatRange
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.animateContentSize
-import androidx.compose.animation.core.FiniteAnimationSpec
-import androidx.compose.animation.core.LinearOutSlowInEasing
 import androidx.compose.animation.core.Spring
 import androidx.compose.animation.core.spring
-import androidx.compose.animation.core.tween
 import androidx.compose.animation.scaleIn
 import androidx.compose.animation.scaleOut
-import androidx.compose.animation.slideInHorizontally
-import androidx.compose.animation.slideOutHorizontally
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
-import androidx.compose.foundation.layout.Box
 
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.IntrinsicSize
 import androidx.compose.foundation.layout.Row
-import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
@@ -37,7 +29,6 @@ import androidx.compose.material.icons.filled.ArrowOutward
 import androidx.compose.material.icons.filled.Attachment
 import androidx.compose.material.icons.filled.CloudQueue
 import androidx.compose.material.icons.filled.Error
-import androidx.compose.material.icons.filled.Refresh
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.ElevatedCard
@@ -48,9 +39,13 @@ import androidx.compose.material3.IconButtonDefaults
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.OutlinedTextFieldDefaults
+import androidx.compose.material3.SnackbarHost
+import androidx.compose.material3.SnackbarHostState
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
@@ -69,6 +64,7 @@ import com.mad.softwares.chitchat.ui.ApptopBar
 import com.mad.softwares.chitchat.ui.GodViewModelProvider
 import com.mad.softwares.chitchat.ui.destinationData
 import com.mad.softwares.chitchat.ui.theme.ChitChatTheme
+import kotlinx.coroutines.launch
 import java.text.SimpleDateFormat
 import java.util.Date
 
@@ -123,6 +119,8 @@ fun MessagesBodySuccess(
     navigateUp: () -> Unit,
     modifier: Modifier = Modifier
 ) {
+    val scope = rememberCoroutineScope()
+    val snackbarHostState = remember { SnackbarHostState() }
     Scaffold(
         topBar = {
             ApptopBar(
@@ -142,8 +140,12 @@ fun MessagesBodySuccess(
             BottomMessageSend(
                 appUistate = uiState,
                 sendMessage = sendMessage,
-                updateMessage = updateMessage
+                updateMessage = updateMessage,
+                snackbarHostState = snackbarHostState
             )
+        },
+        snackbarHost = {
+            SnackbarHost(snackbarHostState)
         },
 
         modifier = modifier
@@ -236,7 +238,7 @@ fun SenderChat(
             Column(
                 modifier = Modifier
                     .width(IntrinsicSize.Max)
-            ){
+            ) {
                 Text(
                     text = message.content,
                     modifier = Modifier
@@ -324,24 +326,24 @@ fun ReceiverChat(
             Column(
                 modifier = Modifier
                     .width(IntrinsicSize.Max)
-            ){
+            ) {
                 Text(
                     text = message.content,
                     modifier = Modifier
                         .padding(10.dp)
-                        .wrapContentWidth()
-                    ,
+                        .wrapContentWidth(),
                     fontSize = 20.sp
                 )
 
-                Card(modifier = Modifier
-                    .fillMaxWidth()
-                    .background(color = MaterialTheme.colorScheme.inverseOnSurface)){
+                Card(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .background(color = MaterialTheme.colorScheme.inverseOnSurface)
+                ) {
                     Text(
                         modifier = Modifier
                             .padding(horizontal = 15.dp)
-                            .padding(vertical = 2.dp)
-                            ,
+                            .padding(vertical = 2.dp),
                         text = fDate.toString(),
 //                    text = difference.toString(),
 //                text = message.timeStamp.toDate().toString(),
@@ -362,8 +364,9 @@ fun BottomMessageSend(
     appUistate: MessagesUiState,
     sendMessage: () -> Unit,
     updateMessage: (String) -> Unit,
+    snackbarHostState: SnackbarHostState
 ) {
-
+    val scope = rememberCoroutineScope()
     ElevatedCard(
         Modifier
 //            .animateContentSize(
@@ -435,88 +438,36 @@ fun BottomMessageSend(
 //                }
 
                 )
-//            if(appUistate.messageToSend!="")
-                AnimatedVisibility(
-                    visible = !appUistate.messageToSend.isNotEmpty(),
-//                    visible = true,
-//                    enter = slideInHorizontally(
-//                        initialOffsetX = { fullWidth -> fullWidth },
-//                        animationSpec = tween(
-//                            durationMillis = 100,
-//                            easing = LinearOutSlowInEasing
-//                        )
-//                    ),
-//                    exit = slideOutHorizontally(
-//                        targetOffsetX = { fullWidth -> fullWidth },
-//                        animationSpec = tween(
-//                            durationMillis = 100,
-//                            easing = LinearOutSlowInEasing
-//                        )
-//                    )
-                    enter = scaleIn(),
-                    exit = scaleOut()
-                )
-                {
-                    IconButton(
-                        onClick = {  },
-                        modifier = Modifier
-//                        .fillMaxWidth()
-                            .padding(bottom = 10.dp, end = 10.dp)
-                            .size(45.dp),
-                        colors = IconButtonDefaults.iconButtonColors(
-                            containerColor = MaterialTheme.colorScheme.primary
-                        )
-                    ) {
-                        Icon(
-                            imageVector = Icons.Default.Attachment,
-                            modifier = Modifier
-                                .fillMaxHeight()
-                                .padding(10.dp)
-                                .size(80.dp),
-                            tint = MaterialTheme.colorScheme.onPrimary,
-                            contentDescription = "send"
-                        )
-                    }
-                }
-                AnimatedVisibility(
-                    visible = appUistate.messageToSend.isNotEmpty(),
-//                    visible = true,
-//                    enter = slideInHorizontally(
-//                        initialOffsetX = { fullWidth -> fullWidth },
-//                        animationSpec = tween(
-//                            durationMillis = 100,
-//                            easing = LinearOutSlowInEasing
-//                        )
-//                    ),
-//                    exit = slideOutHorizontally(
-//                        targetOffsetX = { fullWidth -> fullWidth },
-//                        animationSpec = tween(
-//                            durationMillis = 100,
-//                            easing = LinearOutSlowInEasing
-//                        )
-//                    )
+//
 
-                    enter = scaleIn(
-                        animationSpec = spring(
-                            stiffness = Spring.StiffnessLow
-                        )
-                    ),
-                    exit = scaleOut(
-                        animationSpec = spring(
-                            stiffness = Spring.StiffnessLow
-                        )
-                    )
-                )
-                {
-                    IconButton(
-                        onClick = sendMessage,
-                        modifier = Modifier
+                IconButton(
+                    onClick = {
+                        if (appUistate.messageToSend.isNotEmpty()) {
+                            sendMessage()
+                        } else {
+                            snackbarHostState.currentSnackbarData?.dismiss()
+                            scope.launch {
+                                snackbarHostState.showSnackbar(
+                                    message = "This function is not implemented yet",
+                                    withDismissAction = true
+                                )
+                            }
+                        }
+                    },
+
+                    modifier = Modifier
 //                        .fillMaxWidth()
-                            .padding(bottom = 10.dp, end = 10.dp)
-                            .size(45.dp),
-                        colors = IconButtonDefaults.iconButtonColors(
-                            containerColor = MaterialTheme.colorScheme.primary
-                        )
+                        .padding(bottom = 10.dp, end = 10.dp)
+                        .size(45.dp),
+                    colors = IconButtonDefaults.iconButtonColors(
+                        containerColor = MaterialTheme.colorScheme.primary
+
+                    )
+                ) {
+                    AnimatedVisibility(
+                        visible = appUistate.messageToSend.isNotEmpty(),
+                        enter = scaleIn(),
+                        exit = scaleOut()
                     ) {
                         Icon(
                             imageVector = Icons.AutoMirrored.Filled.Send,
@@ -528,6 +479,22 @@ fun BottomMessageSend(
                             contentDescription = "send"
                         )
                     }
+                    AnimatedVisibility(
+                        visible = appUistate.messageToSend.isEmpty(),
+                        enter = scaleIn(),
+                        exit = scaleOut()
+                    ) {
+                        Icon(
+                            imageVector = Icons.Default.Attachment,
+                            modifier = Modifier
+                                .fillMaxHeight()
+                                .padding(10.dp)
+                                .size(80.dp),
+                            tint = MaterialTheme.colorScheme.onPrimary,
+                            contentDescription = "send"
+                        )
+                    }
+
                 }
 
             }
