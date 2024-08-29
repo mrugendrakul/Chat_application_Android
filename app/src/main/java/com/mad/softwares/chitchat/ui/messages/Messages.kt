@@ -1,5 +1,6 @@
 package com.mad.softwares.chitchat.ui.messages
 
+import android.graphics.drawable.shapes.Shape
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.animateContentSize
 import androidx.compose.animation.core.Spring
@@ -15,12 +16,17 @@ import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.layout.wrapContentWidth
 import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.grid.GridCells
+import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
 import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.lazy.staggeredgrid.StaggeredGridCells
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.Scaffold
 import androidx.compose.material.icons.Icons
@@ -28,7 +34,13 @@ import androidx.compose.material.icons.automirrored.filled.Send
 import androidx.compose.material.icons.filled.ArrowOutward
 import androidx.compose.material.icons.filled.Attachment
 import androidx.compose.material.icons.filled.CloudQueue
+import androidx.compose.material.icons.filled.Code
+import androidx.compose.material.icons.filled.Dock
 import androidx.compose.material.icons.filled.Error
+import androidx.compose.material.icons.filled.Image
+import androidx.compose.material.icons.filled.Photo
+import androidx.compose.material.icons.filled.UploadFile
+import androidx.compose.material3.Button
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.ElevatedCard
@@ -37,18 +49,27 @@ import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.IconButtonDefaults
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.ModalBottomSheet
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.OutlinedTextFieldDefaults
+import androidx.compose.material3.SheetState
 import androidx.compose.material3.SnackbarHost
 import androidx.compose.material3.SnackbarHostState
 import androidx.compose.material3.Text
+import androidx.compose.material3.rememberModalBottomSheetState
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.style.TextAlign
@@ -56,6 +77,7 @@ import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.lifecycle.viewmodel.compose.viewModel
+import com.google.android.gms.fido.fido2.api.common.Attachment
 import com.google.firebase.Timestamp
 import com.mad.softwares.chitchat.R
 import com.mad.softwares.chitchat.data.MessageReceived
@@ -64,6 +86,7 @@ import com.mad.softwares.chitchat.ui.ApptopBar
 import com.mad.softwares.chitchat.ui.GodViewModelProvider
 import com.mad.softwares.chitchat.ui.destinationData
 import com.mad.softwares.chitchat.ui.theme.ChitChatTheme
+import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.launch
 import java.text.SimpleDateFormat
 import java.util.Date
@@ -120,6 +143,11 @@ fun MessagesBodySuccess(
     modifier: Modifier = Modifier
 ) {
     val scope = rememberCoroutineScope()
+    val sheetState = rememberModalBottomSheetState(
+    )
+    var sheetVisible by remember {
+        mutableStateOf(false)
+    }
     val snackbarHostState = remember { SnackbarHostState() }
     Scaffold(
         topBar = {
@@ -141,7 +169,16 @@ fun MessagesBodySuccess(
                 appUistate = uiState,
                 sendMessage = sendMessage,
                 updateMessage = updateMessage,
-                snackbarHostState = snackbarHostState
+                sendAttatchment = {
+                    sheetVisible = true
+//                    snackbarHostState.currentSnackbarData?.dismiss()
+//                    scope.launch {
+//                        snackbarHostState.showSnackbar(
+//                            message = "This function is not implemented yet",
+//                            withDismissAction = true
+//                        )
+//                    }
+                }
             )
         },
         snackbarHost = {
@@ -151,6 +188,7 @@ fun MessagesBodySuccess(
         modifier = modifier
             .background(MaterialTheme.colorScheme.background)
     ) { padding ->
+
         if (uiState.messages.isNotEmpty()) {
             LazyColumn(
                 modifier = modifier
@@ -166,6 +204,49 @@ fun MessagesBodySuccess(
                     } else {
                         SenderChat(message = it)
                     }
+                }
+            }
+
+            if (sheetVisible) {
+                ModalBottomSheet(
+                    onDismissRequest = {
+                        sheetVisible = false
+
+                    },
+                    sheetState = sheetState,
+                    modifier = Modifier.height(400.dp)
+                ) {
+//                    Row(modifier = Modifier.fillMaxSize()) {
+////                        Button(onClick = {
+////                            scope.launch { sheetState.hide() }.invokeOnCompletion {
+////                                if (!sheetState.isVisible) {
+////                                    sheetVisible = false
+////                                }
+////                            }
+////                        }) {
+////                            Text("Hide bottom sheet")
+////                        }
+//                    }
+
+                    AttatchmentContent(
+                        hideSheet = {
+                            scope.launch { sheetState.hide() }.invokeOnCompletion {
+                                if (!sheetState.isVisible) {
+                                    sheetVisible = false
+                                }
+                            }
+                        },
+                        sendCode = {
+                            snackbarHostState.currentSnackbarData?.dismiss()
+                            scope.launch {
+                                snackbarHostState.showSnackbar(
+                                    message = "This function is not implemented yet",
+                                    withDismissAction = true
+                                )
+                            }
+                        }
+                    )
+
                 }
             }
         } else {
@@ -186,6 +267,73 @@ fun MessagesBodySuccess(
             }
         }
 
+    }
+}
+
+@Composable
+fun AttachmentButton(
+    onClick: () -> Unit,
+    image: ImageVector,
+    text: String
+) {
+    Column(
+        modifier = Modifier
+//                .fillMaxWidth()
+        ,
+        verticalArrangement = Arrangement.Center
+    ) {
+        IconButton(
+            onClick = onClick,
+//                shape = CircleShape,
+            colors = IconButtonDefaults.iconButtonColors(
+                containerColor = MaterialTheme.colorScheme.primary,
+                contentColor = MaterialTheme.colorScheme.onPrimary
+            ),
+            modifier = Modifier
+//                        .fillMaxWidth()
+//                    .fillMaxWidth()
+                .padding(bottom = 10.dp)
+                .size(60.dp)
+
+                .align(Alignment.CenterHorizontally)
+//                    .clip(CircleShape)
+        ) {
+            Icon(
+                imageVector = image,
+                contentDescription = null,
+//                    modifier = Modifier
+//                        .size(60.dp)
+            )
+        }
+        Text(text = text)
+    }
+}
+
+@Composable
+fun AttatchmentContent(
+    hideSheet: () -> Unit,
+    sendCode: () -> Unit,
+) {
+
+    Row(
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(top = 15.dp),
+        horizontalArrangement = Arrangement.SpaceEvenly
+    ) {
+
+        AttachmentButton(onClick = {
+            hideSheet()
+            sendCode()
+        }, image = Icons.Default.Code, text = "Send Code")
+        AttachmentButton(onClick = {
+            hideSheet()
+            sendCode()
+        }, image = Icons.Default.Image, text = "Send Image")
+        AttachmentButton(onClick = {
+            hideSheet()
+            sendCode()
+        }, image = Icons.Default.UploadFile, text = "Send Document")
     }
 }
 
@@ -359,12 +507,13 @@ fun ReceiverChat(
     }
 }
 
+
 @Composable
 fun BottomMessageSend(
     appUistate: MessagesUiState,
     sendMessage: () -> Unit,
     updateMessage: (String) -> Unit,
-    snackbarHostState: SnackbarHostState
+    sendAttatchment: () -> Unit
 ) {
     val scope = rememberCoroutineScope()
     ElevatedCard(
@@ -445,13 +594,7 @@ fun BottomMessageSend(
                         if (appUistate.messageToSend.isNotEmpty()) {
                             sendMessage()
                         } else {
-                            snackbarHostState.currentSnackbarData?.dismiss()
-                            scope.launch {
-                                snackbarHostState.showSnackbar(
-                                    message = "This function is not implemented yet",
-                                    withDismissAction = true
-                                )
-                            }
+                            sendAttatchment()
                         }
                     },
 
@@ -600,6 +743,7 @@ fun PreviewSenderChat() {
     }
 }
 
+
 @Preview
 @Composable
 fun PreviewReceiverChat() {
@@ -611,6 +755,19 @@ fun PreviewReceiverChat() {
                 content = "Hello Friend \nThis is your friend",
                 timeStamp = Timestamp(Date(2024 - 1900, 1, 25, 20, 15))
             )
+        )
+    }
+}
+
+@Preview
+@Composable
+fun PreviewAttatchmentContent() {
+    ChitChatTheme(
+        dynamicColor = false
+    ) {
+        AttatchmentContent(
+            hideSheet = {},
+            sendCode = {}
         )
     }
 }
