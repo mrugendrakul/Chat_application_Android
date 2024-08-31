@@ -4,18 +4,14 @@ import android.util.Log
 import androidx.lifecycle.SavedStateHandle
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
-import com.mad.softwares.chitchat.data.Chats
+import com.mad.softwares.chitchat.data.ChatOrGroup
 import com.mad.softwares.chitchat.data.DataRepository
-import com.mad.softwares.chitchat.data.TAG
 import com.mad.softwares.chitchat.data.User
-import com.mad.softwares.chitchat.data.chatUser
 import kotlinx.coroutines.Deferred
 import kotlinx.coroutines.async
-import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
-import java.util.UUID
 
 val TAGchat = "ChatsViewModel"
 //val TAGaddChat = "AddChatsViewModel"
@@ -126,9 +122,17 @@ class ChatsViewModel(
                     async { dataRepository.getChats(chatsUiState.value.currentUser.username) }
 //            chats.await()
 //                if (userChats.await().get(0).chatId == "")
+
+                val userGroups =
+                    async{dataRepository.getGroups(chatsUiState.value.currentUser.username)}
+                val singlesChats = userChats.await()
+                val groupsChats = userGroups.await()
+//                val singlesChats = currentUserChats.filter { !it.isGroup }
+//                val groupsChats = currentUserChats.filter { it.isGroup }
                 chatsUiState.update {
                     it.copy(
-                        chats = userChats.await(),
+                        chats = singlesChats,
+                        groups = groupsChats,
                         isLoading = false,
                         currentChatStatus = CurrentChatStatus.Success
                     )
@@ -182,15 +186,22 @@ class ChatsViewModel(
         return chatsUiState.value.chats.map { it.chatName } + chatsUiState.value.currentUser.username
     }
 
+    fun deleteChat(chatId:String){
+        viewModelScope.launch {
+            dataRepository.deleteChat(chatId)
+        }
+    }
+
 //
 }
 
 data class ChatsUiState(
     val username: String = "",
     val currentUser: User = User(),
-    val chats: List<Chats> = listOf(
+    val chats: List<ChatOrGroup> = listOf(
 //        Chats(chatName = "sad@33.com")
     ),
+    val groups:List<ChatOrGroup> = listOf(),
     val isLoading: Boolean = false,
     val isError: Boolean = false,
     val errorMessage: String = "",

@@ -30,6 +30,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.input.ImeAction
+import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.input.PasswordVisualTransformation
 import androidx.compose.ui.text.input.VisualTransformation
 import androidx.compose.ui.text.style.TextAlign
@@ -128,7 +129,8 @@ fun SignUpScreenBody(
                 isError = startUiState.emptyUsername || startUiState.usernameExist,
                 singleLine = true,
                 keyboardOptions = KeyboardOptions.Default.copy(
-                    imeAction = ImeAction.Next
+                    imeAction = ImeAction.Next,
+                    keyboardType = KeyboardType.Email
                 ),
                 trailingIcon = {
                     Icon(
@@ -151,7 +153,8 @@ fun SignUpScreenBody(
                 isError = startUiState.emptyPassword,
                 singleLine = true,
                 keyboardOptions = KeyboardOptions.Default.copy(
-                    imeAction = ImeAction.Next
+                    imeAction = ImeAction.Done,
+                    keyboardType = KeyboardType.Password
                 ),
                 visualTransformation = if(!passwordVisible) PasswordVisualTransformation() else VisualTransformation.None,
                 trailingIcon = {

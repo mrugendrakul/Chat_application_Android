@@ -1,5 +1,8 @@
 package com.mad.softwares.chitchat.ui.chats
 
+import android.Manifest
+import android.os.Build
+import androidx.annotation.RequiresApi
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -12,34 +15,41 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
-import androidx.compose.foundation.layout.wrapContentSize
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.LazyListState
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.lazy.rememberLazyListState
+import androidx.compose.foundation.pager.HorizontalPager
+import androidx.compose.foundation.pager.rememberPagerState
 import androidx.compose.material3.IconButton
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
+import androidx.compose.material.icons.filled.Groups
 import androidx.compose.material.icons.filled.MoreVert
 import androidx.compose.material.icons.filled.Person
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
-import androidx.compose.material3.CardElevation
 import androidx.compose.material3.DropdownMenu
 import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.ExtendedFloatingActionButton
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.PrimaryTabRow
 import androidx.compose.material3.Scaffold
+import androidx.compose.material3.SnackbarHost
+import androidx.compose.material3.SnackbarHostState
+import androidx.compose.material3.Tab
 import androidx.compose.material3.Text
 import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.derivedStateOf
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -51,18 +61,20 @@ import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.lifecycle.viewmodel.compose.viewModel
-import coil.ImageLoader
+import com.google.accompanist.permissions.ExperimentalPermissionsApi
+import com.google.accompanist.permissions.PermissionState
+import com.google.accompanist.permissions.isGranted
+import com.google.accompanist.permissions.rememberPermissionState
 import com.google.firebase.Timestamp
 import com.mad.softwares.chitchat.R
-import com.mad.softwares.chitchat.data.Chats
-import com.mad.softwares.chitchat.data.MessageReceived
+import com.mad.softwares.chitchat.data.ChatOrGroup
 import com.mad.softwares.chitchat.data.User
 import com.mad.softwares.chitchat.data.lastMessage
 import com.mad.softwares.chitchat.ui.ApptopBar
 import com.mad.softwares.chitchat.ui.GodViewModelProvider
 import com.mad.softwares.chitchat.ui.destinationData
 import com.mad.softwares.chitchat.ui.theme.ChitChatTheme
-import org.checkerframework.common.returnsreceiver.qual.This
+import kotlinx.coroutines.launch
 
 object chatsScreenDestination : destinationData {
     override val route = "chats"
@@ -72,12 +84,15 @@ object chatsScreenDestination : destinationData {
     val routeWithReload = "$route/{$toReloadChats}"
 }
 
+@OptIn(ExperimentalPermissionsApi::class)
+@RequiresApi(Build.VERSION_CODES.TIRAMISU)
 @Composable
 fun UserChats(
     viewModel: ChatsViewModel = viewModel(factory = GodViewModelProvider.Factory),
 //    viewModel: ChatsViewModel,
     navitageToAddChats: (List<String>) -> Unit,
-    navigateToWelcome:()->Unit,
+    navigateToAddGroup:(String)->Unit,
+    navigateToWelcome: () -> Unit,
     navigateToCurrentChat: (String) -> Unit
 ) {
 
@@ -90,7 +105,10 @@ fun UserChats(
                 navigateToCurrentChat = navigateToCurrentChat,
                 isCardEnabled = true,
                 navigateToAddChats = { navitageToAddChats(viewModel.getMembers()) },
-                logOut = { viewModel.logoutUser() }
+                navigateToAddGroup = { navigateToAddGroup(chatsUiState.currentUser.username) },
+                logOut = { viewModel.logoutUser() },
+                permissionState =
+            rememberPermissionState(permission = Manifest.permission.POST_NOTIFICATIONS)
             )
         }
 
@@ -111,73 +129,192 @@ fun UserChats(
 }
 
 
-
 @Preview
 @Composable
-fun ShowErrorChatsPreview(){
+fun ShowErrorChatsPreview() {
     ShowErrorAndRetry(retry = {})
 }
 
-@OptIn(ExperimentalMaterial3Api::class)
+@RequiresApi(Build.VERSION_CODES.TIRAMISU)
+@OptIn(ExperimentalMaterial3Api::class, ExperimentalPermissionsApi::class)
 @Composable
 fun UserChatsBody(
     chatsUiState: ChatsUiState,
     navigateToCurrentChat: (String) -> Unit,
     isCardEnabled: Boolean,
     navigateToAddChats: () -> Unit,
-    logOut:()->Unit
+    navigateToAddGroup: () -> Unit,
+    logOut: () -> Unit,
+    permissionState :PermissionState?
 ) {
     val scrollBehavior = TopAppBarDefaults.enterAlwaysScrollBehavior()
     val listState = rememberLazyListState()
     val expandedFab by remember {
         derivedStateOf { listState.firstVisibleItemIndex == 0 }
     }
+    val pagerState = rememberPagerState (0, pageCount = { 2 })
+    val titleAndIcon = listOf(
+        "Singles" to Icons.Default.Person,
+        "Groups" to Icons.Default.Groups
+    )
+    val scope = rememberCoroutineScope()
     var expandDDMenu by remember {
         mutableStateOf(false)
     }
+    val snackbarHostState = remember { SnackbarHostState() }
     Scaffold(
         modifier = Modifier.nestedScroll(scrollBehavior.nestedScrollConnection),
         floatingActionButton = {
             AddChatFab(
                 expanded = expandedFab,
-                navigateToAddChat = { navigateToAddChats() })
+                navigateToAddChat = { if(pagerState.currentPage==0) navigateToAddChats() else {
+                    navigateToAddGroup()
+                }
+                                    },
+                text = if(pagerState.currentPage==0) "Add Chat" else "Add Group"
+            )
+        },
+        snackbarHost = {
+            SnackbarHost(snackbarHostState)
         },
         topBar = {
-            ApptopBar(
-                destinationData = chatsScreenDestination,
-                scrollBehavior = scrollBehavior,
-                navigateUp = { /*TODO*/ },
-                action = {
-                    IconButton(onClick = { expandDDMenu = !expandDDMenu }) {
-                        Icon(
-                            imageVector = Icons.Default.MoreVert,
-                            contentDescription = "More"
-                        )
-                    }
-                    DropdownMenu(
-                         expanded = expandDDMenu,
-                        onDismissRequest = { expandDDMenu = !expandDDMenu }) {
+            Column(){
+                ApptopBar(
+                    destinationData = chatsScreenDestination,
+                    scrollBehavior = scrollBehavior,
+                    navigateUp = { /*TODO*/ },
+                    action = {
+                        IconButton(onClick = { expandDDMenu = !expandDDMenu }) {
+                            Icon(
+                                imageVector = Icons.Default.MoreVert,
+                                contentDescription = "More"
+                            )
+                        }
+                        DropdownMenu(
+                            expanded = expandDDMenu,
+                            onDismissRequest = { expandDDMenu = !expandDDMenu }) {
+                            DropdownMenuItem(
+                                text = { Text(text = chatsUiState.currentUser.username) },
+                                onClick = { /*TODO*/ }
+                            )
                             DropdownMenuItem(
                                 text = { Text(text = "Logout from here") },
                                 onClick = logOut
                             )
-                        
+
+                        }
+                    }
+                )
+                PrimaryTabRow(
+                    selectedTabIndex = pagerState.currentPage,
+                    containerColor = MaterialTheme.colorScheme.primaryContainer
+                ) {
+                    titleAndIcon.forEachIndexed { index, (text, icon) ->
+                        Tab(
+                            selected = pagerState.currentPage == index,
+                            onClick = {
+                                scope.launch {
+                                    pagerState.animateScrollToPage(index)
+                                }
+                            },
+                            text = { Text(text = text) },
+                            icon = { Icon(imageVector = icon, contentDescription = null) }
+                        )
+                    }
+
+                }
+                LaunchedEffect(key1 = Unit) {
+                    permissionState?.launchPermissionRequest()
+                }
+                if (permissionState?.status?.isGranted == true) {
+//                Text(text = "Notification permission granted")
+                } else {
+                    Card(
+                        modifier = Modifier
+                            .padding(20.dp),
+                        colors = CardDefaults.cardColors(
+                            containerColor = MaterialTheme.colorScheme.errorContainer
+                        )
+                    ) {
+                        Text(
+                            modifier = Modifier
+                                .padding(10.dp),
+                            text = "Notification permission missing, grant them from setting",
+                            fontSize = 20.sp,
+                            lineHeight = 20.sp,
+                            textAlign = TextAlign.Center
+                        )
+
                     }
                 }
-            )
+            }
         },
 
         ) { paddingValues ->
-        ShowChatsSuccessful(
-            chatsUiState = chatsUiState,
-            paddingValues = paddingValues,
-            listState = listState,
-            navigateToCurrentChat = navigateToCurrentChat,
-            isCardEnabled = isCardEnabled
-        )
+        HorizontalPager(state = pagerState){page->
+            when(page){
+                0->ShowChatsSuccessful(
+                    chatsUiState = chatsUiState,
+                    paddingValues = paddingValues,
+                    listState = listState,
+                    navigateToCurrentChat = navigateToCurrentChat,
+                    isCardEnabled = isCardEnabled
+                )
+                1-> ShowGroupsSuccessful(
+                    chatsUiState = chatsUiState,
+                    paddingValues = paddingValues,
+                    listState = listState,
+                    navigateToCurrentChat = navigateToCurrentChat,
+                    isCardEnabled = isCardEnabled
+                )
+            }
+        }
     }
 
 }
+
+@Composable
+fun ShowGroupsSuccessful(
+    chatsUiState: ChatsUiState,
+    paddingValues: PaddingValues,
+    listState: LazyListState,
+    navigateToCurrentChat: (String) -> Unit,
+    isCardEnabled: Boolean
+){
+    if (chatsUiState.groups.isEmpty()) {
+        Column(
+            modifier = Modifier
+                .padding(paddingValues)
+                .fillMaxSize(),
+            verticalArrangement = Arrangement.Center,
+            horizontalAlignment = Alignment.CenterHorizontally
+        ) {
+            Text(
+                text = "No Groups yet press below icon to start creating groups",
+                fontSize = 20.sp,
+                textAlign = TextAlign.Center
+            )
+        }
+    } else {
+        LazyColumn(
+            state = listState,
+            modifier = Modifier
+                .padding(paddingValues)
+                .fillMaxSize(),
+            contentPadding = PaddingValues(bottom = 100.dp)
+        ) {
+            items(chatsUiState.groups.sortedBy { it.lastMessage.timestamp }.reversed()) {
+                SingleChat(
+                    chat = it,
+                    navigateToCurrentChat = navigateToCurrentChat,
+                    isCardEnabled = isCardEnabled,
+                    currentUsername = chatsUiState.currentUser.username
+                )
+            }
+        }
+    }
+}
+
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -279,6 +416,8 @@ fun ChatLoadingPreview() {
     ShowChatsLoading()
 }
 
+@RequiresApi(Build.VERSION_CODES.TIRAMISU)
+@OptIn(ExperimentalPermissionsApi::class)
 @Composable
 fun ShowChatsSuccessful(
     chatsUiState: ChatsUiState,
@@ -306,6 +445,7 @@ fun ShowChatsSuccessful(
             state = listState,
             modifier = Modifier
                 .padding(paddingValues)
+                .padding(start = 5.dp, end = 5.dp)
                 .fillMaxSize(),
             contentPadding = PaddingValues(bottom = 100.dp)
         ) {
@@ -313,18 +453,21 @@ fun ShowChatsSuccessful(
                 SingleChat(
                     chat = it,
                     navigateToCurrentChat = navigateToCurrentChat,
-                    isCardEnabled = isCardEnabled
+                    isCardEnabled = isCardEnabled,
+                    currentUsername = chatsUiState.currentUser.username
                 )
             }
         }
     }
+
 }
 
 @Composable
 fun SingleChat(
-    chat: Chats,
+    chat: ChatOrGroup,
     navigateToCurrentChat: (String) -> Unit,
-    isCardEnabled: Boolean
+    isCardEnabled: Boolean,
+    currentUsername:String
 ) {
     var expanded by remember {
         mutableStateOf(false)
@@ -334,9 +477,11 @@ fun SingleChat(
         modifier = Modifier
             .fillMaxWidth()
             .height(125.dp)
-            .padding(10.dp),
+            .padding(6.dp)
+//            .padding(start = 8.dp, end = 8.dp)
+        ,
         onClick = {
-            navigateToCurrentChat("${chat.chatId},${chat.chatName}")
+            navigateToCurrentChat("${chat.chatId},${currentUsername}")
 
         },
         enabled = isCardEnabled,
@@ -371,7 +516,7 @@ fun SingleChat(
                 )
                 Spacer(Modifier.height(15.dp))
                 Text(
-                    text = if(chat.lastMessage.timestamp == Timestamp(0,0)){
+                    text = if (chat.lastMessage.timestamp == Timestamp(0, 0)) {
                         "Not yet contacted"
                     } else {
                         "-> ${chat.lastMessage.content}"
@@ -413,6 +558,7 @@ fun SingleChat(
 fun AddChatFab(
     expanded: Boolean = false,
     navigateToAddChat: () -> Unit,
+    text:String
 ) {
     ExtendedFloatingActionButton(
         onClick = { navigateToAddChat() },
@@ -422,13 +568,14 @@ fun AddChatFab(
                 contentDescription = stringResource(id = R.string.add_chats)
             )
         },
-        text = { Text(text = "New Chat") },
+        text = { Text(text = text) },
         contentColor = MaterialTheme.colorScheme.onSecondaryContainer,
         containerColor = MaterialTheme.colorScheme.secondaryContainer,
         expanded = expanded
     )
 }
 
+@OptIn(ExperimentalPermissionsApi::class)
 @Composable
 @Preview(showSystemUi = false, showBackground = false)
 fun UserChatsPreview() {
@@ -437,71 +584,74 @@ fun UserChatsPreview() {
             chatsUiState = ChatsUiState(
                 currentUser = User(username = "mrg@123.com"),
                 chats = listOf(
-                    Chats(
+                    ChatOrGroup(
                         chatName = "mrg@123.com",
-                        lastMessage = lastMessage(content = "Big text here goed to test the message capacity and the other things", timestamp = Timestamp(1,1))
+                        lastMessage = lastMessage(
+                            content = "Big text here goed to test the message capacity and the other things",
+                            timestamp = Timestamp(1, 1)
+                        )
                     ),
-                    Chats(
+                    ChatOrGroup(
                         chatName = "mew@test.com"
                     ),
-                    Chats(
+                    ChatOrGroup(
                         chatName = "mrg@123.com"
                     ),
-                    Chats(
+                    ChatOrGroup(
                         chatName = "mew@test.com"
                     ),
-                    Chats(
+                    ChatOrGroup(
                         chatName = "mrg@123.com"
                     ),
-                    Chats(
+                    ChatOrGroup(
                         chatName = "mew@test.com"
                     ),
-                    Chats(
+                    ChatOrGroup(
                         chatName = "mrg@123.com"
                     ),
-                    Chats(
+                    ChatOrGroup(
                         chatName = "mew@test.com"
                     ),
-                    Chats(
+                    ChatOrGroup(
                         chatName = "mrg@123.com"
                     ),
-                    Chats(
+                    ChatOrGroup(
                         chatName = "mew@test.com"
                     ),
-                    Chats(
+                    ChatOrGroup(
                         chatName = "mrg@123.com"
                     ),
-                    Chats(
+                    ChatOrGroup(
                         chatName = "mew@test.com"
                     ),
-                    Chats(
+                    ChatOrGroup(
                         chatName = "mrg@123.com"
                     ),
-                    Chats(
+                    ChatOrGroup(
                         chatName = "mew@test.com"
                     ),
-                    Chats(
+                    ChatOrGroup(
                         chatName = "mrg@123.com"
                     ),
-                    Chats(
+                    ChatOrGroup(
                         chatName = "mew@test.com"
                     ),
-                    Chats(
+                    ChatOrGroup(
                         chatName = "mrg@123.com"
                     ),
-                    Chats(
+                    ChatOrGroup(
                         chatName = "mew@test.com"
                     ),
-                    Chats(
+                    ChatOrGroup(
                         chatName = "mrg@123.com"
                     ),
-                    Chats(
+                    ChatOrGroup(
                         chatName = "mew@test.com"
                     ),
-                    Chats(
+                    ChatOrGroup(
                         chatName = "mrg@123.com"
                     ),
-                    Chats(
+                    ChatOrGroup(
                         chatName = "mew@test.com"
                     ),
                 )
@@ -509,7 +659,9 @@ fun UserChatsPreview() {
             navigateToCurrentChat = {},
             isCardEnabled = true,
             navigateToAddChats = {},
-            logOut = {}
+            navigateToAddGroup = {},
+            logOut = {},
+            permissionState = null
         )
     }
 

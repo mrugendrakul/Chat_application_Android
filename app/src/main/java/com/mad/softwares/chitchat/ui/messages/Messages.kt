@@ -12,7 +12,6 @@ import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
-
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.IntrinsicSize
 import androidx.compose.foundation.layout.PaddingValues
@@ -34,7 +33,7 @@ import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.InlineTextContent
 import androidx.compose.foundation.text.appendInlineContent
-import androidx.compose.material.TextField
+import androidx.compose.foundation.text.selection.SelectionContainer
 import androidx.compose.material3.Scaffold
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.Send
@@ -46,11 +45,14 @@ import androidx.compose.material.icons.filled.Dock
 import androidx.compose.material.icons.filled.Error
 import androidx.compose.material.icons.filled.Image
 import androidx.compose.material.icons.filled.LocationOn
+import androidx.compose.material.icons.filled.MoreVert
 import androidx.compose.material.icons.filled.Photo
 import androidx.compose.material.icons.filled.UploadFile
 import androidx.compose.material3.Button
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
+import androidx.compose.material3.DropdownMenu
+import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.ElevatedCard
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
@@ -77,6 +79,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.drawscope.DrawStyle
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.layout.MeasureResult
 import androidx.compose.ui.layout.SubcomposeLayout
@@ -91,6 +94,8 @@ import androidx.compose.ui.text.TextLayoutInput
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.buildAnnotatedString
 import androidx.compose.ui.text.font.FontFamily
+import androidx.compose.ui.text.font.FontStyle
+import androidx.compose.ui.text.font.FontSynthesis
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.VisualTransformation
 import androidx.compose.ui.text.style.TextAlign
@@ -105,6 +110,7 @@ import androidx.lifecycle.viewmodel.compose.viewModel
 import com.google.android.gms.fido.fido2.api.common.Attachment
 import com.google.firebase.Timestamp
 import com.mad.softwares.chitchat.R
+import com.mad.softwares.chitchat.data.ChatOrGroup
 import com.mad.softwares.chitchat.data.MessageReceived
 import com.mad.softwares.chitchat.data.messageStatus
 import com.mad.softwares.chitchat.ui.ApptopBar
@@ -178,19 +184,32 @@ fun MessagesBodySuccess(
         mutableStateOf(false)
     }
     val snackbarHostState = remember { SnackbarHostState() }
+    var expandDDMenu by remember {
+        mutableStateOf(false)
+    }
     Scaffold(
         topBar = {
             ApptopBar(
                 destinationData = messagesdestinationData,
                 navigateUp = navigateUp,
                 title = uiState.chatName,
-//                action = {
-//                    IconButton(onClick = { getMessagesAgain() }) {
-//                        Icon(
-//                            imageVector = Icons.Default.Refresh,
-//                            contentDescription = "refresh"
-//                        )}
-//                }
+                action = {
+                    IconButton(onClick = {
+                        expandDDMenu = true
+                    }) {
+                        Icon(
+                            imageVector = Icons.Default.MoreVert,
+                            contentDescription = "refresh"
+                        )}
+                    DropdownMenu(
+                        expanded = expandDDMenu,
+                        onDismissRequest = { expandDDMenu = !expandDDMenu }) {
+                        uiState.currChat.members.forEach {mem->
+                            DropdownMenuItem(text = { Text(text = mem) }, onClick = { /*TODO*/ })
+                        }
+
+                    }
+                }
             )
         },
         bottomBar = {
@@ -221,8 +240,12 @@ fun MessagesBodySuccess(
                 verticalArrangement = Arrangement.Bottom
             ) {
                 items(uiState.messages.reversed()) {
-                    if (it.senderId == uiState.chatName) {
-                        ReceiverChat(message = it)
+                    if (it.senderId != uiState.currentUser) {
+                        if (uiState.currChat.isGroup == false) {
+                            ReceiverChat(message = it)
+                        } else {
+                            ReceiverGroupChat(message = it)
+                        }
                     } else {
                         SenderChat(message = it)
                     }
@@ -386,113 +409,151 @@ fun MessageBodyLoading() {
     Text(text = "Loading")
 }
 
-val codeRegex = Regex("'''(.*?)'''")
+data class StyleRegex(
+    val Regex: Regex = Regex(""),
+    val style: SpanStyle = SpanStyle(),
+    val symbol: String = ""
+)
 
 fun annotateMessage(
     msg: String
 ): AnnotatedString {
+    val strideCodex = Regex("~(.*?)~", RegexOption.DOT_MATCHES_ALL)
+    val italicCodex = Regex("_(.*?)_", RegexOption.DOT_MATCHES_ALL)
 
+    val styleMap: List<StyleRegex> = listOf(
+        StyleRegex(
+            Regex = Regex("~(.*?)~", RegexOption.DOT_MATCHES_ALL),
+            style = SpanStyle(
+                textDecoration = TextDecoration.LineThrough
+            ),
+            symbol = "~"
+        ),
+        StyleRegex(
+            Regex = Regex("_(.*?)_", RegexOption.DOT_MATCHES_ALL),
+            style = SpanStyle(
+                fontStyle = FontStyle.Italic,
+//                fontWeight = FontWeight.Bold
+            ),
+            symbol = "_"
+        ),
+        StyleRegex(
+            Regex = Regex("\\*(.*?)\\*", RegexOption.DOT_MATCHES_ALL),
+            style = SpanStyle(
+                fontWeight = FontWeight.Bold
+            ),
+            symbol = "*"
+        )
+    )
     val annotedMessage = buildAnnotatedString {
 
         var currentIndex = 0
-        codeRegex.findAll(msg).forEach { match ->
-            append(msg.substring(currentIndex, match.range.first))
-            withStyle(
-                style = SpanStyle(
-                    //                color = Color.Red,
-                    fontFamily = FontFamily.Monospace,
-                    background = Color.LightGray,
-                    fontSize = 20.sp,
-                    platformStyle = PlatformSpanStyle()
-                )
-            ) {
-                append("\n")
-                //                append(match.value.removeSurrounding("'''"))
-                appendInlineContent(
-                    id = "card_${match.value}",
-                    alternateText = match.value.removeSurrounding("'''")
-                )
-//                append("\n")
+        val length = msg.length
+        while (currentIndex < length) {
+            var matchFound = false
+
+            for ((regex, style, symbol) in styleMap) {
+                val match = regex.find(msg, currentIndex)
+
+                if (match != null && match.range.first == currentIndex) {
+                    // Apply the style to the matched text
+                    withStyle(style) {
+                        append(match.groupValues[1])
+                    }
+                    currentIndex = match.range.last + 1
+                    matchFound = true
+                    break
+                }
             }
-            currentIndex = match.range.last + 1
+
+            if (!matchFound) {
+                // Append the current character and move to the next
+                append(msg[currentIndex])
+                currentIndex++
+            }
         }
         append(msg.substring(currentIndex, msg.length))
     }
 
+
+
     return annotedMessage
 }
 
-@Composable
-fun InlineStyles(
-    msg: String
-): Map<String, InlineTextContent> {
-
-    val inlineContentMap = codeRegex.findAll(msg).associate { match ->
-        val cardText = match.value.removeSurrounding("'''")
-        val density = LocalDensity.current
-        val textWidth = with(density) {
-            // Estimate width based on the character count of the card content
-            (cardText.length * 15).toSp()
-        }
-        val textHeight = with(density) {
-            // Fixed height for the card
-            120.sp
-        }
-        "card_${match.value}" to
-                InlineTextContent(
-                    placeholder = Placeholder(
-                        height = 6.em,
-                        width = textWidth,
-                        placeholderVerticalAlign = PlaceholderVerticalAlign.TextCenter
-                    ),
-                    children = {
-//                        Card(
-//                            modifier = Modifier
-//                                .fillMaxWidth()
-//                                .padding(10.dp),
-//                            colors = CardDefaults.cardColors(
-//                                contentColor = MaterialTheme.colorScheme.error
-//                            ),
-//                            shape = RoundedCornerShape(15.dp)
-//                        ) {
-//                            Text(
-//                                modifier = Modifier
-//                                    .padding(4.dp),
-//                                text = match.value.removeSurrounding("'''"),
-//                                fontSize = 22.sp
-//                            )
+//@Composable
+//fun InlineStyles(
+//    msg: String
+//): Map<String, InlineTextContent> {
+//
+//    val inlineContentMap = codeRegex.findAll(msg).associate { match ->
+//        val cardText = match.value.removeSurrounding("'''")
+//        val density = LocalDensity.current
+//        val textWidth = with(density) {
+//            // Estimate width based on the character count of the card content
+//            (cardText.length * 15).toSp()
+//        }
+//        val textHeight = with(density) {
+//            // Fixed height for the card
+//            120.sp
+//        }
+//        "card_${match.value}" to
+//                InlineTextContent(
+//                    placeholder = Placeholder(
+//                        height = 6.em,
+//                        width = textWidth,
+//                        placeholderVerticalAlign = PlaceholderVerticalAlign.TextCenter
+//                    ),
+//                    children = {
+////                        Card(
+////                            modifier = Modifier
+////                                .fillMaxWidth()
+////                                .padding(10.dp),
+////                            colors = CardDefaults.cardColors(
+////                                contentColor = MaterialTheme.colorScheme.error
+////                            ),
+////                            shape = RoundedCornerShape(15.dp)
+////                        ) {
+////                            Text(
+////                                modifier = Modifier
+////                                    .padding(4.dp),
+////                                text = match.value.removeSurrounding("'''"),
+////                                fontSize = 22.sp
+////                            )
+////                        }
+//
+//                        SubcomposeLayout { constraints ->
+//                            val cardContent = subcompose("card_${match.value}") {
+//                                Card(
+//                                    modifier = Modifier.wrapContentWidth(),
+//                                    colors = CardDefaults.cardColors(
+//                                        contentColor = MaterialTheme.colorScheme.error
+//                                    )
+//                                ) {
+//                                    Text(
+//                                        text = cardText,
+//                                        modifier = Modifier.padding(4.dp),
+//                                        fontSize = 20.sp
+//                                    )
+//                                }
+//                            }
+//
+//                            val placeable = cardContent[0].measure(constraints)
+//                            layout(placeable.width, placeable.height) {
+//                                placeable.placeRelative(0, 45)
+//                            }
 //                        }
+//                    }
+//                )
+//
+//    }
+//
+//    return inlineContentMap
+//}
 
-                        SubcomposeLayout { constraints ->
-                            val cardContent = subcompose("card_${match.value}") {
-                                Card(
-                                    modifier = Modifier.wrapContentWidth(),
-                                    colors = CardDefaults.cardColors(
-                                        contentColor = MaterialTheme.colorScheme.error
-                                    )
-                                ) {
-                                    Text(
-                                        text = cardText,
-                                        modifier = Modifier.padding(4.dp),
-                                        fontSize = 20.sp
-                                    )
-                                }
-                            }
-
-                            val placeable = cardContent[0].measure(constraints)
-                            layout(placeable.width, placeable.height) {
-                                placeable.placeRelative(0, 45)
-                            }
-                        }
-                    }
-                )
-
-    }
-
-    return inlineContentMap
+fun checkForCode(message: String): Boolean {
+    val codeRegex = Regex("'''(.*?)'''", RegexOption.DOT_MATCHES_ALL)
+    return codeRegex.containsMatchIn(message)
 }
-
-
 
 fun parseMessage(message: String): Map<String, Boolean> {
     val result = mutableMapOf<String, Boolean>()
@@ -528,9 +589,8 @@ fun parseMessage(message: String): Map<String, Boolean> {
 }
 
 @Composable
-fun GetCodeMessage(msg:String)
-{
-    val parsedMessage= parseMessage(msg)
+fun GetCodeMessage(msg: String) {
+    val parsedMessage = parseMessage(msg)
     Column(
         modifier = Modifier
             .padding(10.dp)
@@ -541,15 +601,18 @@ fun GetCodeMessage(msg:String)
                     modifier = Modifier,
                     shape = RoundedCornerShape(10.dp)
                 ) {
-                    Text(
-                        text = it.key,
-                        modifier = Modifier
-                            .padding(6.dp),
-                        fontSize = 20.sp,
+                    SelectionContainer {
+                        Text(
+                            text = it.key,
+                            modifier = Modifier
+                                .padding(6.dp),
+                            fontSize = 20.sp,
+                            fontFamily = FontFamily.Monospace
 
 //                    inlineContent = InlineStyles(msg = msg),
 //                    onTextLayout = {}
-                    )
+                        )
+                    }
                 }
             } else {
                 Text(
@@ -622,22 +685,31 @@ fun SenderChat(
                 containerColor = MaterialTheme.colorScheme.primaryContainer
             )
         ) {
-            GetCodeMessage(msg = msg)
+
             Column(
                 modifier = Modifier
                     .width(IntrinsicSize.Max)
             ) {
-
+                if (checkForCode(msg)) {
+                    GetCodeMessage(msg = msg)
+                } else {
+                    Text(
+                        text = annotateMessage(message.content),
+                        modifier = Modifier
+                            .padding(10.dp),
+                        fontSize = 20.sp,
+                    )
+                }
                 Card(
                     modifier = Modifier
                         //                    .wrapContentWidth(unbounded = true)
                         .fillMaxWidth()
-                        .padding(0.dp),
+//                        .padding(0.dp),
 
-                    ) {
+                ) {
                     Row(
-                        modifier = Modifier,
-                        //                        .fillMaxWidth(),
+                        modifier = Modifier
+                            .fillMaxWidth(),
                         horizontalArrangement = Arrangement.End,
                     ) {
                         Text(
@@ -710,14 +782,19 @@ fun ReceiverChat(
                 modifier = Modifier
                     .width(IntrinsicSize.Max)
             ) {
-//                Text(
-//                    text = annotateMessage(message.content),
-//                    modifier = Modifier
-//                        .padding(10.dp)
-//                        .wrapContentWidth(),
-//                    fontSize = 20.sp
-//                )
-                GetCodeMessage(msg = message.content)
+                if (checkForCode(message.content)
+                ) {
+                    GetCodeMessage(msg = message.content)
+                } else {
+                    Text(
+                        text = annotateMessage(message.content),
+                        modifier = Modifier
+                            .padding(10.dp)
+                            .wrapContentWidth(),
+                        fontSize = 20.sp
+                    )
+                }
+
                 Card(
                     modifier = Modifier
                         .fillMaxWidth()
@@ -742,6 +819,83 @@ fun ReceiverChat(
     }
 }
 
+@Composable
+fun ReceiverGroupChat(
+    message: MessageReceived
+) {
+    val date = message.timeStamp.toDate()
+//    val sdf  = SimpleDateFormat("HH:mm")
+    val currentDate = Timestamp.now().toDate()
+    val difference = (currentDate.time - date.time) / (1000 * 60 * 60)
+    val sdf = if (difference <= 24) {
+        SimpleDateFormat("hh:mm a")
+    } else {
+        SimpleDateFormat("YYYY/MM/dd hh:mm a")
+    }
+    val fDate = sdf.format(date)
+    Row(
+        modifier = Modifier
+            .fillMaxWidth(0.8f),
+//            .fillMaxWidth()
+    ) {
+        Column{
+            Text(modifier = Modifier
+                .padding(horizontal = 5.dp),
+                text = message.senderId
+            )
+            Card(
+                modifier = Modifier
+                    .padding(vertical = 10.dp, horizontal = 5.dp)
+                    .wrapContentWidth(Alignment.Start)
+//                .fillMaxWidth(1f)
+                ,
+//                .height(60.dp),
+                shape = RoundedCornerShape(0.dp, 20.dp, 20.dp, 20.dp),
+                colors = CardDefaults.cardColors(
+                    containerColor = MaterialTheme.colorScheme.secondaryContainer
+                )
+            ) {
+                Column(
+                    modifier = Modifier
+                        .width(IntrinsicSize.Max)
+                ) {
+                    if (checkForCode(message.content)
+                    ) {
+                        GetCodeMessage(msg = message.content)
+                    } else {
+                        Text(
+                            text = annotateMessage(message.content),
+                            modifier = Modifier
+                                .padding(10.dp)
+                                .wrapContentWidth(),
+                            fontSize = 20.sp
+                        )
+                    }
+
+                    Card(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .background(color = MaterialTheme.colorScheme.inverseOnSurface)
+                    ) {
+                        Text(
+                            modifier = Modifier
+                                .padding(horizontal = 15.dp)
+                                .padding(vertical = 2.dp),
+                            text = fDate.toString(),
+//                    text = difference.toString(),
+//                text = message.timeStamp.toDate().toString(),
+                            textAlign = TextAlign.End
+                        )
+                    }
+                }
+
+
+            }
+        }
+//        Spacer(modifier = Modifier.weight(1f))
+
+    }
+}
 
 @Composable
 fun BottomMessageSend(
@@ -766,10 +920,11 @@ fun BottomMessageSend(
             .padding(8.dp)
             .background(MaterialTheme.colorScheme.background),
         colors = CardDefaults.elevatedCardColors(
-            containerColor = MaterialTheme.colorScheme.surface,
+            containerColor = MaterialTheme.colorScheme.surfaceContainerHigh,
 
             ),
-        shape = RoundedCornerShape(30.dp)
+        shape = RoundedCornerShape(30.dp),
+        elevation = CardDefaults.cardElevation(35.dp)
     ) {
         Column(
             modifier = Modifier
@@ -909,6 +1064,7 @@ fun PreviewMessagebodySuccess() {
         MessagesBodySuccess(
             uiState = MessagesUiState(
                 chatName = "ThereSelf",
+                currChat = ChatOrGroup(isGroup = true),
                 messages = mutableListOf(
                     MessageReceived(
                         content = "Hello Friend",
@@ -931,7 +1087,7 @@ fun PreviewMessagebodySuccess() {
                         timeStamp = Timestamp(Date(2024 - 1900, 2, 25, 20, 15))
                     ),
                     MessageReceived(
-                        content = "Hello Friend",
+                        content = "Hello *Friend*",
                         senderId = "mySelf",
                         timeStamp = Timestamp(Date(2024 - 1900, 1, 25, 20, 15))
                     ),
@@ -946,17 +1102,17 @@ fun PreviewMessagebodySuccess() {
                         timeStamp = Timestamp(Date(2024 - 1900, 2, 25, 20, 15))
                     ),
                     MessageReceived(
-                        content = "This is a long message an \n'''this is goinh yo\n occupy whole screen and we have to avoid''' that now.",
+                        content = "This is a long message an \n'''this is goinh yo occupy whole screen and we have to avoid''' that now.",
                         senderId = "ThereSelf",
                         timeStamp = Timestamp(Date(2024 - 1900, 2, 25, 20, 15))
                     ),
                     MessageReceived(
-                        content = "Hello Friend",
+                        content = "Hello *Friend* ",
                         senderId = "mySelf",
                         timeStamp = Timestamp(Date(2024 - 1900, 1, 25, 20, 15))
                     ),
                     MessageReceived(
-                        content = "Hey there How are you",
+                        content = "Hey there *How* are you",
                         senderId = "ThereSelf",
                         timeStamp = Timestamp(Date(2024 - 1900, 1, 25, 20, 17))
                     ),
@@ -966,7 +1122,7 @@ fun PreviewMessagebodySuccess() {
                         timeStamp = Timestamp(Date(2024 - 1900, 2, 25, 20, 15))
                     ),
                     MessageReceived(
-                        content = "Ok Bye",
+                        content = "*Bold* _Italic_ and ~Strikethrough~",
                         senderId = "ThereSelf",
                         timeStamp = Timestamp(Date(2024 - 1900, 2, 25, 20, 15))
                     ),
@@ -1010,6 +1166,7 @@ fun PreviewReceiverChat() {
         )
     }
 }
+
 
 @Preview
 @Composable

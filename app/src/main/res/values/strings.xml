@@ -1,13 +1,13 @@
 <resources>
     <string name="app_name">Chit Chat</string>
     <string name="register_with_us">Register with us 😀</string>
-    <string name="username">Username</string>
+    <string name="username">Email ID</string>
     <string name="password">Password</string>
     <string name="register_now">Register now!</string>
     <string name="login_now">Login now</string>
     <string name="auth_recovery">Registration successful. This is your authentication number. Keep it safe and use it for account recovery and authentication</string>
     <string name="go_to_chats">Authenticate</string>
-    <string name="username_exist_choose_different">Username exist choose different</string>
+    <string name="username_exist_choose_different">Email exist choose different</string>
     <string name="authetication">Authetication</string>
     <string name="otp_athentication">OTP Athentication</string>
     <string name="username_does_not_exits">Username does not exits</string>
@@ -24,7 +24,7 @@
     <string name="password_successfully_reset_login_back">Password Successfully reset Login back</string>
     <string name="unable_to_success_the_password">Unable to success the password</string>
     <string name="select_friend">Select Friend</string>
-    <string name="username_cannot_be_empty">Username cannot be empty</string>
+    <string name="username_cannot_be_empty">Email ID cannot be empty</string>
     <string name="password_cannot_be_empty">Password cannot be empty</string>
     <string name="my_messages_default">My Messages Default</string>
     <string name="profile_info">Profile info</string>
@@ -36,4 +36,7 @@
     <string name="add_chats">Select Contact</string>
     <string name="error_message">Error Getting your chats and I am not implementing this screen. Just press below button to refresh.</string>
     <string name="start_chating_now">Start chating now !!!</string>
+    <string name="search_user">Search User</string>
+    <string name="create_group">Create Group</string>
+    <string name="new_group_name">New Group Name</string>
 </resources>

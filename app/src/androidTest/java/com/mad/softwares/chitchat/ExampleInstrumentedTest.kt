@@ -6,7 +6,7 @@ import androidx.test.ext.junit.runners.AndroidJUnit4
 import com.google.firebase.auth.FirebaseAuth
 import com.google.firebase.auth.FirebaseUser
 import com.google.firebase.firestore.firestore
-import com.mad.softwares.chitchat.data.Chats
+import com.mad.softwares.chitchat.data.ChatOrGroup
 import com.mad.softwares.chitchat.data.ContentType
 import com.mad.softwares.chitchat.data.MessageReceived
 import com.mad.softwares.chitchat.data.NetworkDataRepository
@@ -273,7 +273,7 @@ class ExampleInstrumentedTest {
     fun networkApi_getChatData_Success() =
         runTest {
             val chatId = "14772768"
-            val chatData: Deferred<Chats> = async {
+            val chatData: Deferred<ChatOrGroup> = async {
                 firebaseApi.getChatData(chatId)
             }
             assertEquals(chatId, chatData.await().chatId)
@@ -286,7 +286,7 @@ class ExampleInstrumentedTest {
             val chatId = "14772768"
             val username = "good@456.com"
 
-            val currChat: Deferred<Chats> = async {
+            val currChat: Deferred<ChatOrGroup> = async {
                 dataRepository.getDataChat(chatId, username)
             }
 

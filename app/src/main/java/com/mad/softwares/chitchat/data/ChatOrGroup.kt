@@ -2,7 +2,7 @@ package com.mad.softwares.chitchat.data
 
 import com.google.firebase.Timestamp
 
-data class Chats(
+data class ChatOrGroup(
     val chatId:String = "",
     val chatName:String = "",
     val isGroup:Boolean = false,
