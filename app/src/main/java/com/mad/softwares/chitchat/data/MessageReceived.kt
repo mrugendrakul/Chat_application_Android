@@ -7,7 +7,8 @@ enum class ContentType(){
     image,
     document,
     audio,
-    video
+    video,
+    code
 }
 
 enum class messageStatus(){

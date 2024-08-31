@@ -98,6 +98,7 @@ class MessagesViewModel(
     }
 
     fun messageEdit(content: String) {
+//        val newContent = extractAndFormatCode(content)?:content
         messagesUiState.update {
             it.copy(
                 messageToSend = content
