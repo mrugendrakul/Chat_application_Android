@@ -6,11 +6,11 @@ plugins {
 }
 
 android {
-    namespace = "com.mad.softwares.chitchat"
+    namespace = "com.mad.softwares.chatApplication"
     compileSdk = 34
 
     defaultConfig {
-        applicationId = "com.mad.softwares.chitchat"
+        applicationId = "com.mad.softwares.chatApplication"
         minSdk = 26
         targetSdk = 34
         versionCode = 2
@@ -33,6 +33,7 @@ android {
                 getDefaultProguardFile("proguard-android-optimize.txt"),
                 "proguard-rules.pro"
             )
+            isDebuggable = false
         }
     }
     compileOptions {

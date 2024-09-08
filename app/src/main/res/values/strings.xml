@@ -1,5 +1,5 @@
 <resources>
-    <string name="app_name">Chit Chat</string>
+    <string name="app_name">Chat Application</string>
     <string name="register_with_us">Register with us 😀</string>
     <string name="username">Email ID</string>
     <string name="password">Password</string>
