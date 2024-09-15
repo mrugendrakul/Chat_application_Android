@@ -379,7 +379,7 @@ class NetworkDataRepository(
             Log.d(TAG, "send successfully from data ")
 //            return status
         } catch (e: Exception) {
-            Log.e(TAG, "unabe to send message to database from data")
+            Log.e(TAG, "unabe to send message to database from data : $e")
 //            return false
             throw e
         }

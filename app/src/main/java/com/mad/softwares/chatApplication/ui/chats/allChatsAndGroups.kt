@@ -87,7 +87,7 @@ object chatsScreenDestination : destinationData {
 @OptIn(ExperimentalPermissionsApi::class)
 @RequiresApi(Build.VERSION_CODES.TIRAMISU)
 @Composable
-fun UserChats(
+fun AllChatsAndGroups(
     viewModel: ChatsViewModel = viewModel(factory = GodViewModelProvider.Factory),
 //    viewModel: ChatsViewModel,
     navitageToAddChats: (List<String>) -> Unit,
@@ -123,6 +123,7 @@ fun UserChats(
         }
 
         CurrentChatStatus.Logouted -> {
+            viewModel.resetUserInside()
             navigateToWelcome()
         }
     }
@@ -512,7 +513,9 @@ fun SingleChat(
                 Text(
                     text = chat.chatName,
                     fontSize = 22.sp,
-                    lineHeight = 22.sp
+                    lineHeight = 22.sp,
+                    maxLines = 1,
+                    overflow = TextOverflow.Ellipsis
                 )
                 Spacer(Modifier.height(15.dp))
                 Text(

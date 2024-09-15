@@ -18,6 +18,7 @@ import com.mad.softwares.chatApplication.data.chatUser
 import com.mad.softwares.chatApplication.data.lastMessage
 import kotlinx.coroutines.CompletableDeferred
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.tasks.await
 import kotlinx.coroutines.withContext
 import kotlinx.coroutines.withTimeoutOrNull
@@ -317,7 +318,7 @@ class NetworkFirebaseApi(
 
             Log.d(TAG, "Successfully send notification api : ${response.code()}")
         } catch (e: Exception) {
-            Log.d(TAG, "Failed to send ${e.message}")
+            Log.e(TAG, "Failed to send notification : ${e.message}")
         }
     }
 
@@ -552,8 +553,17 @@ class NetworkFirebaseApi(
         Log.d(TAG, "message sending started in api")
         val chatSuccess = CompletableDeferred<Boolean>()
 //        val chatSuccess = CompletableDeferred(false)
-        val result = withTimeoutOrNull(5000L) {
+        val result = withTimeoutOrNull(5000) {
             try {
+                val lastMessage = arrayListOf(
+                    message.content,
+                    message.timeStamp
+                )
+
+                chatsCollection.document(chatId)
+                    .update("lastMessage", lastMessage)
+                    .await()
+
                 chatsCollection
                     .document(chatId).collection("Messages")
 //                .get(timeout = 5000)
@@ -569,14 +579,9 @@ class NetworkFirebaseApi(
 //                return@addOnFailureListener
 //            }
                 Log.d(TAG, "message added successfully")
-                val lastMessage = arrayListOf(
-                    message.content,
-                    message.timeStamp
-                )
+
 //        Log.d(TAG,"new message will be addes hope so..")
-                chatsCollection.document(chatId)
-                    .update("lastMessage", lastMessage)
-                    .await()
+
 
                 Log.d(TAG, "Added lastMessage to: $chatId")
 

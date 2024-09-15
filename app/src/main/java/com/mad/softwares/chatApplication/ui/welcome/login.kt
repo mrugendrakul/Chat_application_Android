@@ -59,6 +59,7 @@ fun LoginScreen(
 ) {
     val uiState = welcomeViewModel.startUiState.collectAsState().value
     if (uiState.isUserInside){
+        welcomeViewModel.resetUserInside()
         navigateToChats()
     }
     LoginScreenBody(

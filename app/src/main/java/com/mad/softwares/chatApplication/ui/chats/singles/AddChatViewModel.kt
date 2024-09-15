@@ -166,6 +166,12 @@ class AddChatViewModel(
             }
         }
     }
+
+    fun resetAddChatSuccess() {
+        addChatUiState.update { it.copy(
+            addChatSuccess = false
+        ) }
+    }
 }
 
 data class AddChatUiState(

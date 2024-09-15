@@ -180,6 +180,14 @@ class welcomeViewModel(
 
         Log.d(TAGview,"signup failed error message 3: ${startUiState.value.errorMessage}")
     }
+
+    fun resetUserInside() {
+        startUiState.update {
+            it.copy(
+                isUserInside = false
+            )
+        }
+    }
 }
 
 data class StartUiState(

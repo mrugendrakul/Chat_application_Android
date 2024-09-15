@@ -192,6 +192,14 @@ class ChatsViewModel(
         }
     }
 
+    fun resetUserInside() {
+        chatsUiState.update {
+            it.copy(
+                currentChatStatus = CurrentChatStatus.Loading
+            )
+        }
+    }
+
 //
 }
 

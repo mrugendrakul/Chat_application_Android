@@ -73,7 +73,9 @@ fun AddChat(
 //        jugadViewModel.getChats(true)
 //        viewModel.getChats(isForced = true)
 //        navigateUp()
+        viewModel.resetAddChatSuccess()
         navigateWithReload(false)
+
     }
     AddChatBody(
         navigateUp = navigateUp,

@@ -105,7 +105,7 @@ class MessagesViewModel(
     }
 
     private val viewModelJob = SupervisorJob()
-    private val backgroundScope = CoroutineScope(Dispatchers.Default + viewModelJob)
+    private val backgroundScope = CoroutineScope(Dispatchers.IO + viewModelJob)
 
     override fun onCleared() {
         super.onCleared()
@@ -140,30 +140,30 @@ class MessagesViewModel(
 //            element = messagesUiState.value.messageToSend.copy(status = messageStatus.Send)
 //        )
 
-        viewModelScope.launch {
-            try{
-                Log.d(TAGmess, "Sending message")
-                Log.d(TAGmess, "Current chat : ${messagesUiState.value.currChat}")
-                val currCht = messagesUiState.value.currChat
-                val title = currCht.members - currCht.membersData.map { it.username }.toSet()
-                messagesUiState.value.currChat.membersData.forEach { charUser ->
-                    charUser.fcmToken.forEach { token ->
-                        Log.d(
-                            TAGmess,
-                            "Sending notification to : ${charUser.username}, chatname : ${title.first()}, token : ${token}"
-                        )
-                        dataRepository.sendNotificationToToken(
-                            token = token,
-                            title = title.first(),
-                            content = tempMessage
-                        )
-                    }
-                }
-            }
-            catch(e:Exception){
-                Log.e(TAGmess,"Error to send notification: $e")
-            }
-        }
+//        viewModelScope.launch {
+//            try{
+//                Log.d(TAGmess, "Sending message")
+//                Log.d(TAGmess, "Current chat : ${messagesUiState.value.currChat}")
+//                val currCht = messagesUiState.value.currChat
+//                val title = currCht.members - currCht.membersData.map { it.username }.toSet()
+//                messagesUiState.value.currChat.membersData.forEach { charUser ->
+//                    charUser.fcmToken.forEach { token ->
+//                        Log.d(
+//                            TAGmess,
+//                            "Sending notification to : ${charUser.username}, chatname : ${title.first()}, token : ${token}"
+//                        )
+//                        dataRepository.sendNotificationToToken(
+//                            token = token,
+//                            title = title.first(),
+//                            content = tempMessage
+//                        )
+//                    }
+//                }
+//            }
+//            catch(e:Exception){
+//                Log.e(TAGmess,"Error to send notification: $e")
+//            }
+//        }
             backgroundScope.launch() {
 
 //            delay(5000)

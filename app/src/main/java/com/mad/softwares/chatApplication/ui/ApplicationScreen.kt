@@ -29,7 +29,7 @@ import androidx.navigation.navArgument
 import com.mad.softwares.chatApplication.R
 import com.mad.softwares.chatApplication.ui.chats.singles.AddChat
 import com.mad.softwares.chatApplication.ui.chats.groups.AddGroup
-import com.mad.softwares.chatApplication.ui.chats.UserChats
+import com.mad.softwares.chatApplication.ui.chats.AllChatsAndGroups
 import com.mad.softwares.chatApplication.ui.chats.singles.addChatDestination
 import com.mad.softwares.chatApplication.ui.chats.groups.addGroupDestination
 import com.mad.softwares.chatApplication.ui.chats.chatsScreenDestination
@@ -113,7 +113,7 @@ fun ApplicationScreen(
             })
         ) {
 //            Log.d(TAGnav,"chats : ${addChatDestination.routeWithArgs()}")
-            UserChats(
+            AllChatsAndGroups(
 
                 navitageToAddChats = {
                     Log.d(TAGnav, "chats : ${addChatDestination.routeWithArgs(it)}")

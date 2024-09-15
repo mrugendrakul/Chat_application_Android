@@ -1,6 +1,7 @@
 package com.mad.softwares.chatApplication.data
 
 import com.google.firebase.Timestamp
+import org.checkerframework.checker.signature.qual.IdentifierOrPrimitiveType
 
 enum class ContentType(){
     text,

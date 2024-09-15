@@ -4,7 +4,7 @@
     <selectionStates>
       <SelectionState runConfigName="app">
         <option name="selectionMode" value="DROPDOWN" />
-        <DropdownSelection timestamp="2024-09-08T17:16:55.374513300Z">
+        <DropdownSelection timestamp="2024-09-15T08:49:14.691760800Z">
           <Target type="DEFAULT_BOOT">
             <handle>
               <DeviceId pluginId="LocalEmulator" identifier="path=C:\Users\mruge\.android\avd\Medium_Phone_API_VanillaIceCream.avd" />
@@ -27,9 +27,6 @@
         </DialogSelection>
       </SelectionState>
       <SelectionState runConfigName="networkApi_addChat_Success()">
-        <option name="selectionMode" value="DROPDOWN" />
-      </SelectionState>
-      <SelectionState runConfigName="networkApi_sendMessage_Success()">
         <option name="selectionMode" value="DROPDOWN" />
       </SelectionState>
       <SelectionState runConfigName="dataRepo_sendMessage_Success()">

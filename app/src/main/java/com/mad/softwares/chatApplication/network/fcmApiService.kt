@@ -41,7 +41,7 @@ val moshi = Moshi.Builder().build()
 //    .build()
 
 private val retrofit = Retrofit.Builder()
-    .baseUrl("https://fcm.googleapis.com/")
+    .baseUrl("https://fcm.googleapis.com/fcm/")
     .addConverterFactory(GsonConverterFactory.create())
     .build()
 
