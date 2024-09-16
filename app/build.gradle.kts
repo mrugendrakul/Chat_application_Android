@@ -105,6 +105,11 @@ dependencies {
     implementation(libs.firebase.auth)
     implementation(libs.kotlinx.coroutines.play.services)
     implementation (libs.accompanist.pager)
+    ksp(libs.androidx.room.compiler)
+    implementation(libs.androidx.room.ktx)
+    implementation(libs.androidx.room.runtime)
+//    implementation(libs.room.ktx)
+//    implementation(libs.room.runtime)
 
 
     testImplementation(libs.junit)
