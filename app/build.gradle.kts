@@ -23,7 +23,7 @@ android {
         minSdk = 26
         targetSdk = 34
         versionCode = 2
-        versionName = "0.9.1-beta.2"
+        versionName = "0.9.2-beta.2"
 
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
         vectorDrawables {
@@ -108,6 +108,7 @@ dependencies {
     ksp(libs.androidx.room.compiler)
     implementation(libs.androidx.room.ktx)
     implementation(libs.androidx.room.runtime)
+//    implementation("com.google.auth:google-auth-library-oauth2-http:1.25.0")
 //    implementation(libs.room.ktx)
 //    implementation(libs.room.runtime)
 

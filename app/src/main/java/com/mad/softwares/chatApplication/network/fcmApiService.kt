@@ -1,8 +1,15 @@
 package com.mad.softwares.chatApplication.network
 
 import com.squareup.moshi.Moshi
+import okhttp3.MediaType
+import okhttp3.MediaType.Companion.toMediaTypeOrNull
+import okhttp3.OkHttpClient
+import okhttp3.Request
+import okhttp3.RequestBody
 import retrofit2.Retrofit
 import retrofit2.converter.gson.GsonConverterFactory
+import java.io.FileInputStream
+import java.io.IOException
 
 
 //@JsonClass(generateAdapter = true)
@@ -45,4 +52,6 @@ private val retrofit = Retrofit.Builder()
     .addConverterFactory(GsonConverterFactory.create())
     .build()
 
-val service = retrofit.create(FcmApiService::class.java)
+
+
+//val service = retrofit.create(FcmApiService::class.java)

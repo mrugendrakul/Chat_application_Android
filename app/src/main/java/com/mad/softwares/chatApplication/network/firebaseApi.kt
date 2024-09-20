@@ -314,9 +314,9 @@ class NetworkFirebaseApi(
         )
 
         try {
-            val response = service.sendNotification(notificationRequest)
+//            val response = service.sendNotification(notificationRequest)
 
-            Log.d(TAG, "Successfully send notification api : ${response.code()}")
+//            Log.d(TAG, "Successfully send notification api : ${response.code()}")
         } catch (e: Exception) {
             Log.e(TAG, "Failed to send notification : ${e.message}")
         }

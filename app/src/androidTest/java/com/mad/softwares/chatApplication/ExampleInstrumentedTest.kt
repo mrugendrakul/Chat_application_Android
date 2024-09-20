@@ -16,7 +16,7 @@ import com.mad.softwares.chatApplication.network.FirebaseAuthenticationApi
 import com.mad.softwares.chatApplication.network.NetworkFirebaseApi
 import com.mad.softwares.chatApplication.network.Notification
 import com.mad.softwares.chatApplication.network.NotificationRequest
-import com.mad.softwares.chatApplication.network.service
+
 import kotlinx.coroutines.CompletableDeferred
 import kotlinx.coroutines.Deferred
 import kotlinx.coroutines.async
@@ -45,27 +45,6 @@ class ExampleInstrumentedTest {
         assertEquals("com.mad.softwares.chitchat", appContext.packageName)
     }
 
-
-    @Test
-    @Throws(Exception::class)
-    fun fcmApiService_postNotification_returnSuccess() {
-        runBlocking {
-
-            val notificationRequest = NotificationRequest(
-                to = "fDAAkD_bSyahTJa1eLduJJ:APA91bExxniUk09djfV95r7JCHntX_bOmgPlFRTXGJx8cqq558y56gUtixJPVbH3Hp2Z4GWGRV_DrAHMwRk6-C1g-SRm3y19SofOytczVAkNnG4NeqkjI81jlpErZnRd_Z7Xmfbqrq91",
-                notification = Notification("Test1", "Notificatin test ing")
-            )
-            val respond = service.sendNotification(notificationRequest = notificationRequest)
-
-
-            assertEquals(200, respond.code())
-            Log.d("Test_notfi_api", respond.body().toString())
-//        val respondBody = respond.body().toString()
-//        val jsonObj = respondBody.let { JSONObject(it) }
-//        val responseCode = jsonObj.getInt("success")
-//        assertEquals(1,responseCode)
-        }
-    }
 
     private lateinit var firebaseApi: NetworkFirebaseApi
     private lateinit var authApi: AuthenticationApi

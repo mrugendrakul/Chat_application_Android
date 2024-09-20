@@ -145,6 +145,12 @@ class AddGroupViewModel (
             )
         }
     }
+
+    fun resetAddGroupSuccess() {
+        addGroupUiState.update { it.copy(
+            addGroupSuccess = false
+        ) }
+    }
 }
 
 data class AddGroupUiState(

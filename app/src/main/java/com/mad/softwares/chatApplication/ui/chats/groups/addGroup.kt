@@ -75,7 +75,8 @@ fun AddGroup(
 //        jugadViewModel.getChats(true)
 //        viewModel.getChats(isForced = true)
 //        navigateUp()
-        navigateWithReload(true)
+        viewModel.resetAddGroupSuccess()
+        navigateWithReload(false)
     }
     AddGroupBody(
         navigateUp = { navigateUp() },

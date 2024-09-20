@@ -29,11 +29,22 @@ class NotificationService(
         if (message.data.isNotEmpty()) {
             Log.d(TAGNotf, "Message data payload: ${message.data.toList()}")
         }
-        message.notification?.let {
-            val title = it.title
-            val body = it.body
+//        message.data.let {
+//            val title = it.title
+//            val body = it.body
+//
+//            // Handle notification payload
+//            Log.d(TAGNotf, "Notification Title: $title")
+//            Log.d(TAGNotf, "Notification Body: $body")
+//
+//            // Now, you can display the notification details as needed (e.g., in a notification UI)
+//            showNotification(title,body,message.data.toList())
+//            notificationReceived()
+//        }
+        message.data.let {
+            val title = it.get("title")
+            val body = it.get("body")
 
-            // Handle notification payload
             Log.d(TAGNotf, "Notification Title: $title")
             Log.d(TAGNotf, "Notification Body: $body")
 
@@ -64,11 +75,11 @@ class NotificationService(
             .setContentText(body)
             .setSmallIcon(R.drawable.ic_stat_name)
             .setContentIntent(pendingIntent)
-            .setStyle(
-                NotificationCompat.BigTextStyle()
-                .bigText(
-                    messages.joinToString(separator = "\n") { message -> "${message.first} : ${message.second} " }
-                ))
+//            .setStyle(
+//                NotificationCompat.BigTextStyle()
+//                .bigText(
+//                    messages.joinToString(separator = "\n") { message -> "${message.first} : ${message.second} " }
+//                ))
             .setAutoCancel(true)
             .build()
 
