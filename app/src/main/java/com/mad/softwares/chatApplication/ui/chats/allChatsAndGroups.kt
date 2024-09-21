@@ -3,6 +3,7 @@ package com.mad.softwares.chatApplication.ui.chats
 import android.Manifest
 import android.os.Build
 import androidx.annotation.RequiresApi
+import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -21,6 +22,7 @@ import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.pager.HorizontalPager
 import androidx.compose.foundation.pager.rememberPagerState
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.IconButton
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
@@ -35,6 +37,7 @@ import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.ExtendedFloatingActionButton
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.OutlinedCard
 import androidx.compose.material3.PrimaryTabRow
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.SnackbarHost
@@ -155,7 +158,7 @@ fun UserChatsBody(
     }
     val pagerState = rememberPagerState (0, pageCount = { 2 })
     val titleAndIcon = listOf(
-        "Singles" to Icons.Default.Person,
+        "Chats" to Icons.Default.Person,
         "Groups" to Icons.Default.Groups
     )
     val scope = rememberCoroutineScope()
@@ -446,7 +449,7 @@ fun ShowChatsSuccessful(
             state = listState,
             modifier = Modifier
                 .padding(paddingValues)
-                .padding(start = 5.dp, end = 5.dp)
+//                .padding(start = 5.dp, end = 5.dp)
                 .fillMaxSize(),
             contentPadding = PaddingValues(bottom = 100.dp)
         ) {
@@ -474,19 +477,20 @@ fun SingleChat(
         mutableStateOf(false)
     }
 //    val lastMessageContent = chat.lastMessage.content.substring(20)
-    Card(
+    OutlinedCard(
         modifier = Modifier
-            .fillMaxWidth()
-            .height(125.dp)
-            .padding(6.dp)
+            .fillMaxWidth(),
+//            .height(125.dp)
+//            .padding(1.dp)
 //            .padding(start = 8.dp, end = 8.dp)
-        ,
+
         onClick = {
             navigateToCurrentChat("${chat.chatId},${currentUsername}")
 
         },
+        shape = RoundedCornerShape(0.dp),
         enabled = isCardEnabled,
-        elevation = CardDefaults.elevatedCardElevation(3.dp)
+        elevation = CardDefaults.elevatedCardElevation(0.dp)
         //        border = BorderStroke(5.dp,MaterialTheme.colorScheme.primary)
 
     )
@@ -587,6 +591,78 @@ fun UserChatsPreview() {
             chatsUiState = ChatsUiState(
                 currentUser = User(username = "mrg@123.com"),
                 chats = listOf(
+                    ChatOrGroup(
+                        chatName = "mrg@123.com",
+                        lastMessage = lastMessage(
+                            content = "Big text here goed to test the message capacity and the other things",
+                            timestamp = Timestamp(1, 1)
+                        )
+                    ),
+                    ChatOrGroup(
+                        chatName = "mew@test.com"
+                    ),
+                    ChatOrGroup(
+                        chatName = "mrg@123.com"
+                    ),
+                    ChatOrGroup(
+                        chatName = "mew@test.com"
+                    ),
+                    ChatOrGroup(
+                        chatName = "mrg@123.com"
+                    ),
+                    ChatOrGroup(
+                        chatName = "mew@test.com"
+                    ),
+                    ChatOrGroup(
+                        chatName = "mrg@123.com"
+                    ),
+                    ChatOrGroup(
+                        chatName = "mew@test.com"
+                    ),
+                    ChatOrGroup(
+                        chatName = "mrg@123.com"
+                    ),
+                    ChatOrGroup(
+                        chatName = "mew@test.com"
+                    ),
+                    ChatOrGroup(
+                        chatName = "mrg@123.com"
+                    ),
+                    ChatOrGroup(
+                        chatName = "mew@test.com"
+                    ),
+                    ChatOrGroup(
+                        chatName = "mrg@123.com"
+                    ),
+                    ChatOrGroup(
+                        chatName = "mew@test.com"
+                    ),
+                    ChatOrGroup(
+                        chatName = "mrg@123.com"
+                    ),
+                    ChatOrGroup(
+                        chatName = "mew@test.com"
+                    ),
+                    ChatOrGroup(
+                        chatName = "mrg@123.com"
+                    ),
+                    ChatOrGroup(
+                        chatName = "mew@test.com"
+                    ),
+                    ChatOrGroup(
+                        chatName = "mrg@123.com"
+                    ),
+                    ChatOrGroup(
+                        chatName = "mew@test.com"
+                    ),
+                    ChatOrGroup(
+                        chatName = "mrg@123.com"
+                    ),
+                    ChatOrGroup(
+                        chatName = "mew@test.com"
+                    ),
+                ),
+                groups = listOf(
                     ChatOrGroup(
                         chatName = "mrg@123.com",
                         lastMessage = lastMessage(

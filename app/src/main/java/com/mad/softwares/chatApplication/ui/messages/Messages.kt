@@ -68,6 +68,7 @@ import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.buildAnnotatedString
 import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.font.FontStyle
+import androidx.compose.ui.text.font.FontSynthesis
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextDecoration
@@ -410,6 +411,12 @@ fun annotateMessage(
                 fontWeight = FontWeight.Bold
             ),
             symbol = "*"
+        ),
+        StyleRegex(
+            Regex = Regex("!(.*?)!", RegexOption.DOT_MATCHES_ALL),
+            style = SpanStyle(
+                textDecoration = TextDecoration.Underline
+            )
         )
     )
     val annotedMessage = buildAnnotatedString {
@@ -518,13 +525,13 @@ fun annotateMessage(
 //}
 
 fun checkForCode(message: String): Boolean {
-    val codeRegex = Regex("'''(.*?)'''", RegexOption.DOT_MATCHES_ALL)
+    val codeRegex = Regex("```(.*?)```", RegexOption.DOT_MATCHES_ALL)
     return codeRegex.containsMatchIn(message)
 }
 
 fun parseMessage(message: String): Map<String, Boolean> {
     val result = mutableMapOf<String, Boolean>()
-    val codeRegex = Regex("'''(.*?)'''", RegexOption.DOT_MATCHES_ALL)
+    val codeRegex = Regex("```(.*?)```", RegexOption.DOT_MATCHES_ALL)
     var lastIndex = 0
 
     // Function to add text to map
@@ -1069,7 +1076,7 @@ fun PreviewMessagebodySuccess() {
                         timeStamp = Timestamp(Date(2024 - 1900, 2, 25, 20, 15))
                     ),
                     MessageReceived(
-                        content = "This is a long message an \n'''this is goinh yo occupy whole screen and we have to avoid''' that now.",
+                        content = "This is a long message an \n```this is goinh yo occupy whole screen and we have to avoid``` that now.",
                         senderId = "ThereSelf",
                         timeStamp = Timestamp(Date(2024 - 1900, 2, 25, 20, 15))
                     ),
@@ -1089,7 +1096,7 @@ fun PreviewMessagebodySuccess() {
                         timeStamp = Timestamp(Date(2024 - 1900, 2, 25, 20, 15))
                     ),
                     MessageReceived(
-                        content = "*Bold* _Italic_ and ~Strikethrough~",
+                        content = "*Bold* _Italic_ and ~Strikethrough~ and now ! Underlined !",
                         senderId = "ThereSelf",
                         timeStamp = Timestamp(Date(2024 - 1900, 2, 25, 20, 15))
                     ),
