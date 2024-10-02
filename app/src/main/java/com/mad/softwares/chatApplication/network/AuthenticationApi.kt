@@ -52,7 +52,7 @@ class FirebaseAuthenticationApi(
 //                        return@addOnCompleteListener user = auth.currentUser
 
                     } else {
-                        Log.d(TAGauth, "Create email = $email failed error = ${task.exception}")
+                        Log.e(TAGauth, "Create email = $email failed error = ${task.exception}")
 
                         if(task.exception.toString()
                                 .contains("The email address is already in use by another account")) {
@@ -69,6 +69,9 @@ class FirebaseAuthenticationApi(
                                 .contains("The email address is badly formatted")){
                             Log.d(TAGauth, "Invalid email")
                             status("Invalid email")
+                        }
+                        else{
+                            status(task.exception?.message.toString())
                         }
                         deferredUser.complete(null)
 //                        deferredUser.completeExceptionally(task.exception!!)

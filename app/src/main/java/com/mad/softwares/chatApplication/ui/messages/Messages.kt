@@ -61,6 +61,8 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.compose.ui.hapticfeedback.HapticFeedbackType
+import androidx.compose.ui.platform.LocalHapticFeedback
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.AnnotatedString
 import androidx.compose.ui.text.SpanStyle
@@ -879,6 +881,7 @@ fun BottomMessageSend(
     sendAttatchment: () -> Unit
 ) {
     val scope = rememberCoroutineScope()
+//    val haptic = LocalHapticFeedback.current
     ElevatedCard(
         Modifier
 //            .animateContentSize(
@@ -973,8 +976,10 @@ fun BottomMessageSend(
                 IconButton(
                     onClick = {
                         if (appUistate.messageToSend.isNotEmpty()) {
+//                            haptic.performHapticFeedback(HapticFeedbackType.TextHandleMove)
                             sendMessage()
                         } else {
+//                            haptic.performHapticFeedback(HapticFeedbackType.TextHandleMove)
                             sendAttatchment()
                         }
                     },
