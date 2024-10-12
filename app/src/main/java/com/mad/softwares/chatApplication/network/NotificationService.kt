@@ -8,6 +8,8 @@ import android.content.Intent
 import android.os.Build
 import android.util.Log
 import androidx.core.app.NotificationCompat
+import com.google.firebase.Firebase
+import com.google.firebase.firestore.firestore
 import com.google.firebase.messaging.FirebaseMessagingService
 import com.google.firebase.messaging.RemoteMessage
 import com.mad.softwares.chatApplication.R
@@ -17,10 +19,7 @@ import com.mad.softwares.chatApplication.MainActivity
 //import com.mad.softwares.ChatingNew.R
 
 
-
-class NotificationService(
-
-): FirebaseMessagingService() {
+class NotificationService() : FirebaseMessagingService() {
     override fun onMessageReceived(message: RemoteMessage) {
         super.onMessageReceived(message)
 //        val TAG = "firebaseMsgService"
@@ -49,26 +48,38 @@ class NotificationService(
             Log.d(TAGNotf, "Notification Body: $body")
 
             // Now, you can display the notification details as needed (e.g., in a notification UI)
-            showNotification(title,body,message.data.toList())
+            showNotification(title, body, message.data.toList())
             notificationReceived()
         }
 
     }
-    fun notificationReceived():Boolean{
+
+    fun notificationReceived(): Boolean {
         return true
     }
 
-    private fun showNotification(title: String?, body: String?,messages:List<Pair<String,String>>) {
-        val notificationManager = getSystemService(Context.NOTIFICATION_SERVICE) as NotificationManager
+    private fun showNotification(
+        title: String?,
+        body: String?,
+        messages: List<Pair<String, String>>
+    ) {
+        val notificationManager =
+            getSystemService(Context.NOTIFICATION_SERVICE) as NotificationManager
         val channelId = "Chats"
 
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
-            val channel = NotificationChannel(channelId, "Chats", NotificationManager.IMPORTANCE_DEFAULT)
+            val channel =
+                NotificationChannel(channelId, "Chats", NotificationManager.IMPORTANCE_DEFAULT)
             notificationManager.createNotificationChannel(channel)
         }
 
         val notificationIntent = Intent(this, MainActivity::class.java)
-        val pendingIntent = PendingIntent.getActivity(this, 0, notificationIntent, PendingIntent.FLAG_IMMUTABLE or PendingIntent.FLAG_UPDATE_CURRENT)
+        val pendingIntent = PendingIntent.getActivity(
+            this,
+            0,
+            notificationIntent,
+            PendingIntent.FLAG_IMMUTABLE or PendingIntent.FLAG_UPDATE_CURRENT
+        )
 
         val notification = NotificationCompat.Builder(this, channelId)
             .setContentTitle(title)
@@ -88,6 +99,13 @@ class NotificationService(
 
     override fun onNewToken(token: String) {
         Log.d(TAGNotf, "Refreshed token: $token")
+        val FirebaseApi: FirebaseApi = NetworkFirebaseApi(
+            Firebase.firestore,
+            Firebase.firestore.collection("Users"),
+            Firebase.firestore.collection("Chats"),
+            Firebase.firestore.collection("Messages")
+        )
+
 
     }
 

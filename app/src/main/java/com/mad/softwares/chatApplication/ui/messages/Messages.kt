@@ -881,7 +881,7 @@ fun BottomMessageSend(
     sendAttatchment: () -> Unit
 ) {
     val scope = rememberCoroutineScope()
-//    val haptic = LocalHapticFeedback.current
+    val haptic = LocalHapticFeedback.current
     ElevatedCard(
         Modifier
 //            .animateContentSize(
@@ -976,10 +976,10 @@ fun BottomMessageSend(
                 IconButton(
                     onClick = {
                         if (appUistate.messageToSend.isNotEmpty()) {
-//                            haptic.performHapticFeedback(HapticFeedbackType.TextHandleMove)
+                            haptic.performHapticFeedback(HapticFeedbackType.TextHandleMove)
                             sendMessage()
                         } else {
-//                            haptic.performHapticFeedback(HapticFeedbackType.TextHandleMove)
+                            haptic.performHapticFeedback(HapticFeedbackType.TextHandleMove)
                             sendAttatchment()
                         }
                     },

@@ -1,10 +1,13 @@
+@file:OptIn(ExperimentalFoundationApi::class)
+
 package com.mad.softwares.chatApplication.ui.chats
 
 import android.Manifest
 import android.os.Build
 import androidx.annotation.RequiresApi
-import androidx.compose.foundation.BorderStroke
+import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.Image
+import androidx.compose.foundation.combinedClickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -16,19 +19,24 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.wrapContentSize
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.LazyListState
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.pager.HorizontalPager
 import androidx.compose.foundation.pager.rememberPagerState
+import androidx.compose.foundation.selection.toggleable
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.material.Divider
 import androidx.compose.material3.IconButton
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
+import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material.icons.filled.Groups
 import androidx.compose.material.icons.filled.MoreVert
 import androidx.compose.material.icons.filled.Person
+import androidx.compose.material.icons.filled.SelectAll
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.DropdownMenu
@@ -37,7 +45,6 @@ import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.ExtendedFloatingActionButton
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.OutlinedCard
 import androidx.compose.material3.PrimaryTabRow
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.SnackbarHost
@@ -56,7 +63,11 @@ import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.ColorFilter
+import androidx.compose.ui.hapticfeedback.HapticFeedbackType
 import androidx.compose.ui.input.nestedscroll.nestedScroll
+import androidx.compose.ui.platform.LocalHapticFeedback
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
@@ -78,6 +89,7 @@ import com.mad.softwares.chatApplication.ui.GodViewModelProvider
 import com.mad.softwares.chatApplication.ui.destinationData
 import com.mad.softwares.chatApplication.ui.theme.ChitChatTheme
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.selects.select
 
 object chatsScreenDestination : destinationData {
     override val route = "chats"
@@ -94,7 +106,7 @@ fun AllChatsAndGroups(
     viewModel: ChatsViewModel = viewModel(factory = GodViewModelProvider.Factory),
 //    viewModel: ChatsViewModel,
     navitageToAddChats: (List<String>) -> Unit,
-    navigateToAddGroup:(String)->Unit,
+    navigateToAddGroup: (String) -> Unit,
     navigateToWelcome: () -> Unit,
     navigateToCurrentChat: (String) -> Unit
 ) {
@@ -111,7 +123,11 @@ fun AllChatsAndGroups(
                 navigateToAddGroup = { navigateToAddGroup(chatsUiState.currentUser.username) },
                 logOut = { viewModel.logoutUser() },
                 permissionState =
-            rememberPermissionState(permission = Manifest.permission.POST_NOTIFICATIONS)
+                rememberPermissionState(permission = Manifest.permission.POST_NOTIFICATIONS),
+                addToSelection = viewModel::toggleChatOrGroup,
+                setSelect = viewModel::setSelect,
+                unSetSelect = viewModel::unSelect,
+                selectAll = viewModel::selectAll
             )
         }
 
@@ -149,14 +165,18 @@ fun UserChatsBody(
     navigateToAddChats: () -> Unit,
     navigateToAddGroup: () -> Unit,
     logOut: () -> Unit,
-    permissionState :PermissionState?
+    permissionState: PermissionState?,
+    addToSelection: (Boolean, ChatOrGroup) -> Unit,
+    setSelect: () -> Unit,
+    unSetSelect: () -> Unit,
+    selectAll:()->Unit
 ) {
     val scrollBehavior = TopAppBarDefaults.enterAlwaysScrollBehavior()
     val listState = rememberLazyListState()
     val expandedFab by remember {
         derivedStateOf { listState.firstVisibleItemIndex == 0 }
     }
-    val pagerState = rememberPagerState (0, pageCount = { 2 })
+    val pagerState = rememberPagerState(0, pageCount = { 2 })
     val titleAndIcon = listOf(
         "Chats" to Icons.Default.Person,
         "Groups" to Icons.Default.Groups
@@ -171,41 +191,59 @@ fun UserChatsBody(
         floatingActionButton = {
             AddChatFab(
                 expanded = expandedFab,
-                navigateToAddChat = { if(pagerState.currentPage==0) navigateToAddChats() else {
-                    navigateToAddGroup()
-                }
-                                    },
-                text = if(pagerState.currentPage==0) "Add Chat" else "Add Group"
+                navigateToAddChat = {
+                    if (pagerState.currentPage == 0) navigateToAddChats() else {
+                        navigateToAddGroup()
+                    }
+                },
+                text = if (pagerState.currentPage == 0) "Add Chat" else "Add Group"
             )
         },
         snackbarHost = {
             SnackbarHost(snackbarHostState)
         },
         topBar = {
-            Column(){
+            Column() {
                 ApptopBar(
                     destinationData = chatsScreenDestination,
                     scrollBehavior = scrollBehavior,
                     navigateUp = { /*TODO*/ },
+                    canGoBack = chatsUiState.selectStatus,
+                    goBack = unSetSelect,
                     action = {
-                        IconButton(onClick = { expandDDMenu = !expandDDMenu }) {
-                            Icon(
-                                imageVector = Icons.Default.MoreVert,
-                                contentDescription = "More"
-                            )
-                        }
-                        DropdownMenu(
-                            expanded = expandDDMenu,
-                            onDismissRequest = { expandDDMenu = !expandDDMenu }) {
-                            DropdownMenuItem(
-                                text = { Text(text = chatsUiState.currentUser.username) },
-                                onClick = { /*TODO*/ }
-                            )
-                            DropdownMenuItem(
-                                text = { Text(text = "Logout from here") },
-                                onClick = logOut
-                            )
+                        if (!chatsUiState.selectStatus) {
+                            IconButton(onClick = { expandDDMenu = !expandDDMenu }) {
+                                Icon(
+                                    imageVector = Icons.Default.MoreVert,
+                                    contentDescription = "More"
+                                )
+                            }
+                            DropdownMenu(
+                                expanded = expandDDMenu,
+                                onDismissRequest = { expandDDMenu = !expandDDMenu }) {
+                                DropdownMenuItem(
+                                    text = { Text(text = chatsUiState.currentUser.username) },
+                                    onClick = { /*TODO*/ }
+                                )
+                                DropdownMenuItem(
+                                    text = { Text(text = "Logout from here") },
+                                    onClick = logOut
+                                )
 
+                            }
+                        } else {
+                            IconButton(onClick = unSetSelect) {
+                                Icon(
+                                    imageVector = Icons.Default.Delete,
+                                    contentDescription = "Delete"
+                                )
+                            }
+                            IconButton(onClick = selectAll) {
+                                Icon(
+                                    imageVector = Icons.Default.SelectAll,
+                                    contentDescription = "SelectAll"
+                                )
+                            }
                         }
                     }
                 )
@@ -255,21 +293,26 @@ fun UserChatsBody(
         },
 
         ) { paddingValues ->
-        HorizontalPager(state = pagerState){page->
-            when(page){
-                0->ShowChatsSuccessful(
+        HorizontalPager(state = pagerState) { page ->
+            when (page) {
+                0 -> ShowChatsSuccessful(
                     chatsUiState = chatsUiState,
                     paddingValues = paddingValues,
                     listState = listState,
                     navigateToCurrentChat = navigateToCurrentChat,
-                    isCardEnabled = isCardEnabled
+                    isCardEnabled = isCardEnabled,
+                    setSelectionChats = setSelect,
+                    addToSelection = addToSelection
                 )
-                1-> ShowGroupsSuccessful(
+
+                1 -> ShowGroupsSuccessful(
                     chatsUiState = chatsUiState,
                     paddingValues = paddingValues,
                     listState = listState,
                     navigateToCurrentChat = navigateToCurrentChat,
-                    isCardEnabled = isCardEnabled
+                    isCardEnabled = isCardEnabled,
+                    setSelectionChats = setSelect,
+                    addToSelection = addToSelection
                 )
             }
         }
@@ -283,8 +326,11 @@ fun ShowGroupsSuccessful(
     paddingValues: PaddingValues,
     listState: LazyListState,
     navigateToCurrentChat: (String) -> Unit,
-    isCardEnabled: Boolean
-){
+    isCardEnabled: Boolean,
+    setSelectionChats: () -> Unit,
+    addToSelection: (Boolean, ChatOrGroup) -> Unit
+) {
+    val haptic = LocalHapticFeedback.current
     if (chatsUiState.groups.isEmpty()) {
         Column(
             modifier = Modifier
@@ -307,13 +353,60 @@ fun ShowGroupsSuccessful(
                 .fillMaxSize(),
             contentPadding = PaddingValues(bottom = 100.dp)
         ) {
-            items(chatsUiState.groups.sortedBy { it.lastMessage.timestamp }.reversed()) {
-                SingleChat(
-                    chat = it,
-                    navigateToCurrentChat = navigateToCurrentChat,
-                    isCardEnabled = isCardEnabled,
-                    currentUsername = chatsUiState.currentUser.username
-                )
+            if (!chatsUiState.selectStatus) {
+                items(chatsUiState.chats.sortedBy { it.lastMessage.timestamp }.reversed()) {
+                    SingleChat(
+                        chat = it,
+                        navigateToCurrentChat = navigateToCurrentChat,
+                        isCardEnabled = isCardEnabled,
+                        currentUsername = chatsUiState.currentUser.username,
+                        setSelectionChats = setSelectionChats,
+                        cardModifier = Modifier
+                            .fillMaxWidth()
+                            .combinedClickable(
+                                onClick = {
+                                    haptic.performHapticFeedback(HapticFeedbackType.TextHandleMove)
+                                    navigateToCurrentChat("${it.chatId},${chatsUiState.currentUser.username}")
+
+                                },
+                                onLongClick = {
+                                    haptic.performHapticFeedback(HapticFeedbackType.LongPress)
+                                    setSelectionChats()
+                                    addToSelection(true, it)
+                                }
+                            ),
+                        isCardSelected = chatsUiState.selectedChatsOrGroups.contains(it)
+//                    addToSelection = addToSelection,
+//                    selectedStatus = chatsUiState.selectedChatsOrGroups.contains(it),
+                    )
+
+                }
+            }
+            else{
+                items(chatsUiState.chats.sortedBy { it.lastMessage.timestamp }.reversed()) { chat ->
+                    SingleChat(
+                        chat = chat,
+                        navigateToCurrentChat = navigateToCurrentChat,
+                        isCardEnabled = isCardEnabled,
+                        currentUsername = chatsUiState.currentUser.username,
+                        setSelectionChats = setSelectionChats,
+                        isCardSelected = chatsUiState.selectedChatsOrGroups.contains(chat),
+//                        isCardSelected = true,
+                        cardModifier = Modifier
+                            .fillMaxWidth()
+                            .toggleable(
+
+                                value = chatsUiState.selectedChatsOrGroups.contains(chat),
+                                onValueChange = {
+                                    haptic.performHapticFeedback(HapticFeedbackType.TextHandleMove)
+                                    addToSelection(it, chat)
+                                }
+                            )
+
+//                    addToSelection = addToSelection,
+//                    selectedStatus = chatsUiState.selectedChatsOrGroups.contains(it)
+                    )
+                }
             }
         }
     }
@@ -428,8 +521,11 @@ fun ShowChatsSuccessful(
     paddingValues: PaddingValues,
     listState: LazyListState,
     navigateToCurrentChat: (String) -> Unit,
-    isCardEnabled: Boolean
+    isCardEnabled: Boolean,
+    setSelectionChats: () -> Unit,
+    addToSelection: (Boolean, ChatOrGroup) -> Unit
 ) {
+    val haptic = LocalHapticFeedback.current
     if (chatsUiState.chats.isEmpty()) {
         Column(
             modifier = Modifier
@@ -453,48 +549,127 @@ fun ShowChatsSuccessful(
                 .fillMaxSize(),
             contentPadding = PaddingValues(bottom = 100.dp)
         ) {
-            items(chatsUiState.chats.sortedBy { it.lastMessage.timestamp }.reversed()) {
-                SingleChat(
-                    chat = it,
-                    navigateToCurrentChat = navigateToCurrentChat,
-                    isCardEnabled = isCardEnabled,
-                    currentUsername = chatsUiState.currentUser.username
-                )
+            if (!chatsUiState.selectStatus) {
+                items(chatsUiState.chats.sortedBy { it.lastMessage.timestamp }.reversed()) {
+                    SingleChat(
+                        chat = it,
+                        navigateToCurrentChat = navigateToCurrentChat,
+                        isCardEnabled = isCardEnabled,
+                        currentUsername = chatsUiState.currentUser.username,
+                        setSelectionChats = setSelectionChats,
+                        cardModifier = Modifier
+                            .fillMaxWidth()
+                            .combinedClickable(
+                                onClick = {
+                                    haptic.performHapticFeedback(HapticFeedbackType.TextHandleMove)
+                                    navigateToCurrentChat("${it.chatId},${chatsUiState.currentUser.username}")
+                                },
+                                onLongClick = {
+                                    haptic.performHapticFeedback(HapticFeedbackType.LongPress)
+                                    setSelectionChats()
+                                    addToSelection(true, it)
+                                }
+                            ),
+                        isCardSelected = chatsUiState.selectedChatsOrGroups.contains(it)
+//                    addToSelection = addToSelection,
+//                    selectedStatus = chatsUiState.selectedChatsOrGroups.contains(it),
+                    )
+
+                }
+            }
+            else{
+                items(chatsUiState.chats.sortedBy { it.lastMessage.timestamp }.reversed()) { chat ->
+                    SingleChat(
+                        chat = chat,
+                        navigateToCurrentChat = navigateToCurrentChat,
+                        isCardEnabled = isCardEnabled,
+                        currentUsername = chatsUiState.currentUser.username,
+                        setSelectionChats = setSelectionChats,
+                        isCardSelected = chatsUiState.selectedChatsOrGroups.contains(chat),
+//                        isCardSelected = true,
+                        cardModifier = Modifier
+                            .fillMaxWidth()
+                            .toggleable(
+                                value = chatsUiState.selectedChatsOrGroups.contains(chat),
+                                onValueChange = {
+                                    haptic.performHapticFeedback(HapticFeedbackType.TextHandleMove)
+                                    addToSelection(it, chat)
+                                }
+                            )
+
+//                    addToSelection = addToSelection,
+//                    selectedStatus = chatsUiState.selectedChatsOrGroups.contains(it)
+                    )
+                }
             }
         }
     }
 
 }
 
+
 @Composable
 fun SingleChat(
     chat: ChatOrGroup,
     navigateToCurrentChat: (String) -> Unit,
     isCardEnabled: Boolean,
-    currentUsername:String
+    currentUsername: String,
+    setSelectionChats: () -> Unit,
+    cardModifier: Modifier = Modifier,
+    isCardSelected:Boolean
 ) {
     var expanded by remember {
         mutableStateOf(false)
     }
 //    val lastMessageContent = chat.lastMessage.content.substring(20)
-    OutlinedCard(
-        modifier = Modifier
-            .fillMaxWidth(),
+    Card(
+//        modifier = Modifier
+//            .fillMaxWidth()
+//            .combinedClickable(
+//                onClick = {
+//                    navigateToCurrentChat("${chat.chatId},${currentUsername}")
+//                },
+//                onLongClick = {
+//                    setSelectionChats()
+//                }
+//            )
+        modifier = cardModifier
+//            .toggleable(value = selectedStatus,
+//                onValueChange = {
+//                    addToSelection(it, chat)
+//                })
+
+//            .border(width = 1.dp, color = MaterialTheme.colorScheme.onSurface, shape = RoundedCornerShape(0.dp))
+        ,
 //            .height(125.dp)
 //            .padding(1.dp)
 //            .padding(start = 8.dp, end = 8.dp)
 
-        onClick = {
-            navigateToCurrentChat("${chat.chatId},${currentUsername}")
-
-        },
+//        onClick = {
+////            navigateToCurrentChat("${chat.chatId},${currentUsername}")
+//
+//        },
         shape = RoundedCornerShape(0.dp),
-        enabled = isCardEnabled,
-        elevation = CardDefaults.elevatedCardElevation(0.dp)
-        //        border = BorderStroke(5.dp,MaterialTheme.colorScheme.primary)
+//        enabled = isCardEnabled,
+        elevation = CardDefaults.elevatedCardElevation(0.dp),
+        colors = if(isCardSelected){
+            CardDefaults.cardColors(
+                containerColor = MaterialTheme.colorScheme.primaryContainer,
+                contentColor = MaterialTheme.colorScheme.onSurface
+            )
+        }else{
+            CardDefaults.cardColors(
+                containerColor = Color.Transparent,
+                contentColor = MaterialTheme.colorScheme.onSurface
+            )
+        }
+//                border = BorderStroke(5.dp,MaterialTheme.colorScheme.primary)
 
     )
     {
+//        Switch(checked = selectedStatus, onCheckedChange = {
+//            addToSelection(it, chat)
+//        })
         Row(
             modifier = Modifier
                 .fillMaxWidth()
@@ -506,6 +681,7 @@ fun SingleChat(
             Image(
                 imageVector = Icons.Default.Person,
                 contentDescription = null,
+                colorFilter = ColorFilter.tint(MaterialTheme.colorScheme.onSurface),
                 modifier = Modifier
                     .size(50.dp)
             )
@@ -558,6 +734,20 @@ fun SingleChat(
 //            }
         }
     }
+    if(!isCardSelected){
+        Row(
+            modifier = Modifier
+                .fillMaxWidth(),
+            horizontalArrangement = Arrangement.Center
+        ) {
+            Divider(
+                modifier = Modifier
+                    .fillMaxWidth(0.9f)
+                    .wrapContentSize(align = Alignment.Center)
+//            .padding(start = 10.dp)
+            )
+        }
+    }
 }
 
 
@@ -565,7 +755,7 @@ fun SingleChat(
 fun AddChatFab(
     expanded: Boolean = false,
     navigateToAddChat: () -> Unit,
-    text:String
+    text: String
 ) {
     ExtendedFloatingActionButton(
         onClick = { navigateToAddChat() },
@@ -584,11 +774,14 @@ fun AddChatFab(
 
 @OptIn(ExperimentalPermissionsApi::class)
 @Composable
-@Preview(showSystemUi = false, showBackground = false)
+@Preview(showSystemUi = false, showBackground = true, backgroundColor = 0xFFCA1C1C)
 fun UserChatsPreview() {
-    ChitChatTheme {
+    ChitChatTheme(
+//        darkTheme = true
+    ) {
         UserChatsBody(
             chatsUiState = ChatsUiState(
+                selectStatus = true,
                 currentUser = User(username = "mrg@123.com"),
                 chats = listOf(
                     ChatOrGroup(
@@ -740,7 +933,11 @@ fun UserChatsPreview() {
             navigateToAddChats = {},
             navigateToAddGroup = {},
             logOut = {},
-            permissionState = null
+            permissionState = null,
+            addToSelection = { _, _ -> },
+            setSelect = {},
+            unSetSelect = {},
+            selectAll = {}
         )
     }
 

@@ -1,37 +1,39 @@
 [versions]
-accompanistPager = "0.30.0"
-accompanistPermissions = "0.34.0"
+accompanistPager = "0.36.0"
+accompanistPermissions = "0.36.0"
 activityCompose = "1.9.2"
-coilCompose = "2.6.0"
-composeBom = "2024.09.01"
-composeBomVersion = "2024.09.01"
+coilCompose = "2.7.0"
+composeBom = "2024.09.03"
+composeBomVersion = "2024.09.03"
 converterGson = "2.11.0"
 converterMoshi = "2.11.0"
 coreKtx = "1.13.1"
 espressoCore = "3.6.1"
 firebaseAuth = "23.0.0"
-firebaseBom = "33.3.0"
+firebaseBom = "33.4.0"
 firebaseDatabase = "21.0.0"
 firebaseFirestore = "25.1.0"
-firebaseMessaging = "24.0.1"
+firebaseMessaging = "24.0.2"
 firebaseUiAuth = "8.0.2"
 junit = "4.13.2"
 junitVersion = "1.2.1"
-kotlinxCoroutinesPlayServices = "1.8.1"
-kotlinxCoroutinesTest = "1.8.1"
-kotlinxSerializationJson = "1.7.1"
-lifecycleRuntimeKtx = "2.8.5"
-materialIconsExtended = "1.7.1"
-mockitoCore = "5.12.0"
+kotlinxCoroutinesPlayServices = "1.9.0"
+kotlinxCoroutinesTest = "1.9.0"
+kotlinxSerializationJson = "1.7.3"
+lifecycleRuntimeKtx = "2.8.6"
+materialIconsExtended = "1.7.3"
+mockitoCore = "5.14.1"
 moshi = "1.15.1"
 multidex = "2.0.1"
-navigationCompose = "2.8.0"
+navigationCompose = "2.8.2"
 playServicesAuth = "21.2.0"
 retrofit = "2.11.0"
 retrofit2KotlinxSerializationConverter = "1.0.0"
 roomCompiler = "2.6.1"
 roomKtx = "2.6.1"
 roomRuntime = "2.6.1"
+uiTooling = "1.7.3"
+uiToolingPreview = "1.7.3"
 volley = "1.2.1"
 
 [libraries]
@@ -57,15 +59,15 @@ androidx-room-runtime = { module = "androidx.room:room-runtime", version.ref = "
 androidx-ui = { module = "androidx.compose.ui:ui" }
 androidx-ui-graphics = { module = "androidx.compose.ui:ui-graphics" }
 androidx-ui-test-junit4 = { module = "androidx.compose.ui:ui-test-junit4" }
-androidx-ui-test-manifest = { module = "androidx.compose.ui:ui-test-manifest" }
-androidx-ui-tooling = { module = "androidx.compose.ui:ui-tooling" }
-androidx-ui-tooling-preview = { module = "androidx.compose.ui:ui-tooling-preview" }
+androidx-ui-test-manifest = { module = "androidx.compose.ui:ui-test-manifest", version = "1.7.3" }
+androidx-ui-tooling = { module = "androidx.compose.ui:ui-tooling", version.ref = "uiTooling" }
+androidx-ui-tooling-preview = { module = "androidx.compose.ui:ui-tooling-preview", version.ref = "uiToolingPreview" }
 coil-compose = { module = "io.coil-kt:coil-compose", version.ref = "coilCompose" }
 converter-gson = { module = "com.squareup.retrofit2:converter-gson", version.ref = "converterGson" }
 converter-moshi = { module = "com.squareup.retrofit2:converter-moshi", version.ref = "converterMoshi" }
-firebase-analytics = { module = "com.google.firebase:firebase-analytics" }
+firebase-analytics = { module = "com.google.firebase:firebase-analytics", version = "22.1.2" }
 firebase-auth = { module = "com.google.firebase:firebase-auth", version.ref = "firebaseAuth" }
-firebase-auth-ktx = { module = "com.google.firebase:firebase-auth-ktx" }
+firebase-auth-ktx = { module = "com.google.firebase:firebase-auth-ktx", version = "23.0.0" }
 firebase-bom = { module = "com.google.firebase:firebase-bom", version.ref = "firebaseBom" }
 firebase-database = { module = "com.google.firebase:firebase-database", version.ref = "firebaseDatabase" }
 firebase-firestore = { module = "com.google.firebase:firebase-firestore", version.ref = "firebaseFirestore" }

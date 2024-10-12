@@ -252,7 +252,9 @@ fun ApptopBar(
     title: String = "",
     navigateUp: () -> Unit,
     action: @Composable (RowScope.() -> Unit) = {},
-    modifier: Modifier = Modifier
+    modifier: Modifier = Modifier,
+    canGoBack:Boolean =false,
+    goBack:()->Unit = {}
 ) {
     TopAppBar(
         title = {
@@ -285,6 +287,14 @@ fun ApptopBar(
                     )
                 }
 
+            }
+            else if(canGoBack){
+                IconButton(onClick = goBack) {
+                    Icon(
+                        imageVector = Icons.AutoMirrored.Filled.ArrowBack,
+                        contentDescription = "back",
+                        tint = MaterialTheme.colorScheme.onPrimary)
+            }
             }
         },
         actions = action,

@@ -258,7 +258,8 @@ class MessagesViewModel(
 //    }
     private fun getLiveMessages() {
         viewModelScope.launch {
-            dataRepository.getLiveMessages(chatId = messagesUiState.value.chatID,
+            dataRepository.getLiveMessages(
+                chatId = messagesUiState.value.chatID,
                 onMessagesChange = { messageList ->
                     Log.d(TAGmess, "New Message is: ${messageList.last().content}")
                     messagesUiState.update {
@@ -268,13 +269,23 @@ class MessagesViewModel(
                     }
                 },
                 onError = { e ->
+                    Log.e(TAGmess, "Error getting messages : $e")
                     messagesUiState.update {
                         it.copy(
                             isError = true,
                             errorMessage = e.message.toString()
                         )
                     }
-                })
+                },
+                onAdd = { message->
+                    Log.d(TAGmess,"New Message added : ${message}")
+                    messagesUiState.update {
+                        it.copy(
+                            messages = it.messages.add(message)
+                        )
+                    }
+                }
+            )
         }
     }
 }
@@ -289,7 +300,7 @@ data class MessagesUiState(
     val messageScreen: MessageScreen = MessageScreen.Loading,
     val errorMessage: String = "",
     val messageToSend: String = "",
-    val messages: MutableList<MessageReceived> = mutableListOf()
+    val messages: List<MessageReceived> = listOf()
 )
 
 enum class MessageScreen() {

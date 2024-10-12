@@ -18,7 +18,6 @@ import com.mad.softwares.chatApplication.data.chatUser
 import com.mad.softwares.chatApplication.data.lastMessage
 import kotlinx.coroutines.CompletableDeferred
 import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.delay
 import kotlinx.coroutines.tasks.await
 import kotlinx.coroutines.withContext
 import kotlinx.coroutines.withTimeoutOrNull
@@ -30,6 +29,8 @@ val TAG = "ApiServiceLog"
 
 interface FirebaseApi {
     suspend fun getFCMToken(): String
+
+
 
     suspend fun authenticateWithUniqueId(uniqueId: String): Boolean
 
@@ -90,9 +91,16 @@ interface FirebaseApi {
     suspend fun getLiveMessagesForChat(
         currentChatId: String,
         onChange: (List<MessageReceived>) -> Unit,
+        onAdd:(MessageReceived)->Unit,
         onError: (e: Exception) -> Unit
     )
 
+    suspend fun getLiveChats(
+        username: String,
+        onAddChat: (List<ChatOrGroup>) -> Unit,
+        onModifiedChat:(List<ChatOrGroup>)->Unit,
+        onError: (e: Exception) -> Unit
+    )
     suspend fun stopLiveMessages()
     
 
@@ -642,6 +650,7 @@ class NetworkFirebaseApi(
     override suspend fun getLiveMessagesForChat(
         currentChatId: String,
         onChange: (List<MessageReceived>) -> Unit,
+        onAdd: (MessageReceived) -> Unit,
         onError: (e: Exception) -> Unit
     ) {
         listenerRegistration = chatsCollection.document(currentChatId).collection("Messages")
@@ -652,32 +661,123 @@ class NetworkFirebaseApi(
                 }
                 for (dc in snapShot!!.documentChanges) {
                     when (dc.type) {
-                        DocumentChange.Type.ADDED-> Log.d(TAG, "New Message: ${dc.document.data}")
-                        DocumentChange.Type.MODIFIED -> Log.d(TAG, "Modified Message: ${dc.document.data}")
+                        DocumentChange.Type.ADDED-> {
+                            Log.d(TAG, "New Message: ${dc.document.data}")
+                            val messages = mutableListOf<MessageReceived>()
+                            if (dc.document.data!=null && dc.document.data.isNotEmpty()){
+//                                for (doc in dc.document.data ) {
+//                                    val content = doc.getString("content") ?: ""
+////            val chatId = doc.getString("chatId")?:""
+//                                    val senderId = doc.getString("senderId") ?: ""
+//                                    val timeStamp = doc.getTimestamp("timeStamp") ?: Timestamp.now()
+//
+//                                    val mess = MessageReceived(
+//                                        content,
+//                                        contentType = ContentType.text,
+//                                        senderId,
+//                                        timeStamp
+//                                    )
+////                        Log.d(TAG,"Got the message : ${mess.content}")
+//                                    messages.add(mess)
+//                                }
+                                val mess = MessageReceived(
+                                    content = dc.document.data["content"].toString(),
+                                    contentType = ContentType.text,
+                                    senderId = dc.document.data["senderId"].toString(),
+                                    timeStamp = dc.document.data["timeStamp"] as Timestamp
+                                )
+//                                onChange(messages.sortedBy { it.timeStamp })
+                                onAdd(mess)
+                            }
+                        }
+                        DocumentChange.Type.MODIFIED -> {
+                            Log.d(TAG, "Modified Message: ${dc.document.data}")
+
+                        }
                         DocumentChange.Type.REMOVED -> Log.d(TAG, "Removed Message: ${dc.document.data}")
                     }
                 }
 
-                val messages = mutableListOf<MessageReceived>()
-                if (snapShot!=null && !snapShot.isEmpty){
-                    for (doc in snapShot.documents) {
-                        val content = doc.getString("content") ?: ""
-//            val chatId = doc.getString("chatId")?:""
-                        val senderId = doc.getString("senderId") ?: ""
-                        val timeStamp = doc.getTimestamp("timeStamp") ?: Timestamp.now()
-
-                        val mess = MessageReceived(
-                            content,
-                            contentType = ContentType.text,
-                            senderId,
-                            timeStamp
-                        )
-//                        Log.d(TAG,"Got the message : ${mess.content}")
-                        messages.add(mess)
-                    }
-                    onChange(messages.sortedBy { it.timeStamp })
-                }
+//                val messages = mutableListOf<MessageReceived>()
+//                if (snapShot!=null && !snapShot.isEmpty){
+//                    for (doc in snapShot.documents) {
+//                        val content = doc.getString("content") ?: ""
+////            val chatId = doc.getString("chatId")?:""
+//                        val senderId = doc.getString("senderId") ?: ""
+//                        val timeStamp = doc.getTimestamp("timeStamp") ?: Timestamp.now()
+//
+//                        val mess = MessageReceived(
+//                            content,
+//                            contentType = ContentType.text,
+//                            senderId,
+//                            timeStamp
+//                        )
+////                        Log.d(TAG,"Got the message : ${mess.content}")
+//                        messages.add(mess)
+//                    }
+//                    onChange(messages.sortedBy { it.timeStamp })
+//                }
             }
+    }
+
+    private var listenChats:ListenerRegistration? = null
+
+    override suspend fun getLiveChats(
+        username: String,
+        onAddChat: (List<ChatOrGroup>) -> Unit,
+        onModifiedChat: (List<ChatOrGroup>) -> Unit,
+        onError: (e: Exception) -> Unit
+    ) {
+        listenChats = chatsCollection
+            .whereArrayContains("members", username)
+            .whereEqualTo("isGroup", false)
+//            .get()
+//            .addOnSuccessListener {
+//                Log.d(TAG, "Got the chats for usr : ${username}")
+//
+//            }
+//            .addOnFailureListener { e ->
+//                Log.d(TAG, "Unable to fetch the chats : $e")
+//            }
+            .addSnapshotListener{snapshot,e->
+                if(e!=null){
+                    Log.e(TAG,"Error starting listener ${e}")
+                    return@addSnapshotListener
+                }
+//                for (dc in snapshot!!.documentChanges) {
+//                    when(dc.type){
+//                        DocumentChange.Type.ADDED-> {
+//                            Log.d(TAG, "New Chat: ${dc.document.data}")
+//                            for ()
+//                        }
+//                        DocumentChange.Type.MODIFIED->Log.d(TAG,"Modified Chat: ${dc.document.data}")
+//                        DocumentChange.Type.REMOVED->Log.d(TAG,"Removed Chat: ${dc.document.data}")
+//                    }
+//                }
+            }
+//        val chats = mutableListOf<ChatOrGroup>()
+//        for (doc in myChats.await().documents) {
+//            val chatId = doc.getString("chatId") ?: ""
+//            val chatName = doc.getString("chatName") ?: ""
+//            val isGroup = doc.getBoolean("isGroup") ?: false
+//            val members: List<Any> = doc.get("members") as List<Any>
+//            val lastMsg: List<Any> = doc.get("lastMessage") as List<Any>
+//            Log.d(TAG, "members are : $members")
+//            val singleChat = ChatOrGroup(
+//                chatId = chatId,
+//                chatName = chatName,
+//                isGroup = isGroup,
+//                members = members.map { it.toString() },
+//                lastMessage = lastMessage(
+//                    content = lastMsg[0].toString(),
+//                    timestamp = lastMsg[1] as Timestamp
+//                )
+//            )
+//            chats.add(singleChat)
+//        }
+
+//        Log.d(TAG, "Chats in api are ${chats.size}")
+//        onChange(chats)
     }
 
     override suspend fun stopLiveMessages() {

@@ -62,7 +62,8 @@ interface DataRepository {
     suspend fun getLiveMessages(
         chatId: String,
         onMessagesChange: (List<MessageReceived>) -> Unit,
-        onError: (e: Exception) -> Unit
+        onError: (e: Exception) -> Unit,
+        onAdd:(MessageReceived)->Unit
     )
 
     suspend fun stopLiveMessages()
@@ -422,9 +423,10 @@ class NetworkDataRepository(
     override suspend fun getLiveMessages(
         chatId: String,
         onMessagesChange: (List<MessageReceived>) -> Unit,
-        onError: (e: Exception) -> Unit
+        onError: (e: Exception) -> Unit,
+        onAdd: (MessageReceived) -> Unit
     ) {
-        apiService.getLiveMessagesForChat(chatId, onMessagesChange, onError)
+        apiService.getLiveMessagesForChat(chatId, onMessagesChange,onAdd, onError)
     }
 
     override suspend fun deleteChat(chatId: String) {

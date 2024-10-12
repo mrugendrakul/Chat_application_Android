@@ -25,8 +25,11 @@ class ChatsViewModel(
 
     init {
         getChats()
-        Log.d(TAGchat,"init called here .......")
-        Log.d(TAGchat,"To Reload chat : ${savedStateHandle.get<Boolean>(chatsScreenDestination.toReloadChats)}")
+        Log.d(TAGchat, "init called here .......")
+        Log.d(
+            TAGchat,
+            "To Reload chat : ${savedStateHandle.get<Boolean>(chatsScreenDestination.toReloadChats)}"
+        )
     }
 
 //    private fun getCurrentUserData() {
@@ -68,7 +71,7 @@ class ChatsViewModel(
         if (chatsUiState.value.chats.isNotEmpty() && !isForced) {
             return
         }
-        Log.d(TAGchat,"Get Chats started here.....")
+        Log.d(TAGchat, "Get Chats started here.....")
         chatsUiState.update {
             it.copy(
                 isLoading = true,
@@ -124,7 +127,7 @@ class ChatsViewModel(
 //                if (userChats.await().get(0).chatId == "")
 
                 val userGroups =
-                    async{dataRepository.getGroups(chatsUiState.value.currentUser.username)}
+                    async { dataRepository.getGroups(chatsUiState.value.currentUser.username) }
                 val singlesChats = userChats.await()
                 val groupsChats = userGroups.await()
 //                val singlesChats = currentUserChats.filter { !it.isGroup }
@@ -186,7 +189,7 @@ class ChatsViewModel(
         return chatsUiState.value.chats.map { it.chatName } + chatsUiState.value.currentUser.username
     }
 
-    fun deleteChat(chatId:String){
+    fun deleteChat(chatId: String) {
         viewModelScope.launch {
             dataRepository.deleteChat(chatId)
         }
@@ -200,6 +203,47 @@ class ChatsViewModel(
         }
     }
 
+    fun toggleChatOrGroup(status: Boolean, chatOrGroup: ChatOrGroup) {
+        if (status) {
+            chatsUiState.update {
+                it.copy(
+                    selectedChatsOrGroups = it.selectedChatsOrGroups + chatOrGroup
+                )
+            }
+        } else {
+            chatsUiState.update {
+                it.copy(
+                    selectedChatsOrGroups = it.selectedChatsOrGroups - chatOrGroup
+                )
+            }
+        }
+    }
+
+    fun setSelect(){
+        chatsUiState.update {
+            it.copy(
+                selectStatus = true
+            )
+        }
+    }
+
+    fun unSelect() {
+        chatsUiState.update {
+            it.copy(
+                selectStatus = false,
+                selectedChatsOrGroups = listOf()
+            )
+        }
+    }
+
+    fun selectAll(){
+        chatsUiState.update {
+            it.copy(
+                selectedChatsOrGroups = it.chats + it.groups
+            )
+        }
+    }
+
 //
 }
 
@@ -209,14 +253,15 @@ data class ChatsUiState(
     val chats: List<ChatOrGroup> = listOf(
 //        Chats(chatName = "sad@33.com")
     ),
-    val groups:List<ChatOrGroup> = listOf(),
+    val groups: List<ChatOrGroup> = listOf(),
     val isLoading: Boolean = false,
     val isError: Boolean = false,
     val errorMessage: String = "",
     val currentChatStatus: CurrentChatStatus = CurrentChatStatus.Loading,
+    val selectedChatsOrGroups: List<ChatOrGroup> = listOf(),
+    val selectStatus:Boolean = false
 //    val logoutSuccess: Boolean = false
 )
-
 
 
 enum class CurrentChatStatus() {
