@@ -5,8 +5,11 @@ import com.google.firebase.auth.FirebaseUser
 import com.mad.softwares.chatApplication.network.AuthenticationApi
 import com.mad.softwares.chatApplication.network.FirebaseApi
 import kotlinx.coroutines.CompletableDeferred
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.async
 import kotlinx.coroutines.coroutineScope
+import kotlinx.coroutines.launch
 
 val TAG = "DataRepository_Logs"
 
@@ -32,7 +35,7 @@ interface DataRepository {
 
     suspend fun getAllTheUsers(members: List<String>): List<chatUser>
 
-    suspend fun getSearchUsers(members:List<String>, search:String):List<chatUser>
+    suspend fun getSearchUsers(members: List<String>, search: String): List<chatUser>
 
     suspend fun addChatToDatabase(
         currentUser: User,
@@ -63,10 +66,27 @@ interface DataRepository {
         chatId: String,
         onMessagesChange: (List<MessageReceived>) -> Unit,
         onError: (e: Exception) -> Unit,
-        onAdd:(MessageReceived)->Unit
+        onAdd: (MessageReceived) -> Unit
     )
 
     suspend fun stopLiveMessages()
+
+    suspend fun liveChatStore(
+        myUsername: String,
+        onChatAdd: (ChatOrGroup) -> Unit,
+        onChatUpdate: (ChatOrGroup) -> Unit,
+        onChatDelete: (ChatOrGroup) -> Unit,
+        onError:(e:Exception)->Unit
+    )
+
+    suspend fun getLiveGroupStore(
+        myUsername: String,
+        onChatAdd: (ChatOrGroup) -> Unit,
+        onChatUpdate: (ChatOrGroup) -> Unit,
+        onChatDelete: (ChatOrGroup) -> Unit,
+        onError:(e:Exception)->Unit
+    )
+    suspend fun stopLiveChat()
 }
 
 class NetworkDataRepository(
@@ -352,7 +372,7 @@ class NetworkDataRepository(
                         }
                     }
                 }
-               t
+                t
             }
                 .filter {
                     it.membersData.size == (it.members.size - 1)
@@ -367,6 +387,84 @@ class NetworkDataRepository(
             Log.e(TAG, "Unable to get the groups: $e")
             throw e
         }
+    }
+
+    override suspend fun liveChatStore(
+        myUsername: String,
+        onChatAdd: (ChatOrGroup) -> Unit,
+        onChatUpdate: (ChatOrGroup) -> Unit,
+        onChatDelete: (ChatOrGroup) -> Unit,
+        onError: (e:Exception) -> Unit
+    ) {
+        apiService.getLiveChatsOrGroups(
+            username = myUsername,
+            isGroup = false,
+            onAddChat = { newChat ->
+                CoroutineScope(Dispatchers.IO).launch {
+                    var tempUsername: String = "chat"
+                    for (mem in newChat.members) {
+                        if (mem != myUsername) {
+                            tempUsername = mem
+                            val memInfo =
+                                coroutineScope {
+                                    val info = async { apiService.getUserChatData(mem) }
+                                    info.await()
+                                }
+                            if (memInfo.username != "") {
+                                newChat.membersData.add(memInfo)
+                            }
+                        }
+                    }
+                    val latestChat = newChat.copy(chatName = tempUsername)
+                    if(latestChat.members.size-1 == latestChat.membersData.size) {
+                        Log.d(TAG, "Chat added in data")
+                        onChatAdd(latestChat)
+                    }
+
+                }
+            },
+            onModifiedChat = onChatUpdate,
+            onDeleteChat = onChatDelete,
+            onError = onError)
+    }
+
+    override suspend fun getLiveGroupStore(
+        myUsername: String,
+        onChatAdd: (ChatOrGroup) -> Unit,
+        onChatUpdate: (ChatOrGroup) -> Unit,
+        onChatDelete: (ChatOrGroup) -> Unit,
+        onError: (e: Exception) -> Unit
+    ) {
+        apiService.getLiveChatsOrGroups(
+            username = myUsername,
+            isGroup = true,
+            onAddChat = { newChat ->
+                CoroutineScope(Dispatchers.IO).launch {
+                    var tempUsername: String = "chat"
+                    for (mem in newChat.members) {
+                        if (mem != myUsername) {
+                            tempUsername = mem
+                            val memInfo =
+                                coroutineScope {
+                                    val info = async { apiService.getUserChatData(mem) }
+                                    info.await()
+                                }
+                            if (memInfo.username != "") {
+                                newChat.membersData.add(memInfo)
+                            }
+                        }
+                    }
+//                    val latestChat = newChat.copy(chatName = tempUsername)
+
+                    if(newChat.members.size-1 == newChat.membersData.size) {
+                        Log.d(TAG, "Chat added in data")
+                        onChatAdd(newChat)
+                    }
+                }
+            },
+            onModifiedChat = onChatUpdate,
+            onDeleteChat = onChatDelete,
+            onError = onError)
     }
 
     override suspend fun sendMessage(message: MessageReceived, chatId: String) {
@@ -426,7 +524,7 @@ class NetworkDataRepository(
         onError: (e: Exception) -> Unit,
         onAdd: (MessageReceived) -> Unit
     ) {
-        apiService.getLiveMessagesForChat(chatId, onMessagesChange,onAdd, onError)
+        apiService.getLiveMessagesForChat(chatId, onMessagesChange, onAdd, onError)
     }
 
     override suspend fun deleteChat(chatId: String) {
@@ -441,6 +539,10 @@ class NetworkDataRepository(
         apiService.stopLiveMessages()
     }
 
+    override suspend fun stopLiveChat() {
+        apiService.stopLiveChats()
+    }
+
     override suspend fun getDataChat(chatId: String, chatName: String): ChatOrGroup {
         try {
             val chatData = coroutineScope {
@@ -449,7 +551,7 @@ class NetworkDataRepository(
             }
             if (chatData.isGroup) {
                 for (members in chatData.members) {
-                    if(members != chatName){
+                    if (members != chatName) {
                         val userInfo = coroutineScope {
                             val info = async { apiService.getUserChatData(members) }
                             info.await()
@@ -462,7 +564,7 @@ class NetworkDataRepository(
             } else {
                 var tempChatName = ""
                 for (members in chatData.members) {
-                    if (members == chatName) {
+                    if (members != chatName) {
                         val userInfo = coroutineScope {
                             val info = async { apiService.getUserChatData(members) }
                             info.await()

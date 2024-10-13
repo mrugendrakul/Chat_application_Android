@@ -19,7 +19,6 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
-import androidx.compose.foundation.layout.wrapContentSize
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.LazyListState
 import androidx.compose.foundation.lazy.items
@@ -28,15 +27,20 @@ import androidx.compose.foundation.pager.HorizontalPager
 import androidx.compose.foundation.pager.rememberPagerState
 import androidx.compose.foundation.selection.toggleable
 import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.material.Divider
 import androidx.compose.material3.IconButton
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.filled.ArrowForward
 import androidx.compose.material.icons.filled.Add
+import androidx.compose.material.icons.filled.ArrowDownward
+import androidx.compose.material.icons.filled.ArrowUpward
 import androidx.compose.material.icons.filled.Delete
+import androidx.compose.material.icons.filled.Deselect
 import androidx.compose.material.icons.filled.Groups
 import androidx.compose.material.icons.filled.MoreVert
 import androidx.compose.material.icons.filled.Person
 import androidx.compose.material.icons.filled.SelectAll
+import androidx.compose.material3.AlertDialog
+import androidx.compose.material3.Button
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.DropdownMenu
@@ -51,6 +55,7 @@ import androidx.compose.material3.SnackbarHost
 import androidx.compose.material3.SnackbarHostState
 import androidx.compose.material3.Tab
 import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
 import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
@@ -89,7 +94,6 @@ import com.mad.softwares.chatApplication.ui.GodViewModelProvider
 import com.mad.softwares.chatApplication.ui.destinationData
 import com.mad.softwares.chatApplication.ui.theme.ChitChatTheme
 import kotlinx.coroutines.launch
-import kotlinx.coroutines.selects.select
 
 object chatsScreenDestination : destinationData {
     override val route = "chats"
@@ -127,7 +131,9 @@ fun AllChatsAndGroups(
                 addToSelection = viewModel::toggleChatOrGroup,
                 setSelect = viewModel::setSelect,
                 unSetSelect = viewModel::unSelect,
-                selectAll = viewModel::selectAll
+                selectAll = viewModel::selectAll,
+                deSelectAll = viewModel::deSelectAll,
+                deleteChats = viewModel::deleteChats
             )
         }
 
@@ -169,7 +175,9 @@ fun UserChatsBody(
     addToSelection: (Boolean, ChatOrGroup) -> Unit,
     setSelect: () -> Unit,
     unSetSelect: () -> Unit,
-    selectAll:()->Unit
+    selectAll: () -> Unit,
+    deSelectAll: () -> Unit,
+    deleteChats: () -> Unit
 ) {
     val scrollBehavior = TopAppBarDefaults.enterAlwaysScrollBehavior()
     val listState = rememberLazyListState()
@@ -183,6 +191,9 @@ fun UserChatsBody(
     )
     val scope = rememberCoroutineScope()
     var expandDDMenu by remember {
+        mutableStateOf(false)
+    }
+    var dialogState by remember {
         mutableStateOf(false)
     }
     val snackbarHostState = remember { SnackbarHostState() }
@@ -232,17 +243,26 @@ fun UserChatsBody(
 
                             }
                         } else {
-                            IconButton(onClick = unSetSelect) {
+                            IconButton(onClick = { dialogState = true }) {
                                 Icon(
                                     imageVector = Icons.Default.Delete,
                                     contentDescription = "Delete"
                                 )
                             }
-                            IconButton(onClick = selectAll) {
-                                Icon(
-                                    imageVector = Icons.Default.SelectAll,
-                                    contentDescription = "SelectAll"
-                                )
+                            if (chatsUiState.selectedAll) {
+                                IconButton(onClick = deSelectAll) {
+                                    Icon(
+                                        imageVector = Icons.Default.Deselect,
+                                        contentDescription = "SelectAll"
+                                    )
+                                }
+                            } else {
+                                IconButton(onClick = selectAll) {
+                                    Icon(
+                                        imageVector = Icons.Default.SelectAll,
+                                        contentDescription = "SelectAll"
+                                    )
+                                }
                             }
                         }
                     }
@@ -293,6 +313,27 @@ fun UserChatsBody(
         },
 
         ) { paddingValues ->
+        if (dialogState) {
+            AlertDialog(
+                onDismissRequest = { dialogState = false },
+                confirmButton = {
+                    Button(onClick = {
+                        deleteChats()
+                        dialogState = false
+                        unSetSelect()
+                    }) {
+                        Text(text = "Delete")
+                    }
+                },
+                title = {
+                    Text(text = "Delete Selected Chats")
+                },
+                text = { Text(text = stringResource(R.string.delete_alert_message)) },
+                dismissButton = {
+                    TextButton(onClick = { dialogState = false }) { Text(text = "Cancel") }
+                },
+            )
+        }
         HorizontalPager(state = pagerState) { page ->
             when (page) {
                 0 -> ShowChatsSuccessful(
@@ -354,7 +395,7 @@ fun ShowGroupsSuccessful(
             contentPadding = PaddingValues(bottom = 100.dp)
         ) {
             if (!chatsUiState.selectStatus) {
-                items(chatsUiState.chats.sortedBy { it.lastMessage.timestamp }.reversed()) {
+                items(chatsUiState.groups.sortedBy { it.lastMessage.timestamp }.reversed()) {
                     SingleChat(
                         chat = it,
                         navigateToCurrentChat = navigateToCurrentChat,
@@ -381,9 +422,9 @@ fun ShowGroupsSuccessful(
                     )
 
                 }
-            }
-            else{
-                items(chatsUiState.chats.sortedBy { it.lastMessage.timestamp }.reversed()) { chat ->
+            } else {
+                items(chatsUiState.groups.sortedBy { it.lastMessage.timestamp }
+                    .reversed()) { chat ->
                     SingleChat(
                         chat = chat,
                         navigateToCurrentChat = navigateToCurrentChat,
@@ -475,7 +516,14 @@ fun ChatLoading() {
             .fillMaxWidth()
             .height(110.dp)
             .padding(5.dp),
-        elevation = CardDefaults.elevatedCardElevation(3.dp)
+//        elevation = CardDefaults.elevatedCardElevation(3.dp),
+        shape = RoundedCornerShape(0.dp),
+//        enabled = isCardEnabled,
+        elevation = CardDefaults.elevatedCardElevation(0.dp),
+        colors = CardDefaults.cardColors(
+            containerColor = Color.Transparent,
+            contentColor = MaterialTheme.colorScheme.onSurface
+        )
 //            .clickable(onClick = { currentChat(chat.chatId) }),
 //        border = BorderStroke(5.dp,MaterialTheme.colorScheme.primary)
 //        onClick = currentChat(chat.chatId)
@@ -576,8 +624,7 @@ fun ShowChatsSuccessful(
                     )
 
                 }
-            }
-            else{
+            } else {
                 items(chatsUiState.chats.sortedBy { it.lastMessage.timestamp }.reversed()) { chat ->
                     SingleChat(
                         chat = chat,
@@ -616,7 +663,7 @@ fun SingleChat(
     currentUsername: String,
     setSelectionChats: () -> Unit,
     cardModifier: Modifier = Modifier,
-    isCardSelected:Boolean
+    isCardSelected: Boolean
 ) {
     var expanded by remember {
         mutableStateOf(false)
@@ -652,12 +699,12 @@ fun SingleChat(
         shape = RoundedCornerShape(0.dp),
 //        enabled = isCardEnabled,
         elevation = CardDefaults.elevatedCardElevation(0.dp),
-        colors = if(isCardSelected){
+        colors = if (isCardSelected) {
             CardDefaults.cardColors(
                 containerColor = MaterialTheme.colorScheme.primaryContainer,
                 contentColor = MaterialTheme.colorScheme.onSurface
             )
-        }else{
+        } else {
             CardDefaults.cardColors(
                 containerColor = Color.Transparent,
                 contentColor = MaterialTheme.colorScheme.onSurface
@@ -698,18 +745,47 @@ fun SingleChat(
                     overflow = TextOverflow.Ellipsis
                 )
                 Spacer(Modifier.height(15.dp))
-                Text(
-                    text = if (chat.lastMessage.timestamp == Timestamp(0, 0)) {
-                        "Not yet contacted"
-                    } else {
-                        "-> ${chat.lastMessage.content}"
-                    },
-                    fontSize = 18.sp,
-                    lineHeight = 18.sp,
-                    maxLines = 1,
-                    overflow = TextOverflow.Ellipsis
-                )
+                Row(
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+
+                    if (chat.lastMessage.sender == "") {
+                        Icon(
+                            imageVector = Icons.AutoMirrored.Filled.ArrowForward,
+                            contentDescription =
+                            stringResource(R.string.default_here)
+                        )
+                    } else if (chat.lastMessage.sender == currentUsername) {
+                        Icon(
+                            imageVector = Icons.Default.ArrowUpward,
+                            contentDescription = stringResource(
+                                R.string.send_message
+                            )
+                        )
+                    } else if (chat.lastMessage.sender != currentUsername) {
+                        Icon(
+                            imageVector = Icons.Default.ArrowDownward,
+                            contentDescription = stringResource(
+                                R.string.receive_message
+                            )
+                        )
+                    }
+
+
+                    Text(
+                        text = if (chat.lastMessage.timestamp == Timestamp(0, 0)) {
+                            "Not yet contacted"
+                        } else {
+                            chat.lastMessage.content
+                        },
+                        fontSize = 18.sp,
+                        lineHeight = 18.sp,
+                        maxLines = 1,
+                        overflow = TextOverflow.Ellipsis
+                    )
+                }
             }
+        }
 //            Spacer(modifier = Modifier.weight(1f))
 //            Box(
 //                modifier = Modifier
@@ -732,21 +808,6 @@ fun SingleChat(
 ////                        onClick = { chatDelete() })
 //                }
 //            }
-        }
-    }
-    if(!isCardSelected){
-        Row(
-            modifier = Modifier
-                .fillMaxWidth(),
-            horizontalArrangement = Arrangement.Center
-        ) {
-            Divider(
-                modifier = Modifier
-                    .fillMaxWidth(0.9f)
-                    .wrapContentSize(align = Alignment.Center)
-//            .padding(start = 10.dp)
-            )
-        }
     }
 }
 
@@ -788,7 +849,8 @@ fun UserChatsPreview() {
                         chatName = "mrg@123.com",
                         lastMessage = lastMessage(
                             content = "Big text here goed to test the message capacity and the other things",
-                            timestamp = Timestamp(1, 1)
+                            timestamp = Timestamp(1, 1),
+                            sender = "mrg@123.com"
                         )
                     ),
                     ChatOrGroup(
@@ -937,7 +999,9 @@ fun UserChatsPreview() {
             addToSelection = { _, _ -> },
             setSelect = {},
             unSetSelect = {},
-            selectAll = {}
+            selectAll = {},
+            deSelectAll = { },
+            deleteChats = {}
         )
     }
 

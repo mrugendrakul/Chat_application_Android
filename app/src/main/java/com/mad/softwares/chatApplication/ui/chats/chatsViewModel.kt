@@ -7,6 +7,8 @@ import androidx.lifecycle.viewModelScope
 import com.mad.softwares.chatApplication.data.ChatOrGroup
 import com.mad.softwares.chatApplication.data.DataRepository
 import com.mad.softwares.chatApplication.data.User
+import com.mad.softwares.chatApplication.data.lastMessage
+import com.mad.softwares.chatApplication.ui.updateElement
 import kotlinx.coroutines.Deferred
 import kotlinx.coroutines.async
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -24,12 +26,18 @@ class ChatsViewModel(
         private set
 
     init {
-        getChats()
+//        getChats()
+        getLiveChatsOrGroup()
         Log.d(TAGchat, "init called here .......")
         Log.d(
             TAGchat,
             "To Reload chat : ${savedStateHandle.get<Boolean>(chatsScreenDestination.toReloadChats)}"
         )
+    }
+
+    override fun onCleared() {
+        super.onCleared()
+        viewModelScope.launch { dataRepository.stopLiveChat() }
     }
 
 //    private fun getCurrentUserData() {
@@ -65,6 +73,7 @@ class ChatsViewModel(
 //        }
 //    }
 
+    //Deprecated
     fun getChats(
         isForced: Boolean = false
     ) {
@@ -205,16 +214,28 @@ class ChatsViewModel(
 
     fun toggleChatOrGroup(status: Boolean, chatOrGroup: ChatOrGroup) {
         if (status) {
+
             chatsUiState.update {
                 it.copy(
-                    selectedChatsOrGroups = it.selectedChatsOrGroups + chatOrGroup
+                    selectedChatsOrGroups = it.selectedChatsOrGroups + chatOrGroup,
+                    selectedAll = it.selectedChatsOrGroups.size == it.chats.size + it.groups.size,
                 )
             }
         } else {
-            chatsUiState.update {
-                it.copy(
-                    selectedChatsOrGroups = it.selectedChatsOrGroups - chatOrGroup
-                )
+            if(chatsUiState.value.selectedChatsOrGroups.size ==1){
+                chatsUiState.update {
+                    it.copy(
+                        selectedChatsOrGroups = it.selectedChatsOrGroups - chatOrGroup,
+                        selectStatus = false
+                    )
+                }
+            }
+            else{
+                chatsUiState.update {
+                    it.copy(
+                        selectedChatsOrGroups = it.selectedChatsOrGroups - chatOrGroup
+                    )
+                }
             }
         }
     }
@@ -239,11 +260,211 @@ class ChatsViewModel(
     fun selectAll(){
         chatsUiState.update {
             it.copy(
-                selectedChatsOrGroups = it.chats + it.groups
+                selectedChatsOrGroups = it.chats + it.groups,
+                selectedAll = true
             )
         }
     }
 
+    fun deSelectAll(){
+        chatsUiState.update {
+            it.copy(
+                selectedChatsOrGroups = listOf(),
+                selectedAll = false
+            )
+        }
+    }
+
+    fun deleteChats(){
+        for(chat in chatsUiState.value.selectedChatsOrGroups){
+            viewModelScope.launch{
+                try {
+                    dataRepository.deleteChat(chat.chatId)
+                    Log.d(TAGchat,"Delete chat successful")
+                }catch (e:Exception){
+                    Log.e(TAGchat,"Unable to delete chat : $e")
+                }
+
+            }
+        }
+    }
+
+    private fun getLiveChatsOrGroup(){
+        Log.d(TAGchat,"Live chat started here ==========>++++++++..")
+        chatsUiState.update {
+            it.copy(
+                isLoading = true,
+                currentChatStatus = CurrentChatStatus.Loading
+            )
+        }
+        viewModelScope.launch {
+            val currentUser:Deferred<User> = async { dataRepository.getCurrentUser() }
+            val user = currentUser.await()
+            if (user.username == "") {
+                chatsUiState.update {
+                    it.copy(
+                        isError = true,
+                        errorMessage = user.profilePic,
+//                        isLoading = false,
+                        currentChatStatus = CurrentChatStatus.Failed
+                    )
+                }
+                Log.e(
+                    TAGchat,
+                    "Unable to get the current user: ${user.profilePic} username : ${user.username}"
+                )
+            } else {
+                Log.d(TAGchat, "Current user is : ${user.username}")
+                chatsUiState.update {
+                    it.copy(
+                        currentUser = user,
+                        isError = false,
+                        errorMessage = "",
+                        currentChatStatus = CurrentChatStatus.Loading
+//                        isLoading = false,
+//                        currentChatStatus = CurrentChatStatus.Success
+                    )
+                }
+            }
+
+            if (chatsUiState.value.isError){
+                return@launch
+            }
+            try {
+                Log.d(TAGchat,"Inside the second try block for the live starting")
+                chatsUiState.update {
+                    it.copy(
+//                        chats = listOf(),
+                        isLoading = false,
+                        currentChatStatus = CurrentChatStatus.Success
+                    )
+                }
+                //Chats
+                dataRepository.liveChatStore(
+                    myUsername = chatsUiState.value.currentUser.username,
+                    onChatAdd = { newChat->
+                        Log.d(TAGchat,"New chat added Added!!!")
+                        chatsUiState.update { it.copy(
+                            chats = it.chats + newChat,
+                            isLoading = false,
+                            currentChatStatus = CurrentChatStatus.Success
+                        ) }
+                    },
+                    onChatUpdate = { updatedChat->
+                        val element = chatsUiState.value.chats.filter { chat->
+                            chat.chatId == updatedChat.chatId
+                        }
+                        val index = chatsUiState.value.chats.indexOf(element[0])
+                        val newChat = element[0].copy(lastMessage = lastMessage(
+                            content = updatedChat.lastMessage.content,
+                            timestamp = updatedChat.lastMessage.timestamp,
+                            sender = updatedChat.lastMessage.sender
+                        ))
+                        chatsUiState.update {
+                            it.copy(
+                                chats = updateElement(it.chats,newChat,index),
+                                isLoading = false,
+                                currentChatStatus = CurrentChatStatus.Success)}
+                        Log.d(TAGchat,"Chat is update with new element : ${newChat}")
+
+                    },
+                    onChatDelete = { deleteChat->
+                        Log.d(TAGchat,"Chat is deleted : $deleteChat")
+                        val element = chatsUiState.value.chats.filter { chat->
+                            chat.chatId == deleteChat.chatId
+                        }
+                        val deletedChat = element[0]
+                        chatsUiState.update {
+                            it.copy(
+                                chats = it.chats - deletedChat,
+                                isLoading = false,
+                                currentChatStatus = CurrentChatStatus.Success
+                            )
+                        }
+                        Log.d(TAGchat,"Chat is deleted : $deleteChat")
+                    },
+                    onError = {
+                        chatsUiState.update {
+                            it.copy(
+                                isError = true,
+                                errorMessage = it.errorMessage,
+                                isLoading = false,
+                                currentChatStatus = CurrentChatStatus.Failed
+                            )
+                    }
+                    }
+                )
+
+                //Groups
+                dataRepository.getLiveGroupStore(
+                    myUsername = chatsUiState.value.currentUser.username,
+                    onChatAdd = { newGroup->
+                        Log.d(TAGchat,"New chat added Added!!!")
+                        chatsUiState.update { it.copy(
+                            groups = it.groups + newGroup,
+                            isLoading = false,
+                            currentChatStatus = CurrentChatStatus.Success
+                        ) }
+                    },
+                    onChatUpdate = { updatedGroup->
+                        val element = chatsUiState.value.groups.filter { group->
+                            group.chatId == updatedGroup.chatId
+                        }
+                        val index = chatsUiState.value.groups.indexOf(element[0])
+                        val newGroup = element[0].copy(lastMessage = lastMessage(
+                            content = updatedGroup.lastMessage.content,
+                            timestamp = updatedGroup.lastMessage.timestamp,
+                            sender = updatedGroup.lastMessage.sender
+                        ))
+                        chatsUiState.update {
+                            it.copy(
+                                groups = updateElement(it.groups,newGroup,index),
+                                isLoading = false,
+                                currentChatStatus = CurrentChatStatus.Success)}
+                        Log.d(TAGchat,"Chat is update with new element : ${newGroup}")
+
+                    },
+                    onChatDelete = { deleteGroup->
+//                        Log.d(TAGchat,"Group is deleted : $deleteGroup")
+                        val element = chatsUiState.value.groups.filter { group->
+                            group.chatId == deleteGroup.chatId
+                        }
+                        val deletedGroup = element[0]
+                        chatsUiState.update {
+                            it.copy(
+                                groups = it.groups - deletedGroup,
+                                isLoading = false,
+                                currentChatStatus = CurrentChatStatus.Success
+                            )
+                        }
+                        Log.d(TAGchat,"Group is deleted : $deletedGroup")
+                    },
+                    onError = {
+                        chatsUiState.update {
+                            it.copy(
+                                isError = true,
+                                errorMessage = it.errorMessage,
+                                isLoading = false,
+                                currentChatStatus = CurrentChatStatus.Failed
+                            )
+                        }
+                    }
+                )
+            }catch (
+                e:Exception
+            ){
+                Log.e(TAGchat,"Error starting live messages : $e")
+                chatsUiState.update {
+                    it.copy(
+                        isError = true,
+                        errorMessage = e.message.toString(),
+                        isLoading = false,
+                        currentChatStatus = CurrentChatStatus.Failed
+                    )
+                }
+            }
+        }
+    }
 //
 }
 
@@ -259,7 +480,8 @@ data class ChatsUiState(
     val errorMessage: String = "",
     val currentChatStatus: CurrentChatStatus = CurrentChatStatus.Loading,
     val selectedChatsOrGroups: List<ChatOrGroup> = listOf(),
-    val selectStatus:Boolean = false
+    val selectStatus:Boolean = false,
+    val selectedAll:Boolean = false
 //    val logoutSuccess: Boolean = false
 )
 

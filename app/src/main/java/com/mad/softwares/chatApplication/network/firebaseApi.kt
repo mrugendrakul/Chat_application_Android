@@ -31,7 +31,6 @@ interface FirebaseApi {
     suspend fun getFCMToken(): String
 
 
-
     suspend fun authenticateWithUniqueId(uniqueId: String): Boolean
 
     //    suspend fun getUserFromTokenInDatabase(Token:String):User
@@ -70,11 +69,11 @@ interface FirebaseApi {
         isGroup: Boolean = false,
     )
 
-    suspend fun getSearchUsers(searchUser:String):List<chatUser>
+    suspend fun getSearchUsers(searchUser: String): List<chatUser>
 
     suspend fun getChatsforMe(username: String): List<ChatOrGroup>
 
-    suspend fun getGroupsForMe(username: String) : List<ChatOrGroup>
+    suspend fun getGroupsForMe(username: String): List<ChatOrGroup>
 
     suspend fun sendNewMessage(message: MessageReceived, chatId: String): Boolean
 
@@ -91,18 +90,23 @@ interface FirebaseApi {
     suspend fun getLiveMessagesForChat(
         currentChatId: String,
         onChange: (List<MessageReceived>) -> Unit,
-        onAdd:(MessageReceived)->Unit,
+        onAdd: (MessageReceived) -> Unit,
         onError: (e: Exception) -> Unit
     )
 
-    suspend fun getLiveChats(
+    suspend fun getLiveChatsOrGroups(
         username: String,
-        onAddChat: (List<ChatOrGroup>) -> Unit,
-        onModifiedChat:(List<ChatOrGroup>)->Unit,
+        isGroup: Boolean,
+        onAddChat: (ChatOrGroup) -> Unit,
+        onModifiedChat: (ChatOrGroup) -> Unit,
+        onDeleteChat:(ChatOrGroup)->Unit,
         onError: (e: Exception) -> Unit
     )
+
+    suspend fun stopLiveChats()
+
     suspend fun stopLiveMessages()
-    
+
 
 }
 
@@ -345,7 +349,8 @@ class NetworkFirebaseApi(
 
 //            val docId = doc.id
 //            val user = User(fcmToken, profilePic, "uniqueId", usern, docId)
-                val user = chatUser(username = usern, profilePic = profilePic,
+                val user = chatUser(
+                    username = usern, profilePic = profilePic,
 //                    fcmToken = fcmToken
                 )
 
@@ -378,7 +383,8 @@ class NetworkFirebaseApi(
 
 //            val docId = doc.id
 //            val user = User(fcmToken, profilePic, "uniqueId", usern, docId)
-                val user = chatUser(username = usern, profilePic = profilePic,
+                val user = chatUser(
+                    username = usern, profilePic = profilePic,
 //                    fcmToken = fcmToken
                 )
 
@@ -425,6 +431,7 @@ class NetworkFirebaseApi(
             }
     }
 
+    //Deprecated
     override suspend fun getChatsforMe(username: String): List<ChatOrGroup> {
         val chats = mutableListOf<ChatOrGroup>()
         Log.d(TAG, "Api the chats for usr : ${username}")
@@ -506,10 +513,10 @@ class NetworkFirebaseApi(
             .whereEqualTo("username", username)
             .get()
             .addOnSuccessListener {
-                Log.d(TAG,"Got the data")
+                Log.d(TAG, "Got the data")
             }
-            .addOnFailureListener { e->
-                Log.e(TAG,"Unable to get the data")
+            .addOnFailureListener { e ->
+                Log.e(TAG, "Unable to get the data")
                 throw e
             }
 
@@ -555,7 +562,7 @@ class NetworkFirebaseApi(
             "content" to message.content,
             "contentType" to message.contentType,
             "senderId" to message.senderId,
-            "timeStamp" to FieldValue.serverTimestamp()
+            "timeStamp" to message.timeStamp
         )
 
         Log.d(TAG, "message sending started in api")
@@ -565,7 +572,8 @@ class NetworkFirebaseApi(
             try {
                 val lastMessage = arrayListOf(
                     message.content,
-                    message.timeStamp
+                    message.timeStamp,
+                    message.senderId
                 )
 
                 chatsCollection.document(chatId)
@@ -574,6 +582,7 @@ class NetworkFirebaseApi(
 
                 chatsCollection
                     .document(chatId).collection("Messages")
+
 //                .get(timeout = 5000)
                     .add(newMessage)
                     .await()
@@ -654,17 +663,19 @@ class NetworkFirebaseApi(
         onError: (e: Exception) -> Unit
     ) {
         listenerRegistration = chatsCollection.document(currentChatId).collection("Messages")
-            .addSnapshotListener{snapShot,e->
-                if(e!=null){
+            .addSnapshotListener (){ snapShot, e ->
+                if (e != null) {
                     onError(e)
                     return@addSnapshotListener
                 }
-                for (dc in snapShot!!.documentChanges) {
-                    when (dc.type) {
-                        DocumentChange.Type.ADDED-> {
-                            Log.d(TAG, "New Message: ${dc.document.data}")
-                            val messages = mutableListOf<MessageReceived>()
-                            if (dc.document.data!=null && dc.document.data.isNotEmpty()){
+
+                if(snapShot != null && !snapShot.metadata.hasPendingWrites()){
+                    for (dc in snapShot!!.documentChanges) {
+                        when (dc.type) {
+                            DocumentChange.Type.ADDED -> {
+                                Log.d(TAG, "New Message: ${dc.document.data}")
+                                val messages = mutableListOf<MessageReceived>()
+                                if (dc.document.data != null && dc.document.data.isNotEmpty()) {
 //                                for (doc in dc.document.data ) {
 //                                    val content = doc.getString("content") ?: ""
 ////            val chatId = doc.getString("chatId")?:""
@@ -680,21 +691,28 @@ class NetworkFirebaseApi(
 ////                        Log.d(TAG,"Got the message : ${mess.content}")
 //                                    messages.add(mess)
 //                                }
-                                val mess = MessageReceived(
-                                    content = dc.document.data["content"].toString(),
-                                    contentType = ContentType.text,
-                                    senderId = dc.document.data["senderId"].toString(),
-                                    timeStamp = dc.document.data["timeStamp"] as Timestamp
-                                )
+                                    val mess = MessageReceived(
+                                        content = dc.document.data["content"].toString(),
+                                        contentType = ContentType.text,
+                                        senderId = dc.document.data["senderId"].toString(),
+                                        timeStamp = dc.document.data["timeStamp"] as Timestamp
+                                            ?: Timestamp.now()
+                                    )
 //                                onChange(messages.sortedBy { it.timeStamp })
-                                onAdd(mess)
+                                    onAdd(mess)
+                                }
                             }
-                        }
-                        DocumentChange.Type.MODIFIED -> {
-                            Log.d(TAG, "Modified Message: ${dc.document.data}")
 
+                            DocumentChange.Type.MODIFIED -> {
+                                Log.d(TAG, "Modified Message: ${dc.document.data}")
+
+                            }
+
+                            DocumentChange.Type.REMOVED -> Log.d(
+                                TAG,
+                                "Removed Message: ${dc.document.data}"
+                            )
                         }
-                        DocumentChange.Type.REMOVED -> Log.d(TAG, "Removed Message: ${dc.document.data}")
                     }
                 }
 
@@ -716,21 +734,23 @@ class NetworkFirebaseApi(
 //                        messages.add(mess)
 //                    }
 //                    onChange(messages.sortedBy { it.timeStamp })
-//                }
             }
     }
 
-    private var listenChats:ListenerRegistration? = null
 
-    override suspend fun getLiveChats(
+    private var listenChats: ListenerRegistration? = null
+
+    override suspend fun getLiveChatsOrGroups(
         username: String,
-        onAddChat: (List<ChatOrGroup>) -> Unit,
-        onModifiedChat: (List<ChatOrGroup>) -> Unit,
+        isGroup: Boolean,
+        onAddChat: (ChatOrGroup) -> Unit,
+        onModifiedChat: (ChatOrGroup) -> Unit,
+        onDeleteChat: (ChatOrGroup) -> Unit,
         onError: (e: Exception) -> Unit
     ) {
         listenChats = chatsCollection
             .whereArrayContains("members", username)
-            .whereEqualTo("isGroup", false)
+            .whereEqualTo("isGroup", isGroup)
 //            .get()
 //            .addOnSuccessListener {
 //                Log.d(TAG, "Got the chats for usr : ${username}")
@@ -739,21 +759,93 @@ class NetworkFirebaseApi(
 //            .addOnFailureListener { e ->
 //                Log.d(TAG, "Unable to fetch the chats : $e")
 //            }
-            .addSnapshotListener{snapshot,e->
-                if(e!=null){
-                    Log.e(TAG,"Error starting listener ${e}")
+            .addSnapshotListener { snapshot, e ->
+                if (e != null) {
+                    Log.e(TAG, "Error starting listener ${e}")
                     return@addSnapshotListener
                 }
-//                for (dc in snapshot!!.documentChanges) {
-//                    when(dc.type){
-//                        DocumentChange.Type.ADDED-> {
-//                            Log.d(TAG, "New Chat: ${dc.document.data}")
+
+                for (dc in snapshot!!.documentChanges) {
+                    when(dc.type){
+                        DocumentChange.Type.ADDED-> {
+                            Log.d(TAG, "New Chat: ${dc.document.data}")
 //                            for ()
-//                        }
-//                        DocumentChange.Type.MODIFIED->Log.d(TAG,"Modified Chat: ${dc.document.data}")
-//                        DocumentChange.Type.REMOVED->Log.d(TAG,"Removed Chat: ${dc.document.data}")
-//                    }
-//                }
+                            if(dc.document.data != null && dc.document.data.isNotEmpty()) {
+                                val lastMsg:List<Any> = dc.document.data["lastMessage"] as List<Any>
+
+                                val newChat = ChatOrGroup(
+                                    chatId = dc.document.data["chatId"].toString(),
+                                    chatName = dc.document.data["chatName"].toString(),
+                                    isGroup = dc.document.data["isGroup"].toString().toBoolean(),
+                                    members = dc.document.data["members"] as List<String>,
+                                    chatPic = dc.document.data["chatPic"].toString(),
+                                    lastMessage = lastMessage(
+                                        content = lastMsg[0].toString(),
+                                        timestamp = lastMsg[1] as Timestamp,
+                                        sender = if(2 in lastMsg.indices){
+                                            lastMsg[2].toString()
+                                        }else{
+                                            ""
+                                        }
+                                    )
+                                )
+                                onAddChat(newChat)
+                            }
+                        }
+                        DocumentChange.Type.MODIFIED-> {
+
+                            Log.d(TAG, "-------Modified Chat: ${dc.document.data}")
+                            if (dc.document.data!=null && dc.document.data.isNotEmpty())
+                            {
+                                val lastMsg:List<Any> = dc.document.data["lastMessage"] as List<Any>
+
+                                val updateChat = ChatOrGroup(
+                                    chatId = dc.document.data["chatId"].toString(),
+                                    chatName = dc.document.data["chatName"].toString(),
+                                    isGroup = dc.document.data["isGroup"].toString().toBoolean(),
+                                    members = dc.document.data["members"] as List<String>,
+                                    chatPic = dc.document.data["chatPic"].toString(),
+                                    lastMessage = lastMessage(
+                                        content = lastMsg[0].toString(),
+                                        timestamp = lastMsg[1] as Timestamp,
+                                        sender = if(2 in lastMsg.indices){
+                                            lastMsg[2].toString()
+                                        }else{
+                                            ""
+                                        }
+                                    )
+                                )
+                                onModifiedChat(updateChat)
+                            }
+
+                        }
+                        DocumentChange.Type.REMOVED-> {
+                            Log.d(TAG, "-------Removed Chat: ${dc.document.data}")
+                            if (dc.document.data!=null && dc.document.data.isNotEmpty())
+                            {
+                                val lastMsg:List<Any> = dc.document.data["lastMessage"] as List<Any>
+
+                                val updateChat = ChatOrGroup(
+                                    chatId = dc.document.data["chatId"].toString(),
+                                    chatName = dc.document.data["chatName"].toString(),
+                                    isGroup = dc.document.data["isGroup"].toString().toBoolean(),
+                                    members = dc.document.data["members"] as List<String>,
+                                    chatPic = dc.document.data["chatPic"].toString(),
+                                    lastMessage = lastMessage(
+                                        content = lastMsg[0].toString(),
+                                        timestamp = lastMsg[1] as Timestamp,
+                                        sender = if(2 in lastMsg.indices){
+                                            lastMsg[2].toString()
+                                        }else{
+                                            ""
+                                        }
+                                    )
+                                )
+                                onDeleteChat(updateChat)
+                            }
+                        }
+                    }
+                }
             }
 //        val chats = mutableListOf<ChatOrGroup>()
 //        for (doc in myChats.await().documents) {
@@ -780,9 +872,14 @@ class NetworkFirebaseApi(
 //        onChange(chats)
     }
 
+    override suspend fun stopLiveChats() {
+        listenChats?.remove()
+        Log.d(TAG,"Removed chat listner here!!!")
+    }
+
     override suspend fun stopLiveMessages() {
         listenerRegistration?.remove()
-        Log.d(TAG,"Removed the listener here!!")
+        Log.d(TAG, "Removed the listener here!!")
     }
 
     override suspend fun deleteChat(chatId: String) {

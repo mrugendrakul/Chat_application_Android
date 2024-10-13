@@ -162,7 +162,7 @@ fun MessagesBodySuccess(
             ApptopBar(
                 destinationData = messagesdestinationData,
                 navigateUp = navigateUp,
-                title = uiState.chatName,
+                title = uiState.currChat.chatName,
                 action = {
                     IconButton(onClick = {
                         expandDDMenu = true

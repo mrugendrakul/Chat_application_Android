@@ -4,11 +4,13 @@ import android.util.Log
 import androidx.lifecycle.SavedStateHandle
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import com.google.firebase.Timestamp
 import com.mad.softwares.chatApplication.data.ChatOrGroup
 import com.mad.softwares.chatApplication.data.ContentType
 import com.mad.softwares.chatApplication.data.DataRepository
 import com.mad.softwares.chatApplication.data.MessageReceived
 import com.mad.softwares.chatApplication.data.messageStatus
+import com.mad.softwares.chatApplication.ui.updateElement
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Deferred
 import kotlinx.coroutines.Dispatchers
@@ -124,14 +126,17 @@ class MessagesViewModel(
             contentType = ContentType.text,
             content = messagesUiState.value.messageToSend,
             senderId = messagesUiState.value.currentUser,
-            status = messageStatus.Sending
+            status = messageStatus.Sending,
+            timeStamp = Timestamp.now()
         )
-        messagesUiState.value.messages.add(
-            newMessage
-        )
+//        messagesUiState.value.messages.add(
+//            newMessage
+//        )
+
         messagesUiState.update {
             it.copy(
-                messageToSend = ""
+                messageToSend = "",
+                messages = it.messages + newMessage
             )
         }
         Log.d(TAGmess, "Message status = ${messagesUiState.value.messages.last().status}")
@@ -176,43 +181,55 @@ class MessagesViewModel(
                 )
 
 
-                messagesUiState.value.messages.set(
-                    index = messagesUiState.value.messages.indexOf(newMessage),
-                    element = newMessage.copy(status = messageStatus.Send)
-                )
+//                messagesUiState.value.messages.set(
+//                    index = messagesUiState.value.messages.indexOf(newMessage),
+//                    element = newMessage.copy(status = messageStatus.Send)
+//                )
                 Log.d(TAGmess, "Message status = ${messagesUiState.value.messages.last().status}")
                 messagesUiState.update {
                     it.copy(
-                        errorMessage = "No error : ${newMessage.timeStamp}"
+                        errorMessage = "No error : ${newMessage.timeStamp}",
+                        messages = updateElement(it.messages, index = it.messages.indexOf(newMessage), newElement = newMessage.copy(status = messageStatus.Send))
+//                        messages = it.messages - newMessage
                     )
                 }
-                Log.d(TAGmess, "Message sent successfully ")
+                Log.d(TAGmess, "Message sent successfully ========>--------------->")
+                return@launch
 //                getMessages(true)
 
             } catch (e: Exception) {
                 Log.e(TAGmess, "Unable to send the message : $e")
                 try {
-                    messagesUiState.value.messages.set(
-                        index = messagesUiState.value.messages.indexOf(newMessage),
-                        element = newMessage.copy(status = messageStatus.Error)
-                    )
+//                    messagesUiState.value.messages.set(
+//                        index = messagesUiState.value.messages.indexOf(newMessage),
+//                        element = newMessage.copy(status = messageStatus.Error)
+//                    )
+                    messagesUiState.update {
+                        it.copy(
+                            messages = updateElement(it.messages, index = it.messages.indexOf(newMessage), newElement = newMessage.copy(status = messageStatus.Error))
+                        )
+                    }
+                    return@launch
                 } catch (e: Exception) {
                     Log.e(TAGmess, "Unable to update the message status : $e")
-                }
+
 //                    Log.e(TAGmess,"Unable to send the message")
 //                throw Exception("Unable to send the message : ${status.await()}")
-                messagesUiState.update {
-                    it.copy(
+                    messagesUiState.update {
+                        it.copy(
 //                        messageScreen = MessageScreen.Error,
 //                        isError = true,
-                        errorMessage = "${e.message.toString()} : ${newMessage.timeStamp}"
-                    )
+                            errorMessage = "${e.message.toString()} : ${newMessage.timeStamp}"
+                        )
+                    }
+                    Log.e(TAGmess, "Error sending message :$e")
+                    return@launch
                 }
-                Log.e(TAGmess, "Error sending message :$e")
             }
         }
     }
 
+    //Deprecated
     //    fun getMessages(isForced: Boolean = false) {
 //        if (!isForced && messagesUiState.value.messages.isNotEmpty()) {
 //            return
@@ -281,7 +298,15 @@ class MessagesViewModel(
                     Log.d(TAGmess,"New Message added : ${message}")
                     messagesUiState.update {
                         it.copy(
-                            messages = it.messages.add(message)
+                            messages =
+                            if (it.messages.contains(message)) {
+                                Log.d(TAGmess,"Message already exists : ${message}")
+                                (it.messages + message).sortedBy { it.timeStamp }
+                            }
+                            else{
+                                Log.d(TAGmess,"Message does not exists : ${message}")
+                                (it.messages + message).sortedBy { it.timeStamp }
+                            }
                         )
                     }
                 }
@@ -289,6 +314,8 @@ class MessagesViewModel(
         }
     }
 }
+
+
 
 data class MessagesUiState(
     val chatID: String = "",
