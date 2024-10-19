@@ -14,8 +14,6 @@ import com.mad.softwares.chatApplication.data.User
 import com.mad.softwares.chatApplication.network.AuthenticationApi
 import com.mad.softwares.chatApplication.network.FirebaseAuthenticationApi
 import com.mad.softwares.chatApplication.network.NetworkFirebaseApi
-import com.mad.softwares.chatApplication.network.Notification
-import com.mad.softwares.chatApplication.network.NotificationRequest
 
 import kotlinx.coroutines.CompletableDeferred
 import kotlinx.coroutines.Deferred
@@ -59,7 +57,8 @@ class ExampleInstrumentedTest {
             com.google.firebase.Firebase.firestore,
             db.collection("Users"),
             db.collection("Chats"),
-            db.collection("Messages")
+            db.collection("Messages"),
+            EncryptionImpl
         )
 //        Firebase.auth.useEmulator("10.0.2.2", 9099)
         authenticator = FirebaseAuth.getInstance()

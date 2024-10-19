@@ -99,12 +99,13 @@ class NotificationService() : FirebaseMessagingService() {
 
     override fun onNewToken(token: String) {
         Log.d(TAGNotf, "Refreshed token: $token")
-        val FirebaseApi: FirebaseApi = NetworkFirebaseApi(
-            Firebase.firestore,
-            Firebase.firestore.collection("Users"),
-            Firebase.firestore.collection("Chats"),
-            Firebase.firestore.collection("Messages")
-        )
+//        val FirebaseApi: FirebaseApi = NetworkFirebaseApi(
+//            Firebase.firestore,
+//            Firebase.firestore.collection("Users"),
+//            Firebase.firestore.collection("Chats"),
+//            Firebase.firestore.collection("Messages"),
+//            EncryptionImpl
+//        )
 
 
     }

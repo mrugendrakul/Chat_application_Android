@@ -34,6 +34,7 @@ fun AddGroupWithName(
 ){
     val uiState = viewModel.addGroupUiState.collectAsState().value
     if (uiState.addGroupSuccess){
+        viewModel.resetAddGroupSuccess()
         navigateToChats(false)
     }
     AddGroupWithNameBody (

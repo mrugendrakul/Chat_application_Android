@@ -4,6 +4,7 @@ import com.google.firebase.Firebase
 import com.google.firebase.auth.FirebaseAuth
 import com.google.firebase.auth.auth
 import com.google.firebase.firestore.firestore
+import com.mad.softwares.chatApplication.encryption.EncryptionImpl
 import com.mad.softwares.chatApplication.network.AuthenticationApi
 import com.mad.softwares.chatApplication.network.FirebaseApi
 import com.mad.softwares.chatApplication.network.FirebaseAuthenticationApi
@@ -22,13 +23,20 @@ class DefaultAppContainer : AppContainer{
     private val chatsCollection = db.collection("Chats")
     private val messagesCollection = db.collection("Messages")
 
+    private val encryption = EncryptionImpl()
 
-    override val apiService: FirebaseApi = NetworkFirebaseApi(db,userCollection,chatsCollection,messagesCollection,)
+    override val apiService: FirebaseApi = NetworkFirebaseApi(
+        db,
+        userCollection,
+        chatsCollection,
+        messagesCollection
+        )
 
     override val auth: FirebaseAuth = Firebase.auth
     override val authApi: AuthenticationApi = FirebaseAuthenticationApi(auth)
     override val dataRepository: DataRepository = NetworkDataRepository(
         apiService,
-        authServie = authApi
+        authServie = authApi,
+        encryption
     )
 }

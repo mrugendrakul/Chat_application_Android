@@ -84,6 +84,7 @@ import com.google.accompanist.permissions.ExperimentalPermissionsApi
 import com.google.accompanist.permissions.PermissionState
 import com.google.accompanist.permissions.isGranted
 import com.google.accompanist.permissions.rememberPermissionState
+import com.google.accompanist.permissions.shouldShowRationale
 import com.google.firebase.Timestamp
 import com.mad.softwares.chatApplication.R
 import com.mad.softwares.chatApplication.data.ChatOrGroup
@@ -93,6 +94,7 @@ import com.mad.softwares.chatApplication.ui.ApptopBar
 import com.mad.softwares.chatApplication.ui.GodViewModelProvider
 import com.mad.softwares.chatApplication.ui.destinationData
 import com.mad.softwares.chatApplication.ui.theme.ChitChatTheme
+import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.launch
 
 object chatsScreenDestination : destinationData {
@@ -285,12 +287,12 @@ fun UserChatsBody(
                     }
 
                 }
-                LaunchedEffect(key1 = Unit) {
-                    permissionState?.launchPermissionRequest()
-                }
                 if (permissionState?.status?.isGranted == true) {
 //                Text(text = "Notification permission granted")
                 } else {
+                    LaunchedEffect(key1 = Unit) {
+                        permissionState?.launchPermissionRequest()
+                    }
                     Card(
                         modifier = Modifier
                             .padding(20.dp),
@@ -298,10 +300,11 @@ fun UserChatsBody(
                             containerColor = MaterialTheme.colorScheme.errorContainer
                         )
                     ) {
+
                         Text(
                             modifier = Modifier
                                 .padding(10.dp),
-                            text = "Notification permission missing, grant them from setting",
+                            text = "Notification permission missing, grant them",
                             fontSize = 20.sp,
                             lineHeight = 20.sp,
                             textAlign = TextAlign.Center

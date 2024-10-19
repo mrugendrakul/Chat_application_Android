@@ -2,6 +2,7 @@ package com.mad.softwares.chatApplication.data
 
 import android.util.Log
 import com.google.firebase.auth.FirebaseUser
+import com.mad.softwares.chatApplication.encryption.Encryption
 import com.mad.softwares.chatApplication.network.AuthenticationApi
 import com.mad.softwares.chatApplication.network.FirebaseApi
 import kotlinx.coroutines.CompletableDeferred
@@ -91,7 +92,8 @@ interface DataRepository {
 
 class NetworkDataRepository(
     private val apiService: FirebaseApi,
-    private val authServie: AuthenticationApi
+    private val authServie: AuthenticationApi,
+    private val encryptionService : Encryption
 ) : DataRepository {
     override suspend fun getToken(): String? {
         Log.d(TAG, "Token in data started")

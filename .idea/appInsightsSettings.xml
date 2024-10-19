@@ -10,9 +10,9 @@
               <option name="connection">
                 <ConnectionSetting>
                   <option name="appId" value="com.mad.softwares.chatApplication" />
-                  <option name="mobileSdkAppId" value="1:907972423040:android:74e6e77a1db8d64ae92565" />
-                  <option name="projectId" value="chit-chat-mad-softwares" />
-                  <option name="projectNumber" value="907972423040" />
+                  <option name="mobileSdkAppId" value="1:1057705805944:android:bcc28768bcced5c45dc58d" />
+                  <option name="projectId" value="lockntalk" />
+                  <option name="projectNumber" value="1057705805944" />
                 </ConnectionSetting>
               </option>
               <option name="signal" value="SIGNAL_UNSPECIFIED" />

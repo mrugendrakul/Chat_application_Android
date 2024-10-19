@@ -9,5 +9,6 @@ data class ChatOrGroup(
     val members:List<String> = listOf(),
     val chatPic:String = "",
         val membersData:MutableList<chatUser> = mutableListOf(),
-    val lastMessage:lastMessage = lastMessage(timestamp = Timestamp(0,0))
+    val lastMessage:lastMessage = lastMessage(timestamp = Timestamp(0,0)),
+    val encryptedAESKeys:Map<String,String> = mapOf()
 )

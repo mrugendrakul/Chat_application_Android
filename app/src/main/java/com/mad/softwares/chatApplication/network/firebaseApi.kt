@@ -16,6 +16,7 @@ import com.mad.softwares.chatApplication.data.MessageReceived
 import com.mad.softwares.chatApplication.data.User
 import com.mad.softwares.chatApplication.data.chatUser
 import com.mad.softwares.chatApplication.data.lastMessage
+import com.mad.softwares.chatApplication.encryption.Encryption
 import kotlinx.coroutines.CompletableDeferred
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.tasks.await
@@ -140,6 +141,7 @@ class NetworkFirebaseApi(
     }
 
 
+    //deprecated
     override suspend fun authenticateWithUniqueId(uniqueId: String): Boolean {
         return try {
             val result = userCollection
@@ -282,6 +284,7 @@ class NetworkFirebaseApi(
         }
     }
 
+    //deprecated
     override suspend fun resetPassword(
         username: String,
         uniqueId: String,
@@ -314,6 +317,7 @@ class NetworkFirebaseApi(
         return list
     }
 
+    //deprecated
     override suspend fun sendNotificationApi(token: String, title: String, body: String) {
 
         Log.d(TAG, "TOKEN IS $token")
@@ -470,6 +474,7 @@ class NetworkFirebaseApi(
         return chats
     }
 
+    //Deprecated
     override suspend fun getGroupsForMe(username: String): List<ChatOrGroup> {
         val chats = mutableListOf<ChatOrGroup>()
         Log.d(TAG, "Api the chats for usr : ${username}")
@@ -627,6 +632,7 @@ class NetworkFirebaseApi(
     }
 
 
+    //Deprecated
     override suspend fun getMessagesForChat(currentChatId: String): List<MessageReceived> {
         val messages = mutableListOf<MessageReceived>()
 
