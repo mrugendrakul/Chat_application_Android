@@ -16,7 +16,9 @@ import kotlinx.coroutines.Deferred
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.async
+import kotlinx.coroutines.coroutineScope
 import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.collect
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 
@@ -34,18 +36,19 @@ class MessagesViewModel(
             savedStateHandle.get<String>(messagesdestinationData.chatIDAndUsername)
         val chatID = chatID_username?.split(",")?.get(0)
         val chatName = chatID_username?.split(",")?.get(1)
-        Log.d(TAGmess,"Message init : $chatName, $chatID")
+        Log.d(TAGmess, "Message init : $chatName, $chatID")
         messagesUiState.update {
             it.copy(
                 chatID = chatID ?: "No Id here",
-                currentUser = chatName?:"No username here"
+                currentUser = chatName ?: "No username here"
 //                chatName = chatName ?: "No username here"
             )
         }
         getChatInfo()
 //        getMessages()
-        getLiveMessages()
+//        getLiveMessages()
     }
+
 
     fun getChatInfo() {
         messagesUiState.update {
@@ -74,7 +77,11 @@ class MessagesViewModel(
                             errorMessage = currChat.await().chatPic
                         )
                     }
-                    Log.e(TAGmess, "Unable to get the chat info : ${messagesUiState.value.errorMessage} , ${messagesUiState.value.currChat.chatName}")
+                    Log.e(
+                        TAGmess,
+                        "Unable to get the chat info : ${messagesUiState.value.errorMessage} , ${messagesUiState.value.currChat.chatName}"
+                    )
+                    return@launch
                 } else {
                     messagesUiState.update {
                         it.copy(
@@ -82,8 +89,10 @@ class MessagesViewModel(
                             messageScreen = MessageScreen.Success
                         )
                     }
+                    getLiveMessages()
                     Log.d(TAGmess, "Got chat info success")
                 }
+//                return@launch
             }
         } catch (e: Exception) {
             Log.e(TAGmess, "Unable to get the chat info : $e")
@@ -94,6 +103,7 @@ class MessagesViewModel(
                     errorMessage = e.message.toString()
                 )
             }
+            return
         }
     }
 
@@ -169,7 +179,7 @@ class MessagesViewModel(
 //                Log.e(TAGmess,"Error to send notification: $e")
 //            }
 //        }
-            backgroundScope.launch() {
+        backgroundScope.launch() {
 
 //            delay(5000)
             try {
@@ -177,6 +187,7 @@ class MessagesViewModel(
                 dataRepository.sendMessage(
                     message = newMessage,
                     chatId = messagesUiState.value.chatID,
+                    secureAESKey = messagesUiState.value.currChat.secureAESKey
 //                    chatId = "12345677"
                 )
 
@@ -189,7 +200,11 @@ class MessagesViewModel(
                 messagesUiState.update {
                     it.copy(
                         errorMessage = "No error : ${newMessage.timeStamp}",
-                        messages = updateElement(it.messages, index = it.messages.indexOf(newMessage), newElement = newMessage.copy(status = messageStatus.Send))
+                        messages = updateElement(
+                            it.messages,
+                            index = it.messages.indexOf(newMessage),
+                            newElement = newMessage.copy(status = messageStatus.Send)
+                        )
 //                        messages = it.messages - newMessage
                     )
                 }
@@ -206,7 +221,11 @@ class MessagesViewModel(
 //                    )
                     messagesUiState.update {
                         it.copy(
-                            messages = updateElement(it.messages, index = it.messages.indexOf(newMessage), newElement = newMessage.copy(status = messageStatus.Error))
+                            messages = updateElement(
+                                it.messages,
+                                index = it.messages.indexOf(newMessage),
+                                newElement = newMessage.copy(status = messageStatus.Error)
+                            )
                         )
                     }
                     return@launch
@@ -275,8 +294,10 @@ class MessagesViewModel(
 //    }
     private fun getLiveMessages() {
         viewModelScope.launch {
+            Log.d(TAGmess, "Live messages started here")
             dataRepository.getLiveMessages(
                 chatId = messagesUiState.value.chatID,
+                secureAESKey = messagesUiState.value.currChat.secureAESKey,
                 onMessagesChange = { messageList ->
                     Log.d(TAGmess, "New Message is: ${messageList.last().content}")
                     messagesUiState.update {
@@ -294,17 +315,16 @@ class MessagesViewModel(
                         )
                     }
                 },
-                onAdd = { message->
-                    Log.d(TAGmess,"New Message added : ${message}")
+                onAdd = { message ->
+                    Log.d(TAGmess, "New Message added : ${message}")
                     messagesUiState.update {
                         it.copy(
                             messages =
                             if (it.messages.contains(message)) {
-                                Log.d(TAGmess,"Message already exists : ${message}")
+                                Log.d(TAGmess, "Message already exists : ${message}")
                                 (it.messages + message).sortedBy { it.timeStamp }
-                            }
-                            else{
-                                Log.d(TAGmess,"Message does not exists : ${message}")
+                            } else {
+                                Log.d(TAGmess, "Message does not exists : ${message}")
                                 (it.messages + message).sortedBy { it.timeStamp }
                             }
                         )
@@ -316,12 +336,11 @@ class MessagesViewModel(
 }
 
 
-
 data class MessagesUiState(
     val chatID: String = "",
     val currChat: ChatOrGroup = ChatOrGroup(),
     val chatName: String = "",
-    val currentUser :String = "",
+    val currentUser: String = "",
 //    val isLoading:Boolean = false,
     val isError: Boolean = false,
     val messageScreen: MessageScreen = MessageScreen.Loading,

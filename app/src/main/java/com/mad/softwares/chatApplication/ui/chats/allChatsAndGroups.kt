@@ -153,6 +153,10 @@ fun AllChatsAndGroups(
             viewModel.resetUserInside()
             navigateToWelcome()
         }
+
+        CurrentChatStatus.NoOfflineKey->{
+            Text(text = ("No key found on device try reinstalling"))
+        }
     }
 }
 

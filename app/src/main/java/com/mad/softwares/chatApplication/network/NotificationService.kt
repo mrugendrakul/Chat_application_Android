@@ -43,10 +43,11 @@ class NotificationService() : FirebaseMessagingService() {
         message.data.let {
             val title = it.get("title")
             val body = it.get("body")
+            val chatId = it.get("chatId")
 
             Log.d(TAGNotf, "Notification Title: $title")
             Log.d(TAGNotf, "Notification Body: $body")
-
+            Log.d(TAGNotf,"Notification ChatId : $chatId")
             // Now, you can display the notification details as needed (e.g., in a notification UI)
             showNotification(title, body, message.data.toList())
             notificationReceived()

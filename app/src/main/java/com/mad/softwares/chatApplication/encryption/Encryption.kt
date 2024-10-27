@@ -18,7 +18,7 @@ import javax.crypto.spec.PBEKeySpec
 import javax.crypto.spec.SecretKeySpec
 
 interface Encryption {
-    fun generateRandomSalt(saltLength:Int =16):ByteArray
+    fun generateRandomSalt(saltLength: Int = 16): ByteArray
 
     fun aesKeyToString(secretKey: SecretKey): String
 
@@ -38,8 +38,6 @@ interface Encryption {
 
     fun generateRSAKeyPair(): KeyPair
 
-    fun encryptWithPublicKey(data: String, publicKey: PublicKey): String
-
     fun encryptAESKeyWithPublicKey(secretKey: SecretKey, publicKey: PublicKey): ByteArray
 
     fun decryptAESKeyWithPrivateKey(encryptedAESKey: ByteArray, privateKey: PrivateKey): SecretKey
@@ -50,15 +48,34 @@ interface Encryption {
 
     fun generateAESKeyFromPassword(password: String, salt: ByteArray): SecretKey
 
-    fun encryptPrivateKeyWithPassword(privateKey: PrivateKey, password: String, salt: ByteArray): ByteArray
+    fun encryptPrivateKeyWithPassword(
+        privateKey: PrivateKey,
+        password: String,
+        salt: ByteArray
+    ): ByteArray
 
-    fun decryptPrivateKeyWithPassword(encryptedPrivateKey: ByteArray, password: String, salt: ByteArray): PrivateKey
+    fun decryptPrivateKeyWithPassword(
+        encryptedPrivateKey: ByteArray,
+        password: String,
+        salt: ByteArray
+    ): PrivateKey
 
+    fun stringToByteArray(encodedString: String): ByteArray
+
+    fun byteArrayToString(byteArray: ByteArray): String
 }
 
 class EncryptionImpl : Encryption {
 
-    override fun generateRandomSalt(saltLength: Int) :ByteArray{
+    override fun stringToByteArray(encodedString: String): ByteArray {
+        return Base64.getDecoder().decode(encodedString)
+    }
+
+    override fun byteArrayToString(byteArray: ByteArray): String {
+        return Base64.getEncoder().encodeToString(byteArray)
+    }
+
+    override fun generateRandomSalt(saltLength: Int): ByteArray {
         val salt = ByteArray(saltLength)
         val secureRandom = SecureRandom()
         secureRandom.nextBytes(salt)  // Fills the byte array with random bytes
@@ -111,7 +128,7 @@ class EncryptionImpl : Encryption {
         return Base64.getEncoder().encodeToString(publicKeyBytes)
     }
 
-    override fun generateAESKey(keySize: Int ): SecretKey {
+    override fun generateAESKey(keySize: Int): SecretKey {
         val keyGenerator = KeyGenerator.getInstance("AES")
         keyGenerator.init(keySize)
         return keyGenerator.generateKey()
@@ -123,16 +140,6 @@ class EncryptionImpl : Encryption {
         return keyPairGenerator.generateKeyPair()
     }
 
-    override fun encryptWithPublicKey(data: String, publicKey: PublicKey): String {
-        val cipher = Cipher.getInstance("RSA/ECB/PKCS1Padding")  // RSA with PKCS1Padding
-        cipher.init(Cipher.ENCRYPT_MODE, publicKey)
-
-        // Encrypt the data
-        val encryptedBytes = cipher.doFinal(data.toByteArray(Charsets.UTF_8))
-
-        // Return encrypted data as a Base64-encoded string
-        return Base64.getEncoder().encodeToString(encryptedBytes)
-    }
 
     override fun encryptAESKeyWithPublicKey(secretKey: SecretKey, publicKey: PublicKey): ByteArray {
         // Get the encoded form of the SecretKey (AES key)
@@ -146,7 +153,10 @@ class EncryptionImpl : Encryption {
         return cipher.doFinal(secretKeyBytes)
     }
 
-    override fun decryptAESKeyWithPrivateKey(encryptedAESKey: ByteArray, privateKey: PrivateKey): SecretKey {
+    override fun decryptAESKeyWithPrivateKey(
+        encryptedAESKey: ByteArray,
+        privateKey: PrivateKey
+    ): SecretKey {
         // Initialize the RSA cipher for decryption using the private key
         val cipher = Cipher.getInstance("RSA/ECB/PKCS1Padding")
         cipher.init(Cipher.DECRYPT_MODE, privateKey)
@@ -165,20 +175,26 @@ class EncryptionImpl : Encryption {
         return cipher.doFinal(data)
     }
 
-     override fun generateAESKeyFromPassword(password: String, salt: ByteArray): SecretKey {
+    override fun generateAESKeyFromPassword(password: String, salt: ByteArray): SecretKey {
         val factory = SecretKeyFactory.getInstance("PBKDF2WithHmacSHA256")
-        val spec = PBEKeySpec(password.toCharArray(), salt, 65536, 256) // 65536 iterations, 256-bit key
+        val spec =
+            PBEKeySpec(password.toCharArray(), salt, 65536, 256) // 65536 iterations, 256-bit key
         val tmp = factory.generateSecret(spec)
         return SecretKeySpec(tmp.encoded, "AES")
     }
 
-    override fun encryptPrivateKeyWithPassword(privateKey: PrivateKey, password: String, salt: ByteArray): ByteArray {
+    override fun encryptPrivateKeyWithPassword(
+        privateKey: PrivateKey,
+        password: String,
+        salt: ByteArray
+    ): ByteArray {
         // Generate AES key from password and salt
         val secretKey = generateAESKeyFromPassword(password, salt)
 
         // Initialize cipher for AES encryption
         val cipher = Cipher.getInstance("AES/CBC/PKCS5Padding")
-        val iv = ByteArray(16) // For the initialization vector (IV) - should be random in production
+        val iv =
+            ByteArray(16) // For the initialization vector (IV) - should be random in production
         cipher.init(Cipher.ENCRYPT_MODE, secretKey, IvParameterSpec(iv))
 
         // Encrypt the private key (convert to byte array first)
@@ -186,7 +202,11 @@ class EncryptionImpl : Encryption {
         return cipher.doFinal(privateKeyBytes)
     }
 
-    override fun decryptPrivateKeyWithPassword(encryptedPrivateKey: ByteArray, password: String, salt: ByteArray): PrivateKey {
+    override fun decryptPrivateKeyWithPassword(
+        encryptedPrivateKey: ByteArray,
+        password: String,
+        salt: ByteArray
+    ): PrivateKey {
         // Generate AES key from password and salt
         val secretKey = generateAESKeyFromPassword(password, salt)
 
@@ -205,7 +225,8 @@ class EncryptionImpl : Encryption {
 
     override fun aesDecrypt(encryptedData: ByteArray, secretKey: SecretKey): ByteArray {
         val cipher = Cipher.getInstance("AES/CBC/PKCS5Padding")
-        val ivParameterSpec = IvParameterSpec(ByteArray(16)) // Use the same IV as used in encryption
+        val ivParameterSpec =
+            IvParameterSpec(ByteArray(16)) // Use the same IV as used in encryption
         cipher.init(Cipher.DECRYPT_MODE, secretKey, ivParameterSpec)
         return cipher.doFinal(encryptedData)
     }

@@ -94,18 +94,30 @@ class ChatsViewModel(
             val user = currentUser.await()
 
             if (user.username == "") {
-                chatsUiState.update {
-                    it.copy(
-                        isError = true,
-                        errorMessage = user.profilePic,
+                if(user.profilePic == "NoKeyFound"){
+                    chatsUiState.update {
+                        it.copy(
+                            isError = true,
+                            errorMessage = user.profilePic,
 //                        isLoading = false,
-                        currentChatStatus = CurrentChatStatus.Failed
+                            currentChatStatus = CurrentChatStatus.NoOfflineKey
+                        )
+                    }
+                }
+                else{
+                    chatsUiState.update {
+                        it.copy(
+                            isError = true,
+                            errorMessage = user.profilePic,
+//                        isLoading = false,
+                            currentChatStatus = CurrentChatStatus.Failed
+                        )
+                    }
+                    Log.e(
+                        TAGchat,
+                        "Unable to get the current user: ${user.profilePic} username : ${user.username}"
                     )
                 }
-                Log.e(
-                    TAGchat,
-                    "Unable to get the current user: ${user.profilePic} username : ${user.username}"
-                )
             } else {
                 Log.d(TAGchat, "Current user is : ${user.username}")
                 chatsUiState.update {
@@ -490,5 +502,6 @@ enum class CurrentChatStatus() {
     Loading,
     Success,
     Failed,
-    Logouted
+    Logouted,
+    NoOfflineKey
 }

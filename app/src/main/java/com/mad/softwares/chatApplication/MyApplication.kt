@@ -1,7 +1,6 @@
 package com.mad.softwares.chatApplication
 
 import android.app.Application
-import android.os.PersistableBundle
 import android.util.Log
 import com.google.firebase.FirebaseApp
 import com.google.firebase.firestore.firestoreSettings
@@ -44,10 +43,11 @@ class MyApplication:Application() {
             }
 
             Firebase.auth.useEmulator("10.0.2.2", 9099)
+
         }
 
 
-        container = DefaultAppContainer()
+        container = DefaultAppContainer(this)
 
 
     }

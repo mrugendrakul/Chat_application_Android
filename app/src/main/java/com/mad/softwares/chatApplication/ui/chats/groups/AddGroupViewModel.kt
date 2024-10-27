@@ -99,7 +99,7 @@ class AddGroupViewModel (
                     currentUser = dataRepository.getCurrentUser(),
                     memberUsers = addGroupUiState.value.newMembers,
                     chatName = addGroupUiState.value.newGroupName,
-                    chatId = generateSixDigitUUID(8),
+                    chatId = generateSixDigitUUID(24),
                     profilePhoto = "",
                     isGroup = true
                 )

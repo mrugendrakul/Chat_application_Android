@@ -10,13 +10,14 @@ import com.google.firebase.firestore.FirebaseFirestore
 import com.google.firebase.firestore.ListenerRegistration
 import com.google.firebase.firestore.Source
 import com.google.firebase.messaging.FirebaseMessaging
+import com.mad.softwares.chatApplication.data.AESKeyData
 import com.mad.softwares.chatApplication.data.ChatOrGroup
 import com.mad.softwares.chatApplication.data.ContentType
 import com.mad.softwares.chatApplication.data.MessageReceived
+import com.mad.softwares.chatApplication.data.PublicRSAKey
 import com.mad.softwares.chatApplication.data.User
 import com.mad.softwares.chatApplication.data.chatUser
 import com.mad.softwares.chatApplication.data.lastMessage
-import com.mad.softwares.chatApplication.encryption.Encryption
 import kotlinx.coroutines.CompletableDeferred
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.tasks.await
@@ -68,6 +69,8 @@ interface FirebaseApi {
         chatId: String,
         profilePhoto: String = "",
         isGroup: Boolean = false,
+        encryptedAESKeys: List<AESKeyData>,
+        recentMessage: String
     )
 
     suspend fun getSearchUsers(searchUser: String): List<chatUser>
@@ -76,7 +79,7 @@ interface FirebaseApi {
 
     suspend fun getGroupsForMe(username: String): List<ChatOrGroup>
 
-    suspend fun sendNewMessage(message: MessageReceived, chatId: String): Boolean
+    suspend fun sendNewMessage(message: MessageReceived, chatId: String,recentMessage:String): Boolean
 
 //    suspend fun getTokenForMemebers(members:List<String>):List<String>
 
@@ -86,7 +89,7 @@ interface FirebaseApi {
 
     suspend fun getUserChatData(username: String): chatUser
 
-    suspend fun getChatData(chatId: String): ChatOrGroup
+    suspend fun getChatData(chatId: String,username: String): ChatOrGroup
 
     suspend fun getLiveMessagesForChat(
         currentChatId: String,
@@ -100,7 +103,7 @@ interface FirebaseApi {
         isGroup: Boolean,
         onAddChat: (ChatOrGroup) -> Unit,
         onModifiedChat: (ChatOrGroup) -> Unit,
-        onDeleteChat:(ChatOrGroup)->Unit,
+        onDeleteChat: (ChatOrGroup) -> Unit,
         onError: (e: Exception) -> Unit
     )
 
@@ -108,6 +111,9 @@ interface FirebaseApi {
 
     suspend fun stopLiveMessages()
 
+    suspend fun getPublicRSAKeyForMember(listOfMembers: List<String>): List<PublicRSAKey>
+
+    suspend fun getEncryptedAESKeyForChatSpecialCase(chatId:String): String
 
 }
 
@@ -167,13 +173,19 @@ class NetworkFirebaseApi(
             val username = doc.getString("username") ?: ""
             val profilePic = doc.getString("profilePic") ?: ""
             val uniqueId = doc.getString("uniqueId") ?: ""
+            val publicRSAKey = doc.getString("publicRSAKey") ?: ""
+            val privateEncryptedRSAKey = doc.getString("privateEncryptedRSAKey") ?: ""
+            val salt = doc.getString("salt") ?: ""
             val docId = doc.id
 
             user = User(
                 username = username,
                 profilePic = profilePic,
                 uniqueId = uniqueId,
-                docId = docId
+                docId = docId,
+                publicRSAKey = publicRSAKey,
+//                privateEncryptedRSAKey = privateEncryptedRSAKey,
+                salt = salt
             )
 
         } catch (e: Exception) {
@@ -200,6 +212,16 @@ class NetworkFirebaseApi(
             .document(docId)
             .update("fcmTokens", FieldValue.arrayUnion(currFcmToken))
 
+        val getSecureKeys = userCollection
+            .document(docId)
+            .get()
+
+        try {
+            val importantData = getSecureKeys.await()
+        } catch (e: Exception) {
+            Log.e(TAG, "Unable to get the keys : $e")
+        }
+
         try {
             updateUser.await()
         } catch (e: Exception) {
@@ -211,6 +233,10 @@ class NetworkFirebaseApi(
             profilePic = currUser.profilePic,
             uniqueId = currUser.uniqueId,
             username = currUser.username,
+            publicRSAKey = getSecureKeys.await().getString("publicRSAKey") ?: "",
+            privateEncryptedRSAKey = getSecureKeys.await().getString("privateEncryptedRSAKey")
+                ?: "",
+            salt = getSecureKeys.await().getString("salt") ?: "",
             docId = currUser.docId
         )
 
@@ -236,7 +262,10 @@ class NetworkFirebaseApi(
 //            "password" to currUser.password,
             "profilePic" to currUser.profilePic,
             "uniqueId" to currUser.uniqueId,
-            "username" to currUser.username
+            "username" to currUser.username,
+            "publicRSAKey" to currUser.publicRSAKey,
+            "privateEncryptedRSAKey" to currUser.privateEncryptedRSAKey,
+            "salt" to currUser.salt
         )
 
         val newUserId = userCollection
@@ -261,7 +290,10 @@ class NetworkFirebaseApi(
             currUser.profilePic,
             currUser.uniqueId,
             currUser.username,
-            docId = docId
+            docId = docId,
+            publicRSAKey = currUser.publicRSAKey,
+            privateEncryptedRSAKey = currUser.privateEncryptedRSAKey,
+            salt = currUser.salt
         )
         Log.d(TAG, "User details are : ${newUserId.await().toString()}")
         return newUser
@@ -408,11 +440,21 @@ class NetworkFirebaseApi(
         chatName: String,
         chatId: String,
         profilePhoto: String,
-        isGroup: Boolean
+        isGroup: Boolean,
+        encryptedAESKeys: List<AESKeyData>,
+        recentMessage: String
     ) {
 //        val newMembers = members.toTypedArray()
         val newMembers: ArrayList<String> = ArrayList(members)
         Log.d(TAG, "Chat addition started api")
+        val newAESKeys: List<HashMap<String, String>> =
+            encryptedAESKeys.map { aesKey ->
+                hashMapOf(
+                    "username" to aesKey.username,
+                    "key" to aesKey.key
+                )
+            }
+
 
         val newChat = hashMapOf(
             "chatId" to chatId,
@@ -420,7 +462,8 @@ class NetworkFirebaseApi(
             "profilePhoto" to profilePhoto,
             "isGroup" to isGroup,
             "members" to newMembers,
-            "lastMessage" to listOf("NO message", Timestamp(0, 0))
+            "lastMessage" to listOf(recentMessage, Timestamp.now()),
+            "encryptedAESKeys" to newAESKeys
         )
 
         chatsCollection
@@ -456,6 +499,8 @@ class NetworkFirebaseApi(
             val isGroup = doc.getBoolean("isGroup") ?: false
             val members: List<Any> = doc.get("members") as List<Any>
             val lastMsg: List<Any> = doc.get("lastMessage") as List<Any>
+            val profilePhoto = doc.getString("profilePhoto") ?: ""
+            val encryptedAESKeys = doc.get("encryptedAESKeys") as List<*>
             Log.d(TAG, "members are : $members")
             val singleChat = ChatOrGroup(
                 chatId = chatId,
@@ -541,7 +586,7 @@ class NetworkFirebaseApi(
         }
     }
 
-    override suspend fun getChatData(chatId: String): ChatOrGroup {
+    override suspend fun getChatData(chatId: String, username: String): ChatOrGroup {
         Log.d(TAG, "Getting chat data Started.")
         val chatData = chatsCollection.document(chatId).get()
             .addOnSuccessListener {
@@ -553,16 +598,25 @@ class NetworkFirebaseApi(
                 return@addOnFailureListener
             }
         val chat = chatData.await()
+        val encryptedAESKey = chat.get("encryptedAESKeys")as List<HashMap<String, String>>
+        val myEncryptedAESKey = encryptedAESKey?.filter { key ->
+            key["username"] == username
+        }?.get(0)
         return ChatOrGroup(
             chatId = chat.getString("chatId") ?: "",
             chatName = chat.getString("chatName") ?: "",
             isGroup = chat.getBoolean("isGroup") ?: false,
             members = chat.get("members") as List<String>,
+            secureAESKey = myEncryptedAESKey?.get("key").toString()
         )
     }
 
 
-    override suspend fun sendNewMessage(message: MessageReceived, chatId: String): Boolean {
+    override suspend fun sendNewMessage(
+        message: MessageReceived,
+        chatId: String,
+        recentMessage: String
+    ): Boolean {
         val newMessage = hashMapOf(
             "content" to message.content,
             "contentType" to message.contentType,
@@ -576,7 +630,7 @@ class NetworkFirebaseApi(
         val result = withTimeoutOrNull(5000) {
             try {
                 val lastMessage = arrayListOf(
-                    message.content,
+                    recentMessage,
                     message.timeStamp,
                     message.senderId
                 )
@@ -669,13 +723,13 @@ class NetworkFirebaseApi(
         onError: (e: Exception) -> Unit
     ) {
         listenerRegistration = chatsCollection.document(currentChatId).collection("Messages")
-            .addSnapshotListener (){ snapShot, e ->
+            .addSnapshotListener() { snapShot, e ->
                 if (e != null) {
                     onError(e)
                     return@addSnapshotListener
                 }
 
-                if(snapShot != null && !snapShot.metadata.hasPendingWrites()){
+                if (snapShot != null && !snapShot.metadata.hasPendingWrites()) {
                     for (dc in snapShot!!.documentChanges) {
                         when (dc.type) {
                             DocumentChange.Type.ADDED -> {
@@ -754,6 +808,7 @@ class NetworkFirebaseApi(
         onDeleteChat: (ChatOrGroup) -> Unit,
         onError: (e: Exception) -> Unit
     ) {
+        listenChats = null
         listenChats = chatsCollection
             .whereArrayContains("members", username)
             .whereEqualTo("isGroup", isGroup)
@@ -772,51 +827,62 @@ class NetworkFirebaseApi(
                 }
 
                 for (dc in snapshot!!.documentChanges) {
-                    when(dc.type){
-                        DocumentChange.Type.ADDED-> {
+                    when (dc.type) {
+                        DocumentChange.Type.ADDED -> {
                             Log.d(TAG, "New Chat: ${dc.document.data}")
 //                            for ()
-                            if(dc.document.data != null && dc.document.data.isNotEmpty()) {
-                                val lastMsg:List<Any> = dc.document.data["lastMessage"] as List<Any>
-
+                            if (dc.document.data != null && dc.document.data.isNotEmpty()) {
+                                val lastMsg: List<Any> =
+                                    dc.document.data["lastMessage"] as List<Any>
+                                val encryptedAESKey = dc.document.data["encryptedAESKeys"] as List<HashMap<String, String>>
+                                val myEncryptedAESKey = encryptedAESKey?.filter { key ->
+                                    key["username"] == username
+                                }?.get(0)
+                                Log.d(TAG,"ency key for $username is $myEncryptedAESKey")
                                 val newChat = ChatOrGroup(
                                     chatId = dc.document.data["chatId"].toString(),
                                     chatName = dc.document.data["chatName"].toString(),
                                     isGroup = dc.document.data["isGroup"].toString().toBoolean(),
                                     members = dc.document.data["members"] as List<String>,
                                     chatPic = dc.document.data["chatPic"].toString(),
-                                    lastMessage = lastMessage(
-                                        content = lastMsg[0].toString(),
-                                        timestamp = lastMsg[1] as Timestamp,
-                                        sender = if(2 in lastMsg.indices){
-                                            lastMsg[2].toString()
-                                        }else{
-                                            ""
-                                        }
-                                    )
+                                    secureAESKey = myEncryptedAESKey?.get("key").toString(),
+                                lastMessage = lastMessage(
+                                    content = lastMsg[0].toString(),
+                                    timestamp = lastMsg[1] as Timestamp,
+                                    sender = if (2 in lastMsg.indices) {
+                                        lastMsg[2].toString()
+                                    } else {
+                                        ""
+                                    },
+                                ),
                                 )
                                 onAddChat(newChat)
                             }
                         }
-                        DocumentChange.Type.MODIFIED-> {
+
+                        DocumentChange.Type.MODIFIED -> {
 
                             Log.d(TAG, "-------Modified Chat: ${dc.document.data}")
-                            if (dc.document.data!=null && dc.document.data.isNotEmpty())
-                            {
-                                val lastMsg:List<Any> = dc.document.data["lastMessage"] as List<Any>
-
+                            if (dc.document.data != null && dc.document.data.isNotEmpty()) {
+                                val lastMsg: List<Any> =
+                                    dc.document.data["lastMessage"] as List<Any>
+                                val encryptedAESKey = dc.document.data["encryptedAESKeys"] as List<HashMap<String, String>>
+                                val myEncryptedAESKey = encryptedAESKey?.filter { key ->
+                                    key["username"] == username
+                                }?.get(0)
                                 val updateChat = ChatOrGroup(
                                     chatId = dc.document.data["chatId"].toString(),
                                     chatName = dc.document.data["chatName"].toString(),
                                     isGroup = dc.document.data["isGroup"].toString().toBoolean(),
                                     members = dc.document.data["members"] as List<String>,
                                     chatPic = dc.document.data["chatPic"].toString(),
+                                    secureAESKey = myEncryptedAESKey?.get("key").toString(),
                                     lastMessage = lastMessage(
                                         content = lastMsg[0].toString(),
                                         timestamp = lastMsg[1] as Timestamp,
-                                        sender = if(2 in lastMsg.indices){
+                                        sender = if (2 in lastMsg.indices) {
                                             lastMsg[2].toString()
-                                        }else{
+                                        } else {
                                             ""
                                         }
                                     )
@@ -825,11 +891,12 @@ class NetworkFirebaseApi(
                             }
 
                         }
-                        DocumentChange.Type.REMOVED-> {
+
+                        DocumentChange.Type.REMOVED -> {
                             Log.d(TAG, "-------Removed Chat: ${dc.document.data}")
-                            if (dc.document.data!=null && dc.document.data.isNotEmpty())
-                            {
-                                val lastMsg:List<Any> = dc.document.data["lastMessage"] as List<Any>
+                            if (dc.document.data != null && dc.document.data.isNotEmpty()) {
+                                val lastMsg: List<Any> =
+                                    dc.document.data["lastMessage"] as List<Any>
 
                                 val updateChat = ChatOrGroup(
                                     chatId = dc.document.data["chatId"].toString(),
@@ -840,9 +907,9 @@ class NetworkFirebaseApi(
                                     lastMessage = lastMessage(
                                         content = lastMsg[0].toString(),
                                         timestamp = lastMsg[1] as Timestamp,
-                                        sender = if(2 in lastMsg.indices){
+                                        sender = if (2 in lastMsg.indices) {
                                             lastMsg[2].toString()
-                                        }else{
+                                        } else {
                                             ""
                                         }
                                     )
@@ -880,7 +947,35 @@ class NetworkFirebaseApi(
 
     override suspend fun stopLiveChats() {
         listenChats?.remove()
-        Log.d(TAG,"Removed chat listner here!!!")
+        Log.d(TAG, "Removed chat listner here!!!")
+    }
+
+    override suspend fun getPublicRSAKeyForMember(listOfMembers: List<String>): List<PublicRSAKey> {
+        val membersBatch = listOfMembers.chunked(10)
+        val RSAMemberKeys: MutableList<PublicRSAKey> = mutableListOf()
+        membersBatch.forEach { batch ->
+            val snapshot = userCollection.whereIn("username", batch)
+                .get()
+                .addOnSuccessListener {
+                    Log.d(TAG, "Success getting the public RSA key")
+//                    for(doc in it.documents){
+//                        val username = doc.getString("username")?:""
+//                        val key = doc.getString("publicRSAKey")?:""
+//                        RSAMemberKeys.add(PublicRSAKey(username,key))
+//                    }
+                }
+                .addOnFailureListener { err ->
+                    Log.e(TAG, "Error getting the public keys : ${err}")
+                    return@addOnFailureListener
+                }
+            val batch_documents = snapshot.await()
+            for (doc in batch_documents.documents) {
+                val username = doc.getString("username") ?: ""
+                val key = doc.getString("publicRSAKey") ?: ""
+                RSAMemberKeys.add(PublicRSAKey(username, key))
+            }
+        }
+        return RSAMemberKeys
     }
 
     override suspend fun stopLiveMessages() {
@@ -898,5 +993,10 @@ class NetworkFirebaseApi(
             Log.e(TAG, "Error in api to delete chatId ${chatId} : ${e}")
             throw e
         }
+    }
+
+    override suspend fun getEncryptedAESKeyForChatSpecialCase(chatId: String): String {
+        //TODO:Never to be implemented
+        return ""
     }
 }

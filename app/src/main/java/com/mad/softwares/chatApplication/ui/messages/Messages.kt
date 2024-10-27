@@ -4,9 +4,18 @@ import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.animateContentSize
 import androidx.compose.animation.core.Spring
 import androidx.compose.animation.core.spring
+import androidx.compose.animation.core.tween
+import androidx.compose.animation.expandVertically
+import androidx.compose.animation.fadeIn
+import androidx.compose.animation.fadeOut
 import androidx.compose.animation.scaleIn
 import androidx.compose.animation.scaleOut
+import androidx.compose.animation.shrinkVertically
+import androidx.compose.animation.slideInVertically
+import androidx.compose.animation.slideOutVertically
 import androidx.compose.foundation.background
+import androidx.compose.foundation.clickable
+import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.IntrinsicSize
@@ -46,6 +55,8 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.ModalBottomSheet
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.OutlinedTextFieldDefaults
+import androidx.compose.material3.ShapeDefaults
+import androidx.compose.material3.Shapes
 import androidx.compose.material3.SnackbarHost
 import androidx.compose.material3.SnackbarHostState
 import androidx.compose.material3.Text
@@ -59,6 +70,7 @@ import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.hapticfeedback.HapticFeedbackType
@@ -170,11 +182,12 @@ fun MessagesBodySuccess(
                         Icon(
                             imageVector = Icons.Default.MoreVert,
                             contentDescription = "refresh"
-                        )}
+                        )
+                    }
                     DropdownMenu(
                         expanded = expandDDMenu,
                         onDismissRequest = { expandDDMenu = !expandDDMenu }) {
-                        uiState.currChat.members.forEach {mem->
+                        uiState.currChat.members.forEach { mem ->
                             DropdownMenuItem(text = { Text(text = mem) }, onClick = { /*TODO*/ })
                         }
 
@@ -610,6 +623,9 @@ fun SenderChat(
     val currentDate = Timestamp.now().toDate()
     val difference = (currentDate.time - date.time) / (1000 * 60 * 60)
     val msg = message.content
+    var showTime by remember {
+        mutableStateOf(false)
+    }
 
 
     //    val inlineContentMap = codeRegex.findAll(msg).associate { match->
@@ -642,83 +658,186 @@ fun SenderChat(
     }
     val fDate = sdf.format(date)
     val parsedMessage = parseMessage(msg)
+    val IntrSource = remember {
+        MutableInteractionSource()
+    }
     Row(
         modifier = Modifier
             .fillMaxWidth(1f),
         horizontalArrangement = Arrangement.End
     ) {
-
-        Card(
-            modifier = Modifier
-                .fillMaxWidth(0.8f)
-                //                .weight(5f)
-                .wrapContentWidth(Alignment.End)
-                //                .padding(start = 80.dp)
-                .padding(vertical = 10.dp, horizontal = 5.dp),
-            //                .height(60.dp),
-            shape = RoundedCornerShape(20.dp, 0.dp, 20.dp, 20.dp),
-            colors = CardDefaults.cardColors(
-                containerColor = MaterialTheme.colorScheme.primaryContainer
-            )
-        ) {
-
-            Column(
-                modifier = Modifier
-                    .width(IntrinsicSize.Max)
-            ) {
-                if (checkForCode(msg)) {
-                    GetCodeMessage(msg = msg)
-                } else {
-                    Text(
-                        text = annotateMessage(message.content),
-                        modifier = Modifier
-                            .padding(10.dp),
-                        fontSize = 20.sp,
-                    )
-                }
+        Column {
+            Row {
                 Card(
                     modifier = Modifier
-                        //                    .wrapContentWidth(unbounded = true)
-                        .fillMaxWidth()
-//                        .padding(0.dp),
+                        .fillMaxWidth(0.8f)
+                        //                .weight(5f)
+                        .wrapContentWidth(Alignment.End)
+                        .padding(top = 10.dp)
+                        .padding(horizontal = 5.dp)
+                        .clickable(
+                            enabled = true,
+                            onClick = { showTime = !showTime },
+                            interactionSource = IntrSource,
+                            indication = null
+                        ),
+                    //                .height(60.dp),
+                    shape = RoundedCornerShape(20.dp, 0.dp, 20.dp, 20.dp),
+                    colors = CardDefaults.cardColors(
+                        containerColor = MaterialTheme.colorScheme.primaryContainer
 
+                    )
                 ) {
-                    Row(
-                        modifier = Modifier
-                            .fillMaxWidth(),
-                        horizontalArrangement = Arrangement.End,
-                    ) {
-                        Text(
+                    Row {
+
+                        Column(
                             modifier = Modifier
-                                //                            .fillMaxWidth()
-                                .padding(horizontal = 15.dp)
-                                .padding(vertical = 2.dp),
-                            text = fDate.toString(),
-                            //                    text = difference.toString(),
-                            //                text = message.timeStamp.toDate().toString(),
-                            textAlign = TextAlign.Start
-                        )
-                        if (message.status == messageStatus.Send) {
-                            Icon(
-                                imageVector = Icons.Default.ArrowOutward,
-                                contentDescription = null
-                            )
-                        } else if (message.status == messageStatus.Sending) {
-                            Icon(
-                                imageVector = Icons.Default.CloudQueue,
-                                contentDescription = null
-                            )
-                        } else if (message.status == messageStatus.Error) {
-                            Icon(
-                                imageVector = Icons.Default.Error,
-                                contentDescription = null
-                            )
+                                .width(IntrinsicSize.Max)
+                        ) {
+                            if (checkForCode(msg)) {
+                                GetCodeMessage(msg = msg)
+                            } else {
+                                Text(
+                                    text = annotateMessage(message.content),
+                                    modifier = Modifier
+                                        .padding(10.dp),
+                                    fontSize = 20.sp,
+                                )
+                            }
                         }
+//                if (message.status == messageStatus.Send) {
+//                            Icon(
+//                                imageVector = Icons.Default.ArrowOutward,
+//                                contentDescription = null
+//                            )
+//                        } else if (message.status == messageStatus.Sending) {
+//                            Icon(
+//                                imageVector = Icons.Default.CloudQueue,
+//                                contentDescription = null
+//                            )
+//                        } else if (message.status == messageStatus.Error) {
+//                            Icon(
+//                                imageVector = Icons.Default.Error,
+//                                contentDescription = null
+//                            )
+//                        }
+
+//                Card(
+//                    modifier = Modifier
+//                        //                    .wrapContentWidth(unbounded = true)
+//                        .fillMaxWidth()
+////                        .padding(0.dp),
+//
+//                ) {
+//                    Row(
+//                        modifier = Modifier
+//                            .fillMaxWidth(),
+//                        horizontalArrangement = Arrangement.End,
+//                    ) {
+//                        Text(
+//                            modifier = Modifier
+//                                //                            .fillMaxWidth()
+//                                .padding(horizontal = 15.dp)
+//                                .padding(vertical = 2.dp),
+//                            text = fDate.toString(),
+//                            //                    text = difference.toString(),
+//                            //                text = message.timeStamp.toDate().toString(),
+//                            textAlign = TextAlign.Start
+//                        )
+//                        if (message.status == messageStatus.Send) {
+//                            Icon(
+//                                imageVector = Icons.Default.ArrowOutward,
+//                                contentDescription = null
+//                            )
+//                        } else if (message.status == messageStatus.Sending) {
+//                            Icon(
+//                                imageVector = Icons.Default.CloudQueue,
+//                                contentDescription = null
+//                            )
+//                        } else if (message.status == messageStatus.Error) {
+//                            Icon(
+//                                imageVector = Icons.Default.Error,
+//                                contentDescription = null
+//                            )
+//                        }
+//                    }
+//                }
+
                     }
                 }
-            }
-        }
+                if (message.status == messageStatus.Send) {
+                    Card(
+                        modifier = Modifier
+                            .padding(top = 10.dp),
+                        shape = RoundedCornerShape(50)
+                    ) {
+                        Icon(
+                            imageVector = Icons.Default.ArrowOutward,
+                            contentDescription = null,
+                            modifier = Modifier
+                                .background(color = MaterialTheme.colorScheme.primaryContainer)
+                                .padding(1.dp)
+//                                .clip(shape = RoundedCornerShape(50.dp))
+                        )
+                    }
+                } else if (message.status == messageStatus.Sending) {
+                    Card(
+                        modifier = Modifier
+                            .padding(top = 10.dp),
+                        shape = RoundedCornerShape(50)
+                    ) {
+                        Icon(
+                            imageVector = Icons.Default.CloudQueue,
+                            contentDescription = null,
+                            modifier = Modifier
+                                .background(color = MaterialTheme.colorScheme.primaryContainer)
+                                .padding(1.dp)
+//                                .clip(shape = RoundedCornerShape(50.dp))
+                        )
+                    }
+                } else if (message.status == messageStatus.Error) {
+                    Card(
+                        modifier = Modifier
+                            .padding(top = 10.dp),
+                        shape = RoundedCornerShape(50)
+                    ) {
+                        Icon(
+                            imageVector = Icons.Default.Error,
+                            contentDescription = null,
+                            modifier = Modifier
+                                .background(color = MaterialTheme.colorScheme.primaryContainer)
+                                .padding(1.dp)
+//                                .clip(shape = RoundedCornerShape(50.dp))
+                        )
+                    }
+                }
 
+            }
+            AnimatedVisibility(
+                visible = showTime,
+                enter = expandVertically(
+//                    initialOffsetY = { -it/2 },
+
+                    animationSpec = tween(500)
+                ) + fadeIn(animationSpec = tween(200)),
+                exit = shrinkVertically(
+//                    targetOffsetY = { -it },
+                    animationSpec = tween(500)
+                ) + fadeOut(animationSpec = tween(300))
+            ) {
+                Text(
+                    modifier = Modifier
+                        .padding(horizontal = 15.dp)
+                        .padding(vertical = 2.dp)
+                        .fillMaxWidth(0.8f),
+                    text = fDate.toString(),
+//                    text = difference.toString(),
+//                text = message.timeStamp.toDate().toString(),
+                    textAlign = TextAlign.End
+                )
+            }
+
+        }
 
     }
 }
@@ -737,92 +856,26 @@ fun ReceiverChat(
         SimpleDateFormat("YYYY/MM/dd hh:mm a")
     }
     val fDate = sdf.format(date)
+    var showTime by remember {
+        mutableStateOf(false)
+    }
     Row(
         modifier = Modifier
             .fillMaxWidth(0.8f),
 //            .fillMaxWidth()
     ) {
-        Card(
-            modifier = Modifier
-                .padding(vertical = 10.dp, horizontal = 5.dp)
-                .wrapContentWidth(Alignment.Start)
-//                .fillMaxWidth(1f)
-            ,
-//                .height(60.dp),
-            shape = RoundedCornerShape(0.dp, 20.dp, 20.dp, 20.dp),
-            colors = CardDefaults.cardColors(
-                containerColor = MaterialTheme.colorScheme.secondaryContainer
-            )
-        ) {
-            Column(
-                modifier = Modifier
-                    .width(IntrinsicSize.Max)
-            ) {
-                if (checkForCode(message.content)
-                ) {
-                    GetCodeMessage(msg = message.content)
-                } else {
-                    Text(
-                        text = annotateMessage(message.content),
-                        modifier = Modifier
-                            .padding(10.dp)
-                            .wrapContentWidth(),
-                        fontSize = 20.sp
-                    )
-                }
-
-                Card(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .background(color = MaterialTheme.colorScheme.inverseOnSurface)
-                ) {
-                    Text(
-                        modifier = Modifier
-                            .padding(horizontal = 15.dp)
-                            .padding(vertical = 2.dp),
-                        text = fDate.toString(),
-//                    text = difference.toString(),
-//                text = message.timeStamp.toDate().toString(),
-                        textAlign = TextAlign.End
-                    )
-                }
-            }
-
-
-        }
-//        Spacer(modifier = Modifier.weight(1f))
-
-    }
-}
-
-@Composable
-fun ReceiverGroupChat(
-    message: MessageReceived
-) {
-    val date = message.timeStamp.toDate()
-//    val sdf  = SimpleDateFormat("HH:mm")
-    val currentDate = Timestamp.now().toDate()
-    val difference = (currentDate.time - date.time) / (1000 * 60 * 60)
-    val sdf = if (difference <= 24) {
-        SimpleDateFormat("hh:mm a")
-    } else {
-        SimpleDateFormat("YYYY/MM/dd hh:mm a")
-    }
-    val fDate = sdf.format(date)
-    Row(
-        modifier = Modifier
-            .fillMaxWidth(0.8f),
-//            .fillMaxWidth()
-    ) {
-        Column{
-            Text(modifier = Modifier
-                .padding(horizontal = 5.dp),
-                text = message.senderId
-            )
+        Column {
             Card(
                 modifier = Modifier
-                    .padding(vertical = 10.dp, horizontal = 5.dp)
+                    .padding(top = 10.dp)
+                    .padding(horizontal = 5.dp)
                     .wrapContentWidth(Alignment.Start)
+                    .clickable(
+                        enabled = true,
+                        onClick = { showTime = !showTime },
+                        interactionSource = null,
+                        indication = null
+                    )
 //                .fillMaxWidth(1f)
                 ,
 //                .height(60.dp),
@@ -848,25 +901,162 @@ fun ReceiverGroupChat(
                         )
                     }
 
-                    Card(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .background(color = MaterialTheme.colorScheme.inverseOnSurface)
-                    ) {
-                        Text(
-                            modifier = Modifier
-                                .padding(horizontal = 15.dp)
-                                .padding(vertical = 2.dp),
-                            text = fDate.toString(),
-//                    text = difference.toString(),
-//                text = message.timeStamp.toDate().toString(),
-                            textAlign = TextAlign.End
-                        )
-                    }
+//                Card(
+//                    modifier = Modifier
+//                        .fillMaxWidth()
+//                        .background(color = MaterialTheme.colorScheme.inverseOnSurface)
+//                ) {
+//                    Text(
+//                        modifier = Modifier
+//                            .padding(horizontal = 15.dp)
+//                            .padding(vertical = 2.dp),
+//                        text = fDate.toString(),
+////                    text = difference.toString(),
+////                text = message.timeStamp.toDate().toString(),
+//                        textAlign = TextAlign.End
+//                    )
+//                }
                 }
 
 
             }
+            AnimatedVisibility(
+                visible = showTime,
+                enter = expandVertically(
+//                    initialOffsetY = { -it/2 },
+
+                    animationSpec = tween(500)
+                ) + fadeIn(animationSpec = tween(200)),
+                exit = shrinkVertically(
+//                    targetOffsetY = { -it },
+                    animationSpec = tween(500)
+                ) + fadeOut(animationSpec = tween(300))
+            ) {
+                Text(
+                    modifier = Modifier
+                        .padding(horizontal = 15.dp)
+                        .padding(vertical = 2.dp)
+                        .fillMaxWidth(0.8f),
+                    text = fDate.toString(),
+//                    text = difference.toString(),
+//                text = message.timeStamp.toDate().toString(),
+                    textAlign = TextAlign.Start
+                )
+            }
+        }
+//        Spacer(modifier = Modifier.weight(1f))
+
+    }
+}
+
+@Composable
+fun ReceiverGroupChat(
+    message: MessageReceived
+) {
+    val date = message.timeStamp.toDate()
+//    val sdf  = SimpleDateFormat("HH:mm")
+    val currentDate = Timestamp.now().toDate()
+    val difference = (currentDate.time - date.time) / (1000 * 60 * 60)
+    val sdf = if (difference <= 24) {
+        SimpleDateFormat("hh:mm a")
+    } else {
+        SimpleDateFormat("YYYY/MM/dd hh:mm a")
+    }
+    val fDate = sdf.format(date)
+    var showTime by remember {
+        mutableStateOf(false)
+    }
+    Row(
+        modifier = Modifier
+            .fillMaxWidth(0.8f),
+//            .fillMaxWidth()
+    ) {
+        Column {
+            Text(
+                modifier = Modifier
+                    .padding(horizontal = 5.dp)
+                    .padding(top = 10.dp),
+                text = message.senderId
+            )
+            Card(
+                modifier = Modifier
+                    .padding(bottom = 0.dp)
+                    .padding(horizontal = 5.dp)
+                    .wrapContentWidth(Alignment.Start)
+                    .clickable(
+                        enabled = true,
+                        onClick = { showTime = !showTime },
+                        interactionSource = null,
+                        indication = null
+                    )
+//                .fillMaxWidth(1f)
+                ,
+//                .height(60.dp),
+                shape = RoundedCornerShape(0.dp, 20.dp, 20.dp, 20.dp),
+                colors = CardDefaults.cardColors(
+                    containerColor = MaterialTheme.colorScheme.secondaryContainer
+                )
+            ) {
+                Column(
+                    modifier = Modifier
+                        .width(IntrinsicSize.Max)
+                ) {
+                    if (checkForCode(message.content)
+                    ) {
+                        GetCodeMessage(msg = message.content)
+                    } else {
+                        Text(
+                            text = annotateMessage(message.content),
+                            modifier = Modifier
+                                .padding(10.dp)
+                                .wrapContentWidth(),
+                            fontSize = 20.sp
+                        )
+                    }
+
+//                    Card(
+//                        modifier = Modifier
+//                            .fillMaxWidth()
+//                            .background(color = MaterialTheme.colorScheme.inverseOnSurface)
+//                    ) {
+//                        Text(
+//                            modifier = Modifier
+//                                .padding(horizontal = 15.dp)
+//                                .padding(vertical = 2.dp),
+//                            text = fDate.toString(),
+////                    text = difference.toString(),
+////                text = message.timeStamp.toDate().toString(),
+//                            textAlign = TextAlign.End
+//                        )
+//                    }
+                }
+
+
+            }
+            AnimatedVisibility(
+                visible = showTime,
+                enter = expandVertically(
+//                    initialOffsetY = { -it/2 },
+
+                    animationSpec = tween(500)
+                ) + fadeIn(animationSpec = tween(200)),
+                exit = shrinkVertically(
+//                    targetOffsetY = { -it },
+                    animationSpec = tween(500)
+                ) + fadeOut(animationSpec = tween(300))
+            ) {
+                Text(
+                    modifier = Modifier
+                        .padding(horizontal = 15.dp)
+                        .padding(vertical = 2.dp),
+                    text = fDate.toString(),
+//                    text = difference.toString(),
+//                text = message.timeStamp.toDate().toString(),
+                    textAlign = TextAlign.Start
+                )
+            }
+
+
         }
 //        Spacer(modifier = Modifier.weight(1f))
 
@@ -909,6 +1099,7 @@ fun BottomMessageSend(
 //                .padding(vertical = 16.dp, horizontal = 16.dp)
         )
         {
+//            Text("Chat is secure with aes key : ${appUistate.currChat.secureAESKey}")
             Row(
                 modifier = Modifier
                     .fillMaxWidth(),
@@ -957,7 +1148,7 @@ fun BottomMessageSend(
 
                         ),
                     maxLines = 4,
-                    placeholder = { Text(text = "Start typing...") },
+                    placeholder = { Text(text = "Send message securely...") },
 //                    placeholder = {"message..."},
                     colors = OutlinedTextFieldDefaults.colors(
                         focusedBorderColor = Color(0, 0, 0, alpha = 0),

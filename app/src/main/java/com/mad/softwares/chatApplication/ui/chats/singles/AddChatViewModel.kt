@@ -144,7 +144,7 @@ class AddChatViewModel(
                     currentUser = dataRepository.getCurrentUser(),
                     memberUsers = listOf(secondMember),
                     chatName = generateSixDigitUUID(6),
-                    chatId = generateSixDigitUUID(8),
+                    chatId = generateSixDigitUUID(24),
                     profilePhoto = "",
                     isGroup = false
                 )

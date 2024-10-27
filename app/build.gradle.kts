@@ -9,10 +9,6 @@ plugins {
 android {
     signingConfigs {
         create("release") {
-            storeFile = file("C:\\Users\\mruge\\keyStores\\mrugendra.jks")
-            storePassword = "goldy777"
-            keyAlias = "key0"
-            keyPassword = "goldy777"
         }
     }
     namespace = "com.mad.softwares.chatApplication"
@@ -22,8 +18,8 @@ android {
         applicationId = "com.mad.softwares.chatApplication"
         minSdk = 26
         targetSdk = 34
-        versionCode = 2
-        versionName = "0.10.1-beta.1"
+        versionCode = 3
+        versionName = "0.10.2-beta.1"
 
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
         vectorDrawables {

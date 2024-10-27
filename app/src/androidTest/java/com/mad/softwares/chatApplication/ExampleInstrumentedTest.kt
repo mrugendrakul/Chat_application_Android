@@ -58,16 +58,17 @@ class ExampleInstrumentedTest {
             db.collection("Users"),
             db.collection("Chats"),
             db.collection("Messages"),
-            EncryptionImpl
+
         )
 //        Firebase.auth.useEmulator("10.0.2.2", 9099)
         authenticator = FirebaseAuth.getInstance()
         authApi = FirebaseAuthenticationApi(auth = authenticator)
 
-        dataRepository = NetworkDataRepository(
-            apiService = firebaseApi,
-            authServie = authApi
-        )
+//        dataRepository = NetworkDataRepository(
+//            apiService = firebaseApi,
+//            authServie = authApi,
+//
+//        )
 
         runBlocking { authApi.loginUser(email = "good@456.com", password = "123456", status = {}) }
     }
@@ -242,7 +243,7 @@ class ExampleInstrumentedTest {
                 chatName = "h1235",
                 chatId = "123456",
                 profilePhoto = "test",
-                isGroup = false
+                isGroup = false,
             )
         }
 
@@ -252,7 +253,7 @@ class ExampleInstrumentedTest {
         runTest {
             val chatId = "14772768"
             val chatData: Deferred<ChatOrGroup> = async {
-                firebaseApi.getChatData(chatId)
+                firebaseApi.getChatData(chatId,)
             }
             assertEquals(chatId, chatData.await().chatId)
         }
@@ -285,7 +286,7 @@ class ExampleInstrumentedTest {
             )
 
             val status: Deferred<Boolean> =
-                async { firebaseApi.sendNewMessage(message, chatId) }
+                async { firebaseApi.sendNewMessage(message, chatId,) }
             delay(3000)
             assertEquals(true, status.await())
 
@@ -327,7 +328,7 @@ class ExampleInstrumentedTest {
             )
 
             val status: Deferred<Unit> =
-                async { dataRepository.sendMessage(message, chatId) }
+                async { dataRepository.sendMessage(message, chatId,) }
             delay(3000)
             assertEquals(true, status.await())
         }
