@@ -26,6 +26,8 @@ interface AuthenticationApi {
     ):FirebaseUser?
 
     suspend fun getCurrentUser():String
+
+    suspend fun getCurrentUsername():String
 }
 
 class FirebaseAuthenticationApi(
@@ -144,5 +146,11 @@ class FirebaseAuthenticationApi(
         val curUser = auth.currentUser
 
         return curUser?.uid?:""
+    }
+
+    override suspend fun getCurrentUsername(): String {
+        val curUser = auth.currentUser
+
+        return curUser?.email?:""
     }
 }

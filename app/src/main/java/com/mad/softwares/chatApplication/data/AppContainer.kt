@@ -15,6 +15,9 @@ import com.mad.softwares.chatApplication.network.AuthenticationApi
 import com.mad.softwares.chatApplication.network.FirebaseApi
 import com.mad.softwares.chatApplication.network.FirebaseAuthenticationApi
 import com.mad.softwares.chatApplication.network.NetworkFirebaseApi
+import com.mad.softwares.chatApplication.notification.BodyDecryptionImplementation
+import com.mad.softwares.chatApplication.notification.NotificationAddon
+import com.mad.softwares.chatApplication.notification.NotificationService
 
 interface AppContainer {
     val dataRepository:DataRepository
@@ -23,6 +26,7 @@ interface AppContainer {
     val authApi:AuthenticationApi
     val localKeyStorge: LocalKeysStorage
     val localAESKeyStorage: LocalAESkeys
+    val notificationAddon: NotificationAddon
 }
 
 class DefaultAppContainer(private val context : Context) : AppContainer{
@@ -56,5 +60,10 @@ class DefaultAppContainer(private val context : Context) : AppContainer{
         encryption,
         localKeyStorge = localKeyStorge,
         localChatKeysStorage = localAESKeyStorage
+    )
+
+    override val notificationAddon: NotificationAddon = BodyDecryptionImplementation(
+        dataRepository = dataRepository,
+        encryptionService =   encryption
     )
 }

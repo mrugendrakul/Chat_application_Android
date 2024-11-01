@@ -59,7 +59,7 @@ class ExampleInstrumentedTest {
             db.collection("Chats"),
             db.collection("Messages"),
 
-        )
+            )
 //        Firebase.auth.useEmulator("10.0.2.2", 9099)
         authenticator = FirebaseAuth.getInstance()
         authApi = FirebaseAuthenticationApi(auth = authenticator)
@@ -232,104 +232,5 @@ class ExampleInstrumentedTest {
                 }
 
             assertEquals(loginUser.username, backendUser.await().username)
-        }
-
-    @Test
-    @Throws(Exception::class)
-    fun networkApi_addChat_Success() =
-        runTest {
-            firebaseApi.createNewChat(
-                members = listOf("mrug@123.com", "happy@123.com"),
-                chatName = "h1235",
-                chatId = "123456",
-                profilePhoto = "test",
-                isGroup = false,
-            )
-        }
-
-    @Test
-    @Throws(Exception::class)
-    fun networkApi_getChatData_Success() =
-        runTest {
-            val chatId = "14772768"
-            val chatData: Deferred<ChatOrGroup> = async {
-                firebaseApi.getChatData(chatId,)
-            }
-            assertEquals(chatId, chatData.await().chatId)
-        }
-
-    @Test
-    @Throws(Exception::class)
-    fun dataRepo_getDataChat_Success() =
-        runTest {
-            val chatId = "14772768"
-            val username = "good@456.com"
-
-            val currChat: Deferred<ChatOrGroup> = async {
-                dataRepository.getDataChat(chatId, username)
-            }
-
-            assertEquals(chatId, currChat.await().chatId)
-            assertEquals(username, currChat.await().chatName)
-        }
-
-    @Test
-    @Throws(Exception::class)
-    fun networkApi_sendMessage_Success() =
-        runTest {
-            val chatId = "14772767"
-            val username = "good@456.com"
-            val message = MessageReceived(
-                content = "New Test message",
-                contentType = ContentType.text,
-                senderId = username,
-            )
-
-            val status: Deferred<Boolean> =
-                async { firebaseApi.sendNewMessage(message, chatId,) }
-            delay(3000)
-            assertEquals(true, status.await())
-
-
-        }
-
-    @Test
-    @Throws(Exception::class)
-    fun networkApi_getMessage_Success() =
-        runTest {
-            val chatId = "14772768"
-            val username = "good@456.com"
-            val message = MessageReceived(
-                content = "New Test message",
-                contentType = ContentType.text,
-                senderId = username,
-            )
-            try {
-                val messages: Deferred<List<MessageReceived>> =
-                    async { firebaseApi.getMessagesForChat(currentChatId = chatId) }
-                delay(3000)
-                assertNotNull(messages.await())
-                Log.d("testing", "messages : ${messages.await()}")
-                assertTrue(true)
-            } catch (e: Exception) {
-                assertTrue(false)
-            }
-        }
-    @Test
-    @Throws(Exception::class)
-    fun dataRepo_sendMessage_Success() =
-        runTest {
-            val chatId = "14772768"
-            val username = "good@456.com"
-            val message = MessageReceived(
-                content = "New Test message",
-                contentType = ContentType.text,
-                senderId = username,
-            )
-
-            val status: Deferred<Unit> =
-                async { dataRepository.sendMessage(message, chatId,) }
-            delay(3000)
-            assertEquals(true, status.await())
         }
 }

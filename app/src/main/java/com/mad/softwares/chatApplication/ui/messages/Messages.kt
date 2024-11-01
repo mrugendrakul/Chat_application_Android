@@ -881,7 +881,7 @@ fun ReceiverChat(
 //                .height(60.dp),
                 shape = RoundedCornerShape(0.dp, 20.dp, 20.dp, 20.dp),
                 colors = CardDefaults.cardColors(
-                    containerColor = MaterialTheme.colorScheme.secondaryContainer
+//                    containerColor = MaterialTheme.colorScheme.secondaryContainer
                 )
             ) {
                 Column(
@@ -994,7 +994,7 @@ fun ReceiverGroupChat(
 //                .height(60.dp),
                 shape = RoundedCornerShape(0.dp, 20.dp, 20.dp, 20.dp),
                 colors = CardDefaults.cardColors(
-                    containerColor = MaterialTheme.colorScheme.secondaryContainer
+//                    containerColor = MaterialTheme.colorScheme.secondaryContainer
                 )
             ) {
                 Column(
@@ -1087,7 +1087,7 @@ fun BottomMessageSend(
             .padding(8.dp)
             .background(MaterialTheme.colorScheme.background),
         colors = CardDefaults.elevatedCardColors(
-            containerColor = MaterialTheme.colorScheme.surfaceContainerHigh,
+            containerColor = MaterialTheme.colorScheme.secondaryContainer,
 
             ),
         shape = RoundedCornerShape(30.dp),
@@ -1148,12 +1148,13 @@ fun BottomMessageSend(
 
                         ),
                     maxLines = 4,
-                    placeholder = { Text(text = "Send message securely...") },
+                    placeholder = { Text(text = stringResource(R.string.send_text)) },
 //                    placeholder = {"message..."},
                     colors = OutlinedTextFieldDefaults.colors(
                         focusedBorderColor = Color(0, 0, 0, alpha = 0),
                         unfocusedBorderColor = Color(0, 0, 0, alpha = 0),
-                        disabledBorderColor = Color(0, 0, 0, alpha = 0)
+                        disabledBorderColor = Color(0, 0, 0, alpha = 0),
+//                        focusedTextColor = MaterialTheme.colorScheme.onSecondaryContainer
                     ),
 
                     //                trailingIcon =

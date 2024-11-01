@@ -1,4 +1,4 @@
-package com.mad.softwares.chatApplication.ui.welcome
+    package com.mad.softwares.chatApplication.ui.welcome
 
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
@@ -70,6 +70,7 @@ fun WelcomeScreen(
         Card(
             colors = CardDefaults.cardColors(
                 containerColor = MaterialTheme.colorScheme.primaryContainer
+
             ),
             modifier = modifier
                 .fillMaxWidth()

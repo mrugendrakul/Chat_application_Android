@@ -50,7 +50,7 @@ class MainActivity : ComponentActivity() {
         if (currUser != null) {
             setContent {
                 ChitChatTheme(
-                    dynamicColor = false
+                    dynamicColor = true
                 ) {
                     Surface(
                         modifier = Modifier.fillMaxSize(),
@@ -68,7 +68,7 @@ class MainActivity : ComponentActivity() {
         } else {
             setContent {
                 ChitChatTheme(
-                    dynamicColor = false
+                    dynamicColor = true
                 ) {
                     Surface(
                         modifier = Modifier.fillMaxSize(),

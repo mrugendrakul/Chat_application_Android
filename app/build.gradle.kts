@@ -9,6 +9,10 @@ plugins {
 android {
     signingConfigs {
         create("release") {
+            storeFile = file("/home/mrugendra/Documents/keystores/chatApplication.jks")
+            storePassword = "goldy777"
+            keyAlias = "Key0"
+            keyPassword = "goldy777"
         }
     }
     namespace = "com.mad.softwares.chatApplication"

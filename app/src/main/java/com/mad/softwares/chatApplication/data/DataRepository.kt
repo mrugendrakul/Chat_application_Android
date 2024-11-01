@@ -97,6 +97,8 @@ interface DataRepository {
     )
 
     suspend fun stopLiveChat()
+
+    suspend fun getAESKeyForChatID(chatId:String): String
 }
 
 class NetworkDataRepository(
@@ -607,9 +609,12 @@ class NetworkDataRepository(
                         val latestChat = newChat.copy(chatName = tempUsername)
                         if (latestChat.members.size - 1 == latestChat.membersData.size) {
                             val laterLatestChat = latestChat.copy(
-                                lastMessage = lastMessage(
-                                    content = contentEnc,
-                                    timestamp = latestChat.lastMessage.timestamp
+//                                lastMessage = lastMessage(
+//                                    content = contentEnc,
+//                                    timestamp = latestChat.lastMessage.timestamp
+//                                )
+                                lastMessage = latestChat.lastMessage.copy(
+                                    content = contentEnc
                                 )
                             )
                             Log.d(TAG, "Chat added in data")
@@ -660,9 +665,8 @@ class NetworkDataRepository(
                     }
 
                     val latestModifiedChat = modifiedChat.copy(
-                        lastMessage = lastMessage(
-                            content = contentEnc,
-                            timestamp = modifiedChat.lastMessage.timestamp
+                        lastMessage = modifiedChat.lastMessage.copy(
+                            content = contentEnc
                         )
                     )
 
@@ -740,9 +744,8 @@ class NetworkDataRepository(
                     }
                     if (newChat.members.size - 1 == newChat.membersData.size) {
                         val laterLatestChat = newChat.copy(
-                            lastMessage = lastMessage(
-                                content = contentEnc,
-                                timestamp = newChat.lastMessage.timestamp
+                            lastMessage = newChat.lastMessage.copy(
+                                content = contentEnc
                             )
                         )
                         Log.d(TAG, "Chat added in data")
@@ -789,9 +792,8 @@ class NetworkDataRepository(
                     }
 
                     val latestModifiedChat = modifiedChat.copy(
-                        lastMessage = lastMessage(
-                            content = contentEnc,
-                            timestamp = modifiedChat.lastMessage.timestamp
+                        lastMessage = modifiedChat.lastMessage.copy(
+                            content = contentEnc
                         )
                     )
 
@@ -1012,6 +1014,47 @@ class NetworkDataRepository(
                 chatName = "",
                 chatPic = e.message.toString()
             )
+        }
+    }
+
+    override suspend fun getAESKeyForChatID(chatId: String): String {
+        try {
+            Log.d(TAG,"started getting data for chatId : ${chatId} and username ${authServie.getCurrentUsername()}")
+            if(localChatKeysStorage.getAESKeyById(chatId.toInt()).firstOrNull()?.decryptedASEKey != null){
+                Log.d(TAG,"Key for notification got from backend")
+                return localChatKeysStorage.getAESKeyById(chatId.toInt()).firstOrNull()?.decryptedASEKey.toString()
+            }
+            else {
+                Log.d(TAG,"Adding Key to backend and getting key for you")
+                val privateKey = coroutineScope {
+                    val insideKey = async() {
+                        apiService.getPrivateAESKey(
+                            chatId = chatId,
+                            username = authServie.getCurrentUsername()
+                        )
+                    }
+                    insideKey.await()
+                }
+                Log.d(TAG, "Got the key : ${privateKey}")
+//                            Log.d(TAG,"Adding key to backend for all chats in all chats : ${newChat.secureAESKey}")
+                    val secureAES = encryptionService.aesKeyToString(
+                        encryptionService.decryptAESKeyWithPrivateKey(
+                            encryptedAESKey = encryptionService.stringToByteArray(privateKey),
+                            privateKey = encryptionService.stringToPrivateKey(privateKey ?: "")
+                        )
+                    )
+                    localChatKeysStorage.saveAESKey(
+                        ChatOrGroupAESKeys(
+                            chatId = chatId.toInt(),
+                            decryptedASEKey = secureAES
+                        )
+                    )
+                return secureAES
+            }
+        }
+        catch (e: Exception){
+            Log.e(TAG,"Error getting the keys ${e}")
+            return "error"
         }
     }
 }

@@ -115,6 +115,8 @@ interface FirebaseApi {
 
     suspend fun getEncryptedAESKeyForChatSpecialCase(chatId:String): String
 
+    suspend fun getPrivateAESKey(chatId:String,username: String): String
+
 }
 
 class NetworkFirebaseApi(
@@ -362,7 +364,7 @@ class NetworkFirebaseApi(
         )
 
         try {
-//            val response = service.sendNotification(notificationRequest)
+//            val response = service.sendNotification(notificationRequest)/
 
 //            Log.d(TAG, "Successfully send notification api : ${response.code()}")
         } catch (e: Exception) {
@@ -998,5 +1000,25 @@ class NetworkFirebaseApi(
     override suspend fun getEncryptedAESKeyForChatSpecialCase(chatId: String): String {
         //TODO:Never to be implemented
         return ""
+    }
+
+    override suspend fun getPrivateAESKey(chatId: String,username: String): String {
+        try {
+            val chatData = chatsCollection
+                .document(chatId)
+                .get()
+            val finalData = chatData.await()
+            val encryptedAESKey = finalData.getString("encryptedAESKeys") as List<HashMap<String, String>>
+            val myEncryptedAESKey = encryptedAESKey?.filter { key ->
+                key["username"] == username
+            }?.get(0)
+            return myEncryptedAESKey?.get("key").toString()
+            Log.d(TAG,"Got the api keys successfully")
+        }
+        catch (e: Exception){
+            Log.e(TAG,"Error getting the AES key : ${e}")
+            return "error"
+        }
+
     }
 }

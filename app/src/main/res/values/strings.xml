@@ -43,4 +43,5 @@
     <string name="receive_message">Receive Message</string>
     <string name="default_here">Default here</string>
     <string name="delete_alert_message">After confirming the chats will de deleted for all the members and cannot be restored</string>
+    <string name="send_text">Send message securely...</string>
 </resources>
