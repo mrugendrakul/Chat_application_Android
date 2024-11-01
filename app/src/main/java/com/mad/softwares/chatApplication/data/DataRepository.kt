@@ -9,15 +9,16 @@ import com.mad.softwares.chatApplication.data.onDevice.chatASEKeys.LocalAESkeys
 import com.mad.softwares.chatApplication.encryption.Encryption
 import com.mad.softwares.chatApplication.network.AuthenticationApi
 import com.mad.softwares.chatApplication.network.FirebaseApi
+import com.mad.softwares.chatApplication.notification.NotificationRequest
+import com.mad.softwares.chatApplication.notification.notificationApiSending
 import kotlinx.coroutines.CompletableDeferred
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.async
 import kotlinx.coroutines.coroutineScope
-import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.firstOrNull
 import kotlinx.coroutines.launch
-import okhttp3.Dispatcher
+import retrofit2.Call
 
 val TAG = "DataRepository_Logs"
 
@@ -58,7 +59,12 @@ interface DataRepository {
 
     suspend fun getGroups(myUsername: String): List<ChatOrGroup>
 
-    suspend fun sendMessage(message: MessageReceived, chatId: String, secureAESKey: String)
+    suspend fun sendMessage(
+        message: MessageReceived,
+        chatId: String,
+        secureAESKey: String,
+        fcmTokens:List<String>
+    )
 
     suspend fun sendNotificationToToken(token: String, title: String, content: String)
 
@@ -98,7 +104,7 @@ interface DataRepository {
 
     suspend fun stopLiveChat()
 
-    suspend fun getAESKeyForChatID(chatId:String): String
+    suspend fun getAESKeyForChatID(chatId: String): String
 }
 
 class NetworkDataRepository(
@@ -557,15 +563,18 @@ class NetworkDataRepository(
             isGroup = false,
             onAddChat = { newChat ->
                 CoroutineScope(Dispatchers.IO).launch {
-                    try{
-                        val secureAESKeyFlow = localChatKeysStorage.getAESKeyById(newChat.chatId.toInt())
+                    try {
+                        val secureAESKeyFlow =
+                            localChatKeysStorage.getAESKeyById(newChat.chatId.toInt())
                         var secureAES: String = ""
-                        if(secureAESKeyFlow.firstOrNull()?.decryptedASEKey == null){
+                        if (secureAESKeyFlow.firstOrNull()?.decryptedASEKey == null) {
 //                            Log.d(TAG,"Adding key to backend for all chats in all chats : ${newChat.secureAESKey}")
                             secureAES = encryptionService.aesKeyToString(
                                 encryptionService.decryptAESKeyWithPrivateKey(
                                     encryptedAESKey = encryptionService.stringToByteArray(newChat.secureAESKey),
-                                    privateKey = encryptionService.stringToPrivateKey(privateKey ?: "")
+                                    privateKey = encryptionService.stringToPrivateKey(
+                                        privateKey ?: ""
+                                    )
                                 )
                             )
                             localChatKeysStorage.saveAESKey(
@@ -574,9 +583,8 @@ class NetworkDataRepository(
                                     decryptedASEKey = secureAES
                                 )
                             )
-                        }
-                        else{
-                            Log.d(TAG,"No key to backend for current chat")
+                        } else {
+                            Log.d(TAG, "No key to backend for current chat")
                             secureAES = secureAESKeyFlow.firstOrNull()?.decryptedASEKey ?: ""
                         }
                         var tempUsername: String = "chat"
@@ -620,18 +628,21 @@ class NetworkDataRepository(
                             Log.d(TAG, "Chat added in data")
                             onChatAdd(laterLatestChat)
                         }
-                    }
-                    catch (e: Exception){
-                        Log.e(TAG,"Error while getting the data : ${e}")
+                    } catch (e: Exception) {
+                        Log.e(TAG, "Error while getting the data : ${e}")
                     }
                 }
             },
-            onModifiedChat = {modifiedChat ->
-                CoroutineScope(Dispatchers.IO).launch{
-                    val secureAESKeyFlow = localChatKeysStorage.getAESKeyById(modifiedChat.chatId.toInt())
+            onModifiedChat = { modifiedChat ->
+                CoroutineScope(Dispatchers.IO).launch {
+                    val secureAESKeyFlow =
+                        localChatKeysStorage.getAESKeyById(modifiedChat.chatId.toInt())
                     var secureAES: String = ""
-                    if(secureAESKeyFlow.firstOrNull()?.decryptedASEKey == null){
-                        Log.d(TAG,"Adding key to backend for all chats in all chats : ${modifiedChat.secureAESKey}")
+                    if (secureAESKeyFlow.firstOrNull()?.decryptedASEKey == null) {
+                        Log.d(
+                            TAG,
+                            "Adding key to backend for all chats in all chats : ${modifiedChat.secureAESKey}"
+                        )
                         secureAES = encryptionService.aesKeyToString(
                             encryptionService.decryptAESKeyWithPrivateKey(
                                 encryptedAESKey = encryptionService.stringToByteArray(modifiedChat.secureAESKey),
@@ -644,9 +655,8 @@ class NetworkDataRepository(
                                 decryptedASEKey = secureAES
                             )
                         )
-                    }
-                    else{
-                        Log.d(TAG,"No key to backend for current chat")
+                    } else {
+                        Log.d(TAG, "No key to backend for current chat")
                         secureAES = secureAESKeyFlow.firstOrNull()?.decryptedASEKey ?: ""
                     }
 
@@ -693,9 +703,10 @@ class NetworkDataRepository(
             isGroup = true,
             onAddChat = { newChat ->
                 CoroutineScope(Dispatchers.IO).launch {
-                    val secureAESKeyFlow = localChatKeysStorage.getAESKeyById(newChat.chatId.toInt())
+                    val secureAESKeyFlow =
+                        localChatKeysStorage.getAESKeyById(newChat.chatId.toInt())
                     var secureAES: String = ""
-                    if(secureAESKeyFlow.firstOrNull()?.decryptedASEKey == null){
+                    if (secureAESKeyFlow.firstOrNull()?.decryptedASEKey == null) {
 //                            Log.d(TAG,"Adding key to backend for all chats in all chats : ${newChat.secureAESKey}")
                         secureAES = encryptionService.aesKeyToString(
                             encryptionService.decryptAESKeyWithPrivateKey(
@@ -709,9 +720,8 @@ class NetworkDataRepository(
                                 decryptedASEKey = secureAES
                             )
                         )
-                    }
-                    else{
-                        Log.d(TAG,"No key to backend for current chat")
+                    } else {
+                        Log.d(TAG, "No key to backend for current chat")
                         secureAES = secureAESKeyFlow.firstOrNull()?.decryptedASEKey ?: ""
                     }
                     var tempUsername: String = "chat"
@@ -753,12 +763,16 @@ class NetworkDataRepository(
                     }
                 }
             },
-            onModifiedChat = {modifiedChat ->
-                CoroutineScope(Dispatchers.IO).launch{
-                    val secureAESKeyFlow = localChatKeysStorage.getAESKeyById(modifiedChat.chatId.toInt())
+            onModifiedChat = { modifiedChat ->
+                CoroutineScope(Dispatchers.IO).launch {
+                    val secureAESKeyFlow =
+                        localChatKeysStorage.getAESKeyById(modifiedChat.chatId.toInt())
                     var secureAES: String = ""
-                    if(secureAESKeyFlow.firstOrNull()?.decryptedASEKey == null){
-                        Log.d(TAG,"Adding key to backend for all chats in all chats : ${modifiedChat.secureAESKey}")
+                    if (secureAESKeyFlow.firstOrNull()?.decryptedASEKey == null) {
+                        Log.d(
+                            TAG,
+                            "Adding key to backend for all chats in all chats : ${modifiedChat.secureAESKey}"
+                        )
                         secureAES = encryptionService.aesKeyToString(
                             encryptionService.decryptAESKeyWithPrivateKey(
                                 encryptedAESKey = encryptionService.stringToByteArray(modifiedChat.secureAESKey),
@@ -771,9 +785,8 @@ class NetworkDataRepository(
                                 decryptedASEKey = secureAES
                             )
                         )
-                    }
-                    else{
-                        Log.d(TAG,"No key to backend for current chat")
+                    } else {
+                        Log.d(TAG, "No key to backend for current chat")
                         secureAES = secureAESKeyFlow.firstOrNull()?.decryptedASEKey ?: ""
                     }
 
@@ -809,13 +822,44 @@ class NetworkDataRepository(
     override suspend fun sendMessage(
         message: MessageReceived,
         chatId: String,
-        secureAESKey: String
+        secureAESKey: String,
+        fcmTokens: List<String>
     ) {
         try {
             val encryptedMessage = encryptionService.aesEncrypt(
                 data = message.content.toByteArray(),
                 secretKey = encryptionService.stringToAESKey(secureAESKey)
             )
+            for(token in fcmTokens) {
+                Log.d(TAG,"Token is : $token")
+                val notificationBody = NotificationRequest(
+                    fcmToken = token,
+                    title = message.senderId,
+                    body = encryptionService.byteArrayToString(encryptedMessage),
+                    chatId = chatId
+                )
+                notificationApiSending.sendNotificationToDevice(notificationBody)
+                    .enqueue(object : retrofit2.Callback<Void> {
+                        override fun onResponse(
+                            call: Call<Void>,
+                            response: retrofit2.Response<Void>
+                        ) {
+                            if (response.isSuccessful) {
+                                // Successfully sent the request
+                                Log.d(TAG,"Notification sent successfully.")
+                            } else {
+                                // Handle the error
+                                Log.e(TAG,"Failed to send notification. Error code: ${response.code()}")
+                            }
+                        }
+
+                        override fun onFailure(call: Call<Void>, t: Throwable) {
+                            // Handle failure
+                            println("Error: ${t.message}")
+                        }
+                    })
+            }
+//            notificationApiSending.sendNotification()
             val staus =
                 apiService.sendNewMessage(
                     message.copy(content = encryptionService.byteArrayToString(encryptedMessage)),
@@ -882,23 +926,26 @@ class NetworkDataRepository(
             onChange = { messages ->
                 messages.map { t ->
                     t.copy(
-                        content = String(encryptionService.aesDecrypt(
-                            encryptedData = encryptionService.stringToByteArray(
-                                t.content
-                            ), secretKey = encryptionService.stringToAESKey(secureAESKey)
-                        ))
+                        content = String(
+                            encryptionService.aesDecrypt(
+                                encryptedData = encryptionService.stringToByteArray(
+                                    t.content
+                                ), secretKey = encryptionService.stringToAESKey(secureAESKey)
+                            )
+                        )
                     )
                 }
                 onMessagesChange(messages)
             },
-            onAdd = {
-                message->
+            onAdd = { message ->
                 val newMessage = message.copy(
-                    content = String(encryptionService.aesDecrypt(
-                        encryptedData = encryptionService.stringToByteArray(
-                            message.content
-                        ), secretKey = encryptionService.stringToAESKey(secureAESKey)
-                    ))
+                    content = String(
+                        encryptionService.aesDecrypt(
+                            encryptedData = encryptionService.stringToByteArray(
+                                message.content
+                            ), secretKey = encryptionService.stringToAESKey(secureAESKey)
+                        )
+                    )
                 )
                 onAdd(newMessage)
             },
@@ -944,8 +991,8 @@ class NetworkDataRepository(
                 Log.d(TAG, "Group data is : ${chatData.chatName} , ${chatData.chatId}")
                 val secureAESKeyFlow = localChatKeysStorage.getAESKeyById(chatId.toInt())
                 var secureAES: String = ""
-                if(secureAESKeyFlow.firstOrNull()?.decryptedASEKey == null){
-                    Log.d(TAG,"Adding key to backend for current chat")
+                if (secureAESKeyFlow.firstOrNull()?.decryptedASEKey == null) {
+                    Log.d(TAG, "Adding key to backend for current chat")
                     secureAES = encryptionService.aesKeyToString(
                         encryptionService.decryptAESKeyWithPrivateKey(
                             encryptedAESKey = encryptionService.stringToByteArray(chatData.secureAESKey),
@@ -958,9 +1005,8 @@ class NetworkDataRepository(
                             decryptedASEKey = secureAES
                         )
                     )
-                }
-                else{
-                    Log.d(TAG,"No key to backend for current chat")
+                } else {
+                    Log.d(TAG, "No key to backend for current chat")
                     secureAES = secureAESKeyFlow.firstOrNull()?.decryptedASEKey ?: ""
                 }
 
@@ -983,8 +1029,8 @@ class NetworkDataRepository(
                 }
                 val secureAESKeyFlow = localChatKeysStorage.getAESKeyById(chatId.toInt())
                 var secureAES: String = ""
-                if(secureAESKeyFlow.firstOrNull()?.decryptedASEKey == null){
-                    Log.d(TAG,"Adding key to backend for chat : ${chatId}")
+                if (secureAESKeyFlow.firstOrNull()?.decryptedASEKey == null) {
+                    Log.d(TAG, "Adding key to backend for chat : ${chatId}")
                     secureAES = encryptionService.aesKeyToString(
                         encryptionService.decryptAESKeyWithPrivateKey(
                             encryptedAESKey = encryptionService.stringToByteArray(chatData.secureAESKey),
@@ -997,9 +1043,8 @@ class NetworkDataRepository(
                             decryptedASEKey = secureAES
                         )
                     )
-                }
-                else{
-                    Log.d(TAG,"No key to backend")
+                } else {
+                    Log.d(TAG, "No key to backend")
                     secureAES = secureAESKeyFlow.firstOrNull()?.decryptedASEKey ?: ""
                 }
                 Log.d(TAG, "Chat data is : ${chatData.chatName} , ${chatData.chatId}")
@@ -1019,13 +1064,18 @@ class NetworkDataRepository(
 
     override suspend fun getAESKeyForChatID(chatId: String): String {
         try {
-            Log.d(TAG,"started getting data for chatId : ${chatId} and username ${authServie.getCurrentUsername()}")
-            if(localChatKeysStorage.getAESKeyById(chatId.toInt()).firstOrNull()?.decryptedASEKey != null){
-                Log.d(TAG,"Key for notification got from backend")
-                return localChatKeysStorage.getAESKeyById(chatId.toInt()).firstOrNull()?.decryptedASEKey.toString()
-            }
-            else {
-                Log.d(TAG,"Adding Key to backend and getting key for you")
+            Log.d(
+                TAG,
+                "started getting data for chatId : ${chatId} and username ${authServie.getCurrentUsername()}"
+            )
+            if (localChatKeysStorage.getAESKeyById(chatId.toInt())
+                    .firstOrNull()?.decryptedASEKey != null
+            ) {
+                Log.d(TAG, "Key for notification got from Device")
+                return localChatKeysStorage.getAESKeyById(chatId.toInt())
+                    .firstOrNull()?.decryptedASEKey.toString()
+            } else {
+                Log.d(TAG, "Adding Key to Device and getting key for you")
                 val privateKey = coroutineScope {
                     val insideKey = async() {
                         apiService.getPrivateAESKey(
@@ -1037,23 +1087,22 @@ class NetworkDataRepository(
                 }
                 Log.d(TAG, "Got the key : ${privateKey}")
 //                            Log.d(TAG,"Adding key to backend for all chats in all chats : ${newChat.secureAESKey}")
-                    val secureAES = encryptionService.aesKeyToString(
-                        encryptionService.decryptAESKeyWithPrivateKey(
-                            encryptedAESKey = encryptionService.stringToByteArray(privateKey),
-                            privateKey = encryptionService.stringToPrivateKey(privateKey ?: "")
-                        )
+                val secureAES = encryptionService.aesKeyToString(
+                    encryptionService.decryptAESKeyWithPrivateKey(
+                        encryptedAESKey = encryptionService.stringToByteArray(privateKey),
+                        privateKey = encryptionService.stringToPrivateKey(privateKey ?: "")
                     )
-                    localChatKeysStorage.saveAESKey(
-                        ChatOrGroupAESKeys(
-                            chatId = chatId.toInt(),
-                            decryptedASEKey = secureAES
-                        )
+                )
+                localChatKeysStorage.saveAESKey(
+                    ChatOrGroupAESKeys(
+                        chatId = chatId.toInt(),
+                        decryptedASEKey = secureAES
                     )
+                )
                 return secureAES
             }
-        }
-        catch (e: Exception){
-            Log.e(TAG,"Error getting the keys ${e}")
+        } catch (e: Exception) {
+            Log.e(TAG, "Error getting the keys ${e}")
             return "error"
         }
     }

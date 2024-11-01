@@ -187,7 +187,8 @@ class MessagesViewModel(
                 dataRepository.sendMessage(
                     message = newMessage,
                     chatId = messagesUiState.value.chatID,
-                    secureAESKey = messagesUiState.value.currChat.secureAESKey
+                    secureAESKey = messagesUiState.value.currChat.secureAESKey,
+                    fcmTokens = messagesUiState.value.currChat.membersData.map { it.fcmToken }.flatten()
 //                    chatId = "12345677"
                 )
 

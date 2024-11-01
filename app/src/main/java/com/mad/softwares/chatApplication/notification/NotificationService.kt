@@ -81,7 +81,7 @@ class NotificationService(): FirebaseMessagingService() {
                 Log.d(TAGNotf, "Notification ChatId : $chatId")
 
                 // Now, you can display the notification details as needed (e.g., in a notification UI)
-                showNotification(title, decryptedBody   , message.data.toList())
+                showNotification(title, decryptedBody, message.data.toList())
                 notificationReceived()
             }
         }
