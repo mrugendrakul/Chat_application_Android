@@ -275,7 +275,7 @@ fun UserChatsBody(
                 )
                 PrimaryTabRow(
                     selectedTabIndex = pagerState.currentPage,
-                    containerColor = MaterialTheme.colorScheme.primaryContainer
+                    containerColor = MaterialTheme.colorScheme.surfaceVariant
                 ) {
                     titleAndIcon.forEachIndexed { index, (text, icon) ->
                         Tab(
@@ -286,7 +286,7 @@ fun UserChatsBody(
                                 }
                             },
                             text = { Text(text = text) },
-                            icon = { Icon(imageVector = icon, contentDescription = null) }
+//                            icon = { Icon(imageVector = icon, contentDescription = null) }
                         )
                     }
 
@@ -297,23 +297,28 @@ fun UserChatsBody(
                     LaunchedEffect(key1 = Unit) {
                         permissionState?.launchPermissionRequest()
                     }
-                    Card(
-                        modifier = Modifier
-                            .padding(20.dp),
-                        colors = CardDefaults.cardColors(
-                            containerColor = MaterialTheme.colorScheme.errorContainer
-                        )
-                    ) {
-
-                        Text(
+                    Row(modifier = Modifier
+                        .fillMaxWidth(),
+                        horizontalArrangement = Arrangement.Center
+                    ){
+                        Card(
                             modifier = Modifier
-                                .padding(10.dp),
-                            text = "Notification permission missing, grant them",
-                            fontSize = 20.sp,
-                            lineHeight = 20.sp,
-                            textAlign = TextAlign.Center
-                        )
+                                .padding(20.dp),
+                            colors = CardDefaults.cardColors(
+                                containerColor = MaterialTheme.colorScheme.errorContainer
+                            )
+                        ) {
 
+                            Text(
+                                modifier = Modifier
+                                    .padding(10.dp),
+                                text = "Notification disabled, enable them from setting",
+                                fontSize = 20.sp,
+                                lineHeight = 20.sp,
+                                textAlign = TextAlign.Center
+                            )
+
+                        }
                     }
                 }
             }
@@ -402,7 +407,10 @@ fun ShowGroupsSuccessful(
             contentPadding = PaddingValues(bottom = 100.dp)
         ) {
             if (!chatsUiState.selectStatus) {
-                items(chatsUiState.groups.sortedBy { it.lastMessage.timestamp }.reversed()) {
+                items(
+                    items = chatsUiState.groups.sortedBy { it.lastMessage.timestamp }.reversed(),
+                    key = { group -> group.chatId }
+                ) {
                     SingleChat(
                         chat = it,
                         navigateToCurrentChat = navigateToCurrentChat,
@@ -605,7 +613,10 @@ fun ShowChatsSuccessful(
             contentPadding = PaddingValues(bottom = 100.dp)
         ) {
             if (!chatsUiState.selectStatus) {
-                items(chatsUiState.chats.sortedBy { it.lastMessage.timestamp }.reversed()) {
+                items(
+                    items = chatsUiState.chats.sortedBy { it.lastMessage.timestamp }.reversed(),
+                    key = {chat->chat.chatId}
+                ) {
                     SingleChat(
                         chat = it,
                         navigateToCurrentChat = navigateToCurrentChat,

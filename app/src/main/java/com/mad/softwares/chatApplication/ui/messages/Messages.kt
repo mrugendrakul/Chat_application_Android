@@ -13,12 +13,14 @@ import androidx.compose.animation.scaleOut
 import androidx.compose.animation.shrinkVertically
 import androidx.compose.animation.slideInVertically
 import androidx.compose.animation.slideOutVertically
+import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.IntrinsicSize
+import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxSize
@@ -29,6 +31,7 @@ import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.layout.wrapContentWidth
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.selection.SelectionContainer
 import androidx.compose.material3.Scaffold
@@ -62,6 +65,7 @@ import androidx.compose.material3.SnackbarHostState
 import androidx.compose.material3.Text
 import androidx.compose.material3.rememberModalBottomSheetState
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -102,6 +106,8 @@ import com.mad.softwares.chatApplication.ui.destinationData
 import com.mad.softwares.chatApplication.ui.theme.ChitChatTheme
 import kotlinx.coroutines.launch
 import java.text.SimpleDateFormat
+import java.time.LocalDate
+import java.time.ZoneId
 import java.util.Date
 
 object messagesdestinationData : destinationData {
@@ -145,7 +151,7 @@ fun Messages(
     }
 }
 
-@OptIn(ExperimentalMaterial3Api::class)
+@OptIn(ExperimentalMaterial3Api::class, ExperimentalFoundationApi::class)
 @Composable
 fun MessagesBodySuccess(
     uiState: MessagesUiState,
@@ -168,6 +174,11 @@ fun MessagesBodySuccess(
     val snackbarHostState = remember { SnackbarHostState() }
     var expandDDMenu by remember {
         mutableStateOf(false)
+    }
+    val listState = rememberLazyListState()
+    val coroutineScope = rememberCoroutineScope()
+    var currentDate by remember {
+        mutableStateOf("")
     }
     Scaffold(
         topBar = {
@@ -198,7 +209,12 @@ fun MessagesBodySuccess(
         bottomBar = {
             BottomMessageSend(
                 appUistate = uiState,
-                sendMessage = sendMessage,
+                sendMessage = {
+                    sendMessage()
+                    coroutineScope.launch {
+                        listState.animateScrollToItem(0)
+                    }
+                },
                 updateMessage = updateMessage,
                 sendAttatchment = {
                     sheetVisible = true
@@ -213,51 +229,76 @@ fun MessagesBodySuccess(
             .background(MaterialTheme.colorScheme.background)
     ) { padding ->
 
+
         if (uiState.messages.isNotEmpty()) {
+            val groupedMessages = uiState.messages.sortedBy { message ->
+                message.timeStamp
+            }.reversed().groupBy { message ->
+                message.timeStamp.toDate().toInstant().atZone(ZoneId.systemDefault()).toLocalDate()
+            }
+//                .entries.toList()
+//                .foldIndexed(mutableListOf<Pair<LocalDate?, List<MessageReceived>>>()) { index, acc, entry ->
+//                    val date = if (index == 0) null else entry.key // Assign null to the first group
+//                    acc.apply { add(date to entry.value) }
+//                }
+//            LaunchedEffect(listState) {
+//                listState.scrollToItem(index =listState )
+//            }
+
             LazyColumn(
                 modifier = modifier
                     .padding(padding)
                     .fillMaxSize(),
 //                    .background(MaterialTheme.colorScheme.background),
                 reverseLayout = true,
-                verticalArrangement = Arrangement.Bottom
+                state = listState,
+                verticalArrangement = Arrangement.Bottom,
+                contentPadding = PaddingValues(top = 100.dp)
             ) {
-                items(uiState.messages.reversed()) {
-                    if (it.senderId != uiState.currentUser) {
-                        if (uiState.currChat.isGroup == false) {
-                            ReceiverChat(message = it)
+
+                groupedMessages.forEach { (date, messages) ->
+//                    stickyHeader {
+
+//
+//                    }
+//                    stickyHeader(
+//
+//                    ) {
+//                        Text(
+//                            modifier = Modifier.fillMaxWidth(),
+//                            text = date.toString(),
+//                            textAlign = TextAlign.Center
+//                        )
+//
+//                    }
+                    items(
+//                        items = uiState.messages.reversed(),
+                        items = messages,
+//                        key = { message ->
+//                            message.timeStamp
+//                        }
+                    ) {
+
+                        if (it.senderId != uiState.currentUser) {
+                            if (uiState.currChat.isGroup == false) {
+                                ReceiverChat(message = it)
+                            } else {
+                                ReceiverGroupChat(message = it)
+                            }
                         } else {
-                            ReceiverGroupChat(message = it)
+                            SenderChat(message = it)
                         }
-                    } else {
-                        SenderChat(message = it)
                     }
+                    item(){
+                        Text(
+                            modifier = Modifier.fillMaxWidth(),
+                            text = date.toString(),
+                            textAlign = TextAlign.Center
+                        )
+                    }
+
                 }
             }
-
-//            if (codeSheetVisible){
-//                ModalBottomSheet(onDismissRequest = { codeSheetVisible = false }) {
-////                    AttachCode(code = "", changeCodeName ={} , changeCode = {}){
-////                        //Hide the Bottom Sheet
-////                        scope.launch { codeSheetState.hide() }.invokeOnCompletion {
-////                            if (!codeSheetState.isVisible) {
-////                                codeSheetVisible = false
-////                            }
-////                        }
-////
-////                        //Show the snack bar
-////                        snackbarHostState.currentSnackbarData?.dismiss()
-////                        scope.launch {
-////                            snackbarHostState.showSnackbar(
-////                                message = "This function is not implemented yet",
-////                                withDismissAction = true
-////                            )
-////                        }
-////                    }
-//
-//                    Text(text = "Featured Removed and will be added in the text filed itself.")
-//                }
-//            }
 
             if (sheetVisible) {
                 ModalBottomSheet(
@@ -956,11 +997,11 @@ fun ReceiverGroupChat(
     val date = message.timeStamp.toDate()
 //    val sdf  = SimpleDateFormat("HH:mm")
     val currentDate = Timestamp.now().toDate()
-    val difference = (currentDate.time - date.time) / (1000 * 60 * 60)
-    val sdf = if (difference <= 24) {
+//    val difference = (currentDate.time - date.time) / (1000 * 60 * 60)
+    val sdf = if (currentDate == date) {
         SimpleDateFormat("hh:mm a")
     } else {
-        SimpleDateFormat("YYYY/MM/dd hh:mm a")
+        SimpleDateFormat("dd/MM/YYYY hh:mm a")
     }
     val fDate = sdf.format(date)
     var showTime by remember {
@@ -1255,7 +1296,7 @@ fun PreviewMessagebodySuccess() {
                     MessageReceived(
                         content = "Ok Bye",
                         senderId = "ThereSelf",
-                        timeStamp = Timestamp(Date(2024 - 1900, 2, 25, 20, 15))
+                        timeStamp = Timestamp(Date(2024 - 1900, 2, 26, 20, 15))
                     ),
                     MessageReceived(
                         content = "Hello *Friend*",
@@ -1265,37 +1306,37 @@ fun PreviewMessagebodySuccess() {
                     MessageReceived(
                         content = "Hey there How are you",
                         senderId = "ThereSelf",
-                        timeStamp = Timestamp(Date(2024 - 1900, 1, 25, 20, 17))
+                        timeStamp = Timestamp(Date(2024 - 1900, 1, 28, 20, 17))
                     ),
                     MessageReceived(
                         content = "Customize Toolbar... 124",
                         senderId = "mySelf",
-                        timeStamp = Timestamp(Date(2024 - 1900, 2, 25, 20, 15))
+                        timeStamp = Timestamp(Date(2024 - 1900, 2, 22, 20, 15))
                     ),
                     MessageReceived(
                         content = "This is a long message an \n```this is goinh yo occupy whole screen and we have to avoid``` that now.",
                         senderId = "ThereSelf",
-                        timeStamp = Timestamp(Date(2024 - 1900, 2, 25, 20, 15))
+                        timeStamp = Timestamp(Date(2024 - 1900, 2, 16, 20, 15))
                     ),
                     MessageReceived(
                         content = "Hello *Friend* ",
                         senderId = "mySelf",
-                        timeStamp = Timestamp(Date(2024 - 1900, 1, 25, 20, 15))
+                        timeStamp = Timestamp(Date(2024 - 1900, 1, 12, 20, 15))
                     ),
                     MessageReceived(
                         content = "Hey there *How* are you",
                         senderId = "ThereSelf",
-                        timeStamp = Timestamp(Date(2024 - 1900, 1, 25, 20, 17))
+                        timeStamp = Timestamp(Date(2024 - 1900, 1, 7, 20, 17))
                     ),
                     MessageReceived(
                         content = "good to say '''fda and we ate goin to teshio thaio''' nlhasfihobphbkjwahf aw;jhflkb aweklfb ",
                         senderId = "mySelf",
-                        timeStamp = Timestamp(Date(2024 - 1900, 2, 25, 20, 15))
+                        timeStamp = Timestamp(Date(2024 - 1900, 2, 5, 20, 15))
                     ),
                     MessageReceived(
                         content = "*Bold* _Italic_ and ~Strikethrough~ and now ! Underlined !",
                         senderId = "ThereSelf",
-                        timeStamp = Timestamp(Date(2024 - 1900, 2, 25, 20, 15))
+                        timeStamp = Timestamp(Date(2024 - 1900, 10, 2, 7, 45))
                     ),
                 ),
             ),

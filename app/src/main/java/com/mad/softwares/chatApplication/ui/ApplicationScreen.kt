@@ -2,6 +2,7 @@ package com.mad.softwares.chatApplication.ui
 
 import android.os.Build
 import android.util.Log
+import androidx.activity.compose.BackHandler
 import androidx.annotation.RequiresApi
 import androidx.compose.foundation.layout.RowScope
 import androidx.compose.material.icons.Icons
@@ -289,6 +290,9 @@ fun ApptopBar(
 
             }
             else if(canGoBack){
+                BackHandler (enabled = canGoBack){
+                    goBack()
+                }
                 IconButton(onClick = goBack) {
                     Icon(
                         imageVector = Icons.AutoMirrored.Filled.ArrowBack,
@@ -296,6 +300,7 @@ fun ApptopBar(
                         tint = MaterialTheme.colorScheme.onPrimary)
             }
             }
+
         },
         actions = action,
         scrollBehavior = scrollBehavior,
@@ -303,10 +308,11 @@ fun ApptopBar(
         )
 }
 
+
 object welcomeDestinationTest : destinationData {
     override val route = "welcome"
     override val title = R.string.welcome
-    override val canBack = false
+    override val canBack = true
 }
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -318,7 +324,8 @@ fun ApptopBarPreview() {
             welcomeDestinationTest,
             scrollBehavior = TopAppBarDefaults.enterAlwaysScrollBehavior(),
             navigateUp = {},
-            title = "Testing this"
+            title = "Testing this",
+//            canGoBack = true
         )
     }
 }
