@@ -104,7 +104,7 @@ class NotificationService(): FirebaseMessagingService() {
 
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
             val channel =
-                NotificationChannel(channelId, "Chats", NotificationManager.IMPORTANCE_DEFAULT)
+                NotificationChannel(channelId, title, NotificationManager.IMPORTANCE_DEFAULT)
             notificationManager.createNotificationChannel(channel)
         }
 

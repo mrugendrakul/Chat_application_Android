@@ -1,5 +1,9 @@
 package com.mad.softwares.chatApplication.ui.messages
 
+import android.content.Intent
+import android.net.Uri
+import android.os.Message
+import android.util.Log
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.animateContentSize
 import androidx.compose.animation.core.Spring
@@ -78,7 +82,9 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.hapticfeedback.HapticFeedbackType
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalHapticFeedback
+import androidx.compose.ui.platform.LocalUriHandler
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.AnnotatedString
 import androidx.compose.ui.text.SpanStyle
@@ -252,9 +258,10 @@ fun MessagesBodySuccess(
 //                    .background(MaterialTheme.colorScheme.background),
                 reverseLayout = true,
                 state = listState,
-                verticalArrangement = Arrangement.Bottom,
-                contentPadding = PaddingValues(top = 100.dp)
+                verticalArrangement = Arrangement.Top,
+//                contentPadding = PaddingValues(top = 100.dp)
             ) {
+
 
                 groupedMessages.forEach { (date, messages) ->
 //                    stickyHeader {
@@ -289,7 +296,7 @@ fun MessagesBodySuccess(
                             SenderChat(message = it)
                         }
                     }
-                    item(){
+                    item() {
                         Text(
                             modifier = Modifier.fillMaxWidth(),
                             text = date.toString(),
@@ -298,6 +305,14 @@ fun MessagesBodySuccess(
                     }
 
                 }
+                item() {
+                    Row(
+                        modifier = Modifier
+                            .fillMaxWidth(),
+                        horizontalArrangement = Arrangement.Center
+                    ) { SecureMessageTag() }
+                }
+
             }
 
             if (sheetVisible) {
@@ -585,9 +600,88 @@ fun checkForCode(message: String): Boolean {
     return codeRegex.containsMatchIn(message)
 }
 
-fun parseMessage(message: String): Map<String, Boolean> {
-    val result = mutableMapOf<String, Boolean>()
+fun checkForLink(message: String): Boolean {
+    val codeRegex = Regex("<([^\\s])>", RegexOption.DOT_MATCHES_ALL)
+    return codeRegex.containsMatchIn(message)
+}
+
+enum class textTypeParse{
+    text,
+    code,
+    link
+}
+
+data class containerMessage(
+    val regex: Regex,
+    val type: textTypeParse
+)
+
+
+fun parseMessage(message: String): Map<String, textTypeParse> {
+    val result = mutableMapOf<String, textTypeParse>()
+
     val codeRegex = Regex("```(.*?)```", RegexOption.DOT_MATCHES_ALL)
+//    val linkRegex = Regex("<([^\\s]+)>", RegexOption.DOT_MATCHES_ALL) // Ensure no spaces in links
+    val linkRegex = Regex("\\<(.*?)\\>")
+//    val linkRegex = Regex("(?:\\[(.*?)]?)\\<(.*?)\\>")
+
+    // Collect matches from al regex patterns
+    val matches = mutableListOf<Triple<IntRange, textTypeParse, String>>()
+
+    codeRegex.findAll(message).forEach { matches.add(Triple(it.range, textTypeParse.code, it.groupValues[1])) }
+    linkRegex.findAll(message).forEach { matches.add(Triple(it.range , textTypeParse.link, it.groupValues[1])) }
+
+    // Sort matches by their start positions
+    matches.sortBy { it.first.first }
+
+    var lastIndex = 0
+
+    // Iterate through sorted matches and build the map
+    for ((range, type,content) in matches) {
+        val start = range.first
+        val end = range.last + 1
+
+        // Add the text before the match as plain text
+        if (lastIndex < start) {
+            val textPart = message.substring(lastIndex, start)
+//            val textPart = content
+            result[textPart] = textTypeParse.text
+        }
+
+        // Add the matched text
+//        var matchedPart = message.substring(start, end)
+        var matchedPart = content
+        when(type){
+            textTypeParse.text -> {
+            }
+            textTypeParse.code -> {
+//                matchedPart = matchedPart.removeSurrounding("```")
+            }
+            textTypeParse.link -> {
+//                matchedPart = matchedPart.removeSurrounding("<",">")
+
+            }
+        }
+        result[matchedPart] = type
+
+        // Update last index
+        lastIndex = end
+    }
+
+    // Add any remaining text as plain text
+    if (lastIndex < message.length) {
+        val remainingText = message.substring(lastIndex)
+        result[remainingText] = textTypeParse.text
+    }
+
+    return result
+}
+
+
+
+/*fun parseLinkInMessage(message: String): Map<String, Boolean> {
+    val result = mutableMapOf<String, Boolean>()
+    val codeRegex = Regex("<([^\\s])>", RegexOption.DOT_MATCHES_ALL)
     var lastIndex = 0
 
     // Function to add text to map
@@ -616,20 +710,62 @@ fun parseMessage(message: String): Map<String, Boolean> {
     addTextToMap(message.substring(lastIndex), isCode = false)
 
     return result
-}
+}*/
+
+//@Composable
+//fun GetLinkBlock(msg: String){
+//    val parsedMessage = parseLinkInMessage(msg)
+//    Column(
+//        modifier = Modifier
+//            .padding(10.dp)
+//    ) {
+//        parsedMessage.forEach {
+//            if (it.value) {
+//                Card(
+//                    modifier = Modifier,
+//                    shape = RoundedCornerShape(10.dp)
+//                ) {
+//                    SelectionContainer {
+//                        Text(
+//                            text = it.key,
+//                            modifier = Modifier
+//                                .padding(6.dp),
+//                            fontSize = 20.sp,
+//                            fontFamily = FontFamily.Monospace
+//
+////                    inlineContent = InlineStyles(msg = msg),
+////                    onTextLayout = {}
+//                        )
+//                    }
+//                }
+//            } else {
+//                Text(
+//                    text =  annotateMessage(it.key),
+//                    modifier = Modifier,
+//                    fontSize = 20.sp,
+//                )
+//            }
+//        }
+//    }
+//}
 
 @Composable
 fun GetCodeMessage(msg: String) {
     val parsedMessage = parseMessage(msg)
+    val handler = LocalUriHandler.current
     Column(
         modifier = Modifier
             .padding(10.dp)
     ) {
+        val context = LocalContext.current
         parsedMessage.forEach {
-            if (it.value) {
+            if (it.value == textTypeParse.code) {
                 Card(
                     modifier = Modifier,
-                    shape = RoundedCornerShape(10.dp)
+                    shape = RoundedCornerShape(10.dp),
+                    colors = CardDefaults.cardColors(
+                        containerColor = MaterialTheme.colorScheme.tertiaryContainer
+                    )
                 ) {
                     SelectionContainer {
                         Text(
@@ -644,9 +780,38 @@ fun GetCodeMessage(msg: String) {
                         )
                     }
                 }
-            } else {
+            }
+            else if(it.value == textTypeParse.link){
+//                Card(
+//                    modifier = Modifier,
+//                    shape = RoundedCornerShape(10.dp),
+//                    colors = CardDefaults.cardColors(
+//                        containerColor = MaterialTheme.colorScheme.error
+//                    )
+//                ) {
+                    SelectionContainer {
+                        Text(
+                            text = it.key,
+                            modifier = Modifier
+                                .padding(6.dp)
+                                .clickable(enabled = true, onClick = {
+//                                    val intend = Intent(Intent.ACTION_VIEW, Uri.parse(it.key))
+//                                    context.startActivity(intend)
+                                    handler.openUri(it.key)
+                                })
+                            ,
+                            fontSize = 18.sp,
+                            fontFamily = FontFamily.Monospace,
+                            textDecoration = TextDecoration.Underline
+//                    inlineContent = InlineStyles(msg = msg),
+//                    onTextLayout = {}
+                        )
+                    }
+//                }
+            }
+            else if (it.value == textTypeParse.text) {
                 Text(
-                    text = it.key,
+                    text = annotateMessage(it.key),
                     modifier = Modifier,
                     fontSize = 20.sp,
                 )
@@ -735,16 +900,17 @@ fun SenderChat(
                             modifier = Modifier
                                 .width(IntrinsicSize.Max)
                         ) {
-                            if (checkForCode(msg)) {
-                                GetCodeMessage(msg = msg)
-                            } else {
-                                Text(
-                                    text = annotateMessage(message.content),
-                                    modifier = Modifier
-                                        .padding(10.dp),
-                                    fontSize = 20.sp,
-                                )
-                            }
+//                            if (checkForCode(msg)) {
+//                                GetCodeMessage(msg = msg)
+//                            } else {
+//                                Text(
+//                                    text = annotateMessage(message.content),
+//                                    modifier = Modifier
+//                                        .padding(10.dp),
+//                                    fontSize = 20.sp,
+//                                )
+//                            }
+                            GetCodeMessage(msg = msg)
                         }
 //                if (message.status == messageStatus.Send) {
 //                            Icon(
@@ -929,18 +1095,19 @@ fun ReceiverChat(
                     modifier = Modifier
                         .width(IntrinsicSize.Max)
                 ) {
-                    if (checkForCode(message.content)
-                    ) {
-                        GetCodeMessage(msg = message.content)
-                    } else {
-                        Text(
-                            text = annotateMessage(message.content),
-                            modifier = Modifier
-                                .padding(10.dp)
-                                .wrapContentWidth(),
-                            fontSize = 20.sp
-                        )
-                    }
+//                    if (checkForCode(message.content)
+//                    ) {
+//                        GetCodeMessage(msg = message.content)
+//                    } else {
+//                        Text(
+//                            text = annotateMessage(message.content),
+//                            modifier = Modifier
+//                                .padding(10.dp)
+//                                .wrapContentWidth(),
+//                            fontSize = 20.sp
+//                        )
+//                    }
+                    GetCodeMessage(msg = message.content)
 
 //                Card(
 //                    modifier = Modifier
@@ -1042,18 +1209,19 @@ fun ReceiverGroupChat(
                     modifier = Modifier
                         .width(IntrinsicSize.Max)
                 ) {
-                    if (checkForCode(message.content)
-                    ) {
-                        GetCodeMessage(msg = message.content)
-                    } else {
-                        Text(
-                            text = annotateMessage(message.content),
-                            modifier = Modifier
-                                .padding(10.dp)
-                                .wrapContentWidth(),
-                            fontSize = 20.sp
-                        )
-                    }
+//                    if (checkForCode(message.content)
+//                    ) {
+//                        GetCodeMessage(msg = message.content)
+//                    } else {
+//                        Text(
+//                            text = annotateMessage(message.content),
+//                            modifier = Modifier
+//                                .padding(10.dp)
+//                                .wrapContentWidth(),
+//                            fontSize = 20.sp
+//                        )
+//                    }
+                    GetCodeMessage(msg = message.content)
 
 //                    Card(
 //                        modifier = Modifier
@@ -1265,8 +1433,40 @@ fun BottomMessageSend(
 
 }
 
+@Composable
+fun SecureMessageTag(
+    modifier: Modifier = Modifier
+) {
+    ElevatedCard(
+        modifier = modifier
+            .padding(10.dp),
+        shape = RoundedCornerShape(20.dp),
+        colors = CardDefaults.cardColors(
+            containerColor = MaterialTheme.colorScheme.tertiaryContainer
+        ),
+        elevation = CardDefaults.cardElevation(0.dp)
+    ) {
+        Text(
+            text = "\uD83D\uDD12 Encrypted and protected! Not even Sherlock can crack this\uD83D\uDD76\uFE0F. Only the chosen ones can read \uD83D\uDCAA!",
+            modifier = Modifier
+                .padding(5.dp),
+            textAlign = TextAlign.Center
+        )
+    }
+}
 
-@Preview
+//@Preview
+//@Composable
+//fun PreviewSecureMessage() {
+//    ChitChatTheme(
+//        dynamicColor = false
+//
+//    ) {
+//        SecureMessageTag()
+//    }
+//}
+
+@Preview(device = "spec:parent=pixel_5")
 @Composable
 fun PreviewMessagebodySuccess() {
     ChitChatTheme(
@@ -1276,23 +1476,13 @@ fun PreviewMessagebodySuccess() {
         MessagesBodySuccess(
             uiState = MessagesUiState(
                 chatName = "ThereSelf",
-                currChat = ChatOrGroup(isGroup = true),
+                currChat = ChatOrGroup(
+                    isGroup = false,
+                    chatName = "ThereSelf"
+                ),
+                currentUser = "ThereSelf",
                 messages = mutableListOf(
-                    MessageReceived(
-                        content = "Hello Friend",
-                        senderId = "mySelf",
-                        timeStamp = Timestamp(Date(2024 - 1900, 1, 25, 20, 15))
-                    ),
-                    MessageReceived(
-                        content = "Hey there How are you",
-                        senderId = "ThereSelf",
-                        timeStamp = Timestamp(Date(2024 - 1900, 3, 25, 20, 17))
-                    ),
-                    MessageReceived(
-                        content = "good to say This is a long message and we are gonint ot test this too",
-                        senderId = "mySelf",
-                        timeStamp = Timestamp(Date(2024 - 1900, 2, 25, 20, 15))
-                    ),
+
                     MessageReceived(
                         content = "Ok Bye",
                         senderId = "ThereSelf",
@@ -1303,41 +1493,28 @@ fun PreviewMessagebodySuccess() {
                         senderId = "mySelf",
                         timeStamp = Timestamp(Date(2024 - 1900, 1, 25, 20, 15))
                     ),
+
                     MessageReceived(
-                        content = "Hey there How are you",
-                        senderId = "ThereSelf",
-                        timeStamp = Timestamp(Date(2024 - 1900, 1, 28, 20, 17))
-                    ),
-                    MessageReceived(
-                        content = "Customize Toolbar... 124",
-                        senderId = "mySelf",
-                        timeStamp = Timestamp(Date(2024 - 1900, 2, 22, 20, 15))
-                    ),
-                    MessageReceived(
-                        content = "This is a long message an \n```this is goinh yo occupy whole screen and we have to avoid``` that now.",
-                        senderId = "ThereSelf",
-                        timeStamp = Timestamp(Date(2024 - 1900, 2, 16, 20, 15))
-                    ),
-                    MessageReceived(
-                        content = "Hello *Friend* ",
-                        senderId = "mySelf",
-                        timeStamp = Timestamp(Date(2024 - 1900, 1, 12, 20, 15))
-                    ),
-                    MessageReceived(
-                        content = "Hey there *How* are you",
-                        senderId = "ThereSelf",
-                        timeStamp = Timestamp(Date(2024 - 1900, 1, 7, 20, 17))
-                    ),
-                    MessageReceived(
-                        content = "good to say '''fda and we ate goin to teshio thaio''' nlhasfihobphbkjwahf aw;jhflkb aweklfb ",
+                        content = "good to say ```fda and we ate goin to teshio thaio``` nlhasfihobphbkjwahf aw;jhflkb aweklfb ",
                         senderId = "mySelf",
                         timeStamp = Timestamp(Date(2024 - 1900, 2, 5, 20, 15))
                     ),
                     MessageReceived(
-                        content = "*Bold* _Italic_ and ~Strikethrough~ and now ! Underlined !",
+                        content = "<Bold> \n Here is a code block\n ```_Italic_ and ~Strikethrough~``` and now ! Underlined !" +
+                                "<https://google.com>",
                         senderId = "ThereSelf",
                         timeStamp = Timestamp(Date(2024 - 1900, 10, 2, 7, 45))
                     ),
+                    MessageReceived(
+                        content = "Here is a code block: ```val x = 42``` and a link: <https://example.com>",
+                        senderId = "Myself",
+                        timeStamp = Timestamp(Date(2024 - 1900, 10, 2, 7, 45))
+                    ),
+                            MessageReceived(
+                            content = "<https://example.com>",
+                    senderId = "Myself",
+                    timeStamp = Timestamp(Date(2024 - 1900, 10, 2, 7, 45))
+                )
                 ),
             ),
             updateMessage = {},
@@ -1348,47 +1525,48 @@ fun PreviewMessagebodySuccess() {
     }
 }
 
-@Preview(backgroundColor = 0xFFFFFFFF)
-@Composable
-fun PreviewSenderChat() {
-    ChitChatTheme(
-        dynamicColor = false,
-//        darkTheme = true
-    ) {
-        SenderChat(
-            message = MessageReceived(
-                content = "Hello Friend "
-            )
-        )
-    }
-}
-
-
-@Preview
-@Composable
-fun PreviewReceiverChat() {
-    ChitChatTheme(
-        dynamicColor = false
-    ) {
-        ReceiverChat(
-            message = MessageReceived(
-                content = "Hello Friend \nThis is your friend",
-                timeStamp = Timestamp(Date(2024 - 1900, 1, 25, 20, 15))
-            )
-        )
-    }
-}
-
-
-@Preview
-@Composable
-fun PreviewAttatchmentContent() {
-    ChitChatTheme(
-        dynamicColor = false
-    ) {
-        AttatchmentContent(
-            hideSheet = {},
-            sendCode = {}
-        )
-    }
-}
+//
+//@Preview(backgroundColor = 0xFFFFFFFF)
+//@Composable
+//fun PreviewSenderChat() {
+//    ChitChatTheme(
+//        dynamicColor = false,
+////        darkTheme = true
+//    ) {
+//        SenderChat(
+//            message = MessageReceived(
+//                content = "Hello Friend "
+//            )
+//        )
+//    }
+//}
+//
+//
+//@Preview
+//@Composable
+//fun PreviewReceiverChat() {
+//    ChitChatTheme(
+//        dynamicColor = false
+//    ) {
+//        ReceiverChat(
+//            message = MessageReceived(
+//                content = "Hello Friend \nThis is your friend",
+//                timeStamp = Timestamp(Date(2024 - 1900, 1, 25, 20, 15))
+//            )
+//        )
+//    }
+//}
+//
+//
+//@Preview
+//@Composable
+//fun PreviewAttatchmentContent() {
+//    ChitChatTheme(
+//        dynamicColor = false
+//    ) {
+//        AttatchmentContent(
+//            hideSheet = {},
+//            sendCode = {}
+//        )
+//    }
+//}
