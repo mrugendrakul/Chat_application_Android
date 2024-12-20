@@ -10,7 +10,7 @@ import com.mad.softwares.chatApplication.data.onDevice.RSAKeys.privateKeys
 import com.mad.softwares.chatApplication.data.onDevice.chatASEKeys.ChatOrGroupAESKeys
 import com.mad.softwares.chatApplication.data.onDevice.chatASEKeys.aesKeysDao
 
-@Database(entities = [privateKeys::class,ChatOrGroupAESKeys::class], version = 2, exportSchema = false)
+@Database(entities = [privateKeys::class,ChatOrGroupAESKeys::class], version = 3, exportSchema = false)
 abstract class InventoryKeysDatabase:RoomDatabase() {
     abstract fun keyDao() : keyDao
 

@@ -6,6 +6,7 @@ import androidx.lifecycle.viewmodel.CreationExtras
 import androidx.lifecycle.viewmodel.initializer
 import androidx.lifecycle.viewmodel.viewModelFactory
 import com.mad.softwares.chatApplication.MyApplication
+import com.mad.softwares.chatApplication.ui.ShareHandle.ShareHandlerViewModel
 import com.mad.softwares.chatApplication.ui.chats.singles.AddChatViewModel
 import com.mad.softwares.chatApplication.ui.chats.groups.AddGroupViewModel
 import com.mad.softwares.chatApplication.ui.chats.ChatsViewModel
@@ -45,6 +46,12 @@ object GodViewModelProvider {
             AddGroupViewModel(
                 savedStateHandle = this.createSavedStateHandle(),
                 dataRepository = myApplication().container.dataRepository
+            )
+        }
+
+        initializer {
+            ShareHandlerViewModel(
+                dataRepository =  myApplication().container.dataRepository
             )
         }
     }

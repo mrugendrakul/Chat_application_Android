@@ -7,5 +7,6 @@ import androidx.room.PrimaryKey
 data class ChatOrGroupAESKeys(
     @PrimaryKey(autoGenerate = false)
     val chatId:Int,
+    val chatName:String,
     val decryptedASEKey:String
 )

@@ -63,7 +63,7 @@ interface DataRepository {
         message: MessageReceived,
         chatId: String,
         secureAESKey: String,
-        fcmTokens:List<String>
+        fcmTokens: List<String>
     )
 
     suspend fun sendNotificationToToken(token: String, title: String, content: String)
@@ -105,6 +105,8 @@ interface DataRepository {
     suspend fun stopLiveChat()
 
     suspend fun getAESKeyForChatID(chatId: String): String
+
+    suspend fun getAllDeviceChats(): List<ChatOrGroup>?
 }
 
 class NetworkDataRepository(
@@ -567,26 +569,7 @@ class NetworkDataRepository(
                         val secureAESKeyFlow =
                             localChatKeysStorage.getAESKeyById(newChat.chatId.toInt())
                         var secureAES: String = ""
-                        if (secureAESKeyFlow.firstOrNull()?.decryptedASEKey == null) {
-//                            Log.d(TAG,"Adding key to backend for all chats in all chats : ${newChat.secureAESKey}")
-                            secureAES = encryptionService.aesKeyToString(
-                                encryptionService.decryptAESKeyWithPrivateKey(
-                                    encryptedAESKey = encryptionService.stringToByteArray(newChat.secureAESKey),
-                                    privateKey = encryptionService.stringToPrivateKey(
-                                        privateKey ?: ""
-                                    )
-                                )
-                            )
-                            localChatKeysStorage.saveAESKey(
-                                ChatOrGroupAESKeys(
-                                    chatId = newChat.chatId.toInt(),
-                                    decryptedASEKey = secureAES
-                                )
-                            )
-                        } else {
-                            Log.d(TAG, "No key to backend for current chat")
-                            secureAES = secureAESKeyFlow.firstOrNull()?.decryptedASEKey ?: ""
-                        }
+
                         var tempUsername: String = "chat"
                         for (mem in newChat.members) {
                             if (mem != myUsername) {
@@ -601,6 +584,30 @@ class NetworkDataRepository(
                                 }
                             }
                         }
+
+                        if (secureAESKeyFlow.firstOrNull()?.decryptedASEKey == null) {
+//                            Log.d(TAG,"Adding key to backend for all chats in all chats : ${newChat.secureAESKey}")
+                            secureAES = encryptionService.aesKeyToString(
+                                encryptionService.decryptAESKeyWithPrivateKey(
+                                    encryptedAESKey = encryptionService.stringToByteArray(newChat.secureAESKey),
+                                    privateKey = encryptionService.stringToPrivateKey(
+                                        privateKey ?: ""
+                                    )
+                                )
+                            )
+                            localChatKeysStorage.saveAESKey(
+                                ChatOrGroupAESKeys(
+                                    chatId = newChat.chatId.toInt(),
+                                    decryptedASEKey = secureAES,
+                                    chatName = tempUsername
+                                )
+                            )
+                        } else {
+                            Log.d(TAG, "No key to backend for current chat")
+                            secureAES = secureAESKeyFlow.firstOrNull()?.decryptedASEKey ?: ""
+                        }
+
+
                         var contentEnc = ""
                         try {
                             contentEnc = String(
@@ -638,6 +645,20 @@ class NetworkDataRepository(
                     val secureAESKeyFlow =
                         localChatKeysStorage.getAESKeyById(modifiedChat.chatId.toInt())
                     var secureAES: String = ""
+                    var tempUsername: String = "chat"
+                    for (mem in modifiedChat.members) {
+                        if (mem != myUsername) {
+                            tempUsername = mem
+//                            val memInfo =
+//                                coroutineScope {
+//                                    val info = async { apiService.getUserChatData(mem) }
+//                                    info.await()
+//                                }
+//                            if (memInfo.username != "") {
+//                                modifiedChat.membersData.add(memInfo)
+//                            }
+                        }
+                    }
                     if (secureAESKeyFlow.firstOrNull()?.decryptedASEKey == null) {
                         Log.d(
                             TAG,
@@ -652,7 +673,8 @@ class NetworkDataRepository(
                         localChatKeysStorage.saveAESKey(
                             ChatOrGroupAESKeys(
                                 chatId = modifiedChat.chatId.toInt(),
-                                decryptedASEKey = secureAES
+                                decryptedASEKey = secureAES,
+                                chatName = tempUsername
                             )
                         )
                     } else {
@@ -717,7 +739,8 @@ class NetworkDataRepository(
                         localChatKeysStorage.saveAESKey(
                             ChatOrGroupAESKeys(
                                 chatId = newChat.chatId.toInt(),
-                                decryptedASEKey = secureAES
+                                decryptedASEKey = secureAES,
+                                chatName = newChat.chatName
                             )
                         )
                     } else {
@@ -782,7 +805,8 @@ class NetworkDataRepository(
                         localChatKeysStorage.saveAESKey(
                             ChatOrGroupAESKeys(
                                 chatId = modifiedChat.chatId.toInt(),
-                                decryptedASEKey = secureAES
+                                decryptedASEKey = secureAES,
+                                chatName = modifiedChat.chatName
                             )
                         )
                     } else {
@@ -830,8 +854,8 @@ class NetworkDataRepository(
                 data = message.content.toByteArray(),
                 secretKey = encryptionService.stringToAESKey(secureAESKey)
             )
-            for(token in fcmTokens) {
-                Log.d(TAG,"Token is : $token")
+            for (token in fcmTokens) {
+                Log.d(TAG, "Token is : $token")
                 val notificationBody = NotificationRequest(
                     fcmToken = token,
                     title = message.senderId,
@@ -846,10 +870,13 @@ class NetworkDataRepository(
                         ) {
                             if (response.isSuccessful) {
                                 // Successfully sent the request
-                                Log.d(TAG,"Notification sent successfully.")
+                                Log.d(TAG, "Notification sent successfully.")
                             } else {
                                 // Handle the error
-                                Log.e(TAG,"Failed to send notification. Error code: ${response.code()}")
+                                Log.e(
+                                    TAG,
+                                    "Failed to send notification. Error code: ${response.code()}"
+                                )
                             }
                         }
 
@@ -1002,7 +1029,8 @@ class NetworkDataRepository(
                     localChatKeysStorage.saveAESKey(
                         ChatOrGroupAESKeys(
                             chatId = chatData.chatId.toInt(),
-                            decryptedASEKey = secureAES
+                            decryptedASEKey = secureAES,
+                            chatName = chatData.chatName
                         )
                     )
                 } else {
@@ -1040,7 +1068,8 @@ class NetworkDataRepository(
                     localChatKeysStorage.saveAESKey(
                         ChatOrGroupAESKeys(
                             chatId = chatData.chatId.toInt(),
-                            decryptedASEKey = secureAES
+                            decryptedASEKey = secureAES,
+                            chatName = tempChatName
                         )
                     )
                 } else {
@@ -1076,11 +1105,14 @@ class NetworkDataRepository(
                     .firstOrNull()?.decryptedASEKey.toString()
             } else {
                 Log.d(TAG, "Adding Key to Device and getting key for you")
-                val privateKey = coroutineScope {
+                val keyFlow = localKeyStorge.getPrivateKey(keyId = 1)
+                val privateKey = keyFlow.firstOrNull()?.privateKey
+                val currUsername = authServie.getCurrentUsername();
+                val privateDate = coroutineScope {
                     val insideKey = async() {
-                        apiService.getPrivateAESKey(
+                        apiService.getChatData(
                             chatId = chatId,
-                            username = authServie.getCurrentUsername()
+                            username = currUsername
                         )
                     }
                     insideKey.await()
@@ -1089,14 +1121,29 @@ class NetworkDataRepository(
 //                            Log.d(TAG,"Adding key to backend for all chats in all chats : ${newChat.secureAESKey}")
                 val secureAES = encryptionService.aesKeyToString(
                     encryptionService.decryptAESKeyWithPrivateKey(
-                        encryptedAESKey = encryptionService.stringToByteArray(privateKey),
+                        encryptedAESKey = encryptionService.stringToByteArray(privateDate.secureAESKey),
                         privateKey = encryptionService.stringToPrivateKey(privateKey ?: "")
                     )
                 )
+                var chatName = privateDate.chatName
+                if (!privateDate.isGroup) {
+                    for (members in privateDate.members) {
+                        if (members != currUsername) {
+//                            val userInfo = coroutineScope {
+//                                val info = async { apiService.getUserChatData(members) }
+//                                info.await()
+//                            }
+////                        Log.d(TAG, "Chat data is : $userInfo")
+//                            chatData.membersData.add(userInfo)
+                            chatName = privateDate.chatName
+                        }
+                    }
+                }
                 localChatKeysStorage.saveAESKey(
                     ChatOrGroupAESKeys(
                         chatId = chatId.toInt(),
-                        decryptedASEKey = secureAES
+                        decryptedASEKey = secureAES,
+                        chatName = chatName
                     )
                 )
                 return secureAES
@@ -1104,6 +1151,18 @@ class NetworkDataRepository(
         } catch (e: Exception) {
             Log.e(TAG, "Error getting the keys ${e}")
             return "error"
+        }
+    }
+
+    override suspend fun getAllDeviceChats(): List<ChatOrGroup>? {
+        val chats = localChatKeysStorage.getAllAESKeys().firstOrNull()
+        return chats?.map { chat ->
+            ChatOrGroup(
+                chatId = chat.chatId.toString(),
+                chatName = chat.chatName,
+                secureAESKey = chat.decryptedASEKey
+            )
+
         }
     }
 }

@@ -16,14 +16,14 @@ android {
         }
     }
     namespace = "com.mad.softwares.chatApplication"
-    compileSdk = 34
+    compileSdk = 35
 
     defaultConfig {
         applicationId = "com.mad.softwares.chatApplication"
         minSdk = 26
-        targetSdk = 34
+        targetSdk = 35
         versionCode = 3
-        versionName = "0.10.7-beta.1"
+        versionName = "0.10.10-beta.1,patch-1"
 
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
         vectorDrawables {
