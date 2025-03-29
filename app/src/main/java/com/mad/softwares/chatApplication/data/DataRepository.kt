@@ -302,11 +302,16 @@ class NetworkDataRepository(
 //        val curUser:User
         try {
             val uid = authServie.getCurrentUser()
-            val curUser = coroutineScope {
-                val currentUser = async { apiService.getUserFromUid(uid) }
-                currentUser.await()
-            }
-            Log.d(TAG, "Current user is : ${curUser.username}")
+//            val curUser = coroutineScope {
+//                val currentUser = async { apiService.getUserFromUid(uid) }
+//                currentUser.await()
+//            }
+            val curUser = User(
+                docId = uid,
+                username = authServie.getCurrentUsername()
+            )
+//            Log.d(TAG, "Current user is : ${curUser.username}")
+            Log.d(TAG,"Current User got no api hit:${curUser.username}")
 //            val key = localKeyStorge.getPrivateKey(keyId = 1)
 //            val privateKey = key.collect()
             val keyFlow = localKeyStorge.getPrivateKey(keyId = 1)
@@ -315,7 +320,7 @@ class NetworkDataRepository(
             if (privateKey == null) {
                 return User(profilePic = "NoKeyFound")
             }
-            RSAPublicKeyCache = curUser.publicRSAKey
+//            RSAPublicKeyCache = curUser.publicRSAKey
             return curUser.copy(
                 devicePrivateRSAKey = encryptionService.stringToPrivateKey(privateKey ?: "")
 //                privateEncryptedRSAKey = encryptionService.privateKeyToString(
@@ -854,38 +859,38 @@ class NetworkDataRepository(
                 data = message.content.toByteArray(),
                 secretKey = encryptionService.stringToAESKey(secureAESKey)
             )
-            for (token in fcmTokens) {
-                Log.d(TAG, "Token is : $token")
-                val notificationBody = NotificationRequest(
-                    fcmToken = token,
-                    title = message.senderId,
-                    body = encryptionService.byteArrayToString(encryptedMessage),
-                    chatId = chatId
-                )
-                notificationApiSending.sendNotificationToDevice(notificationBody)
-                    .enqueue(object : retrofit2.Callback<Void> {
-                        override fun onResponse(
-                            call: Call<Void>,
-                            response: retrofit2.Response<Void>
-                        ) {
-                            if (response.isSuccessful) {
-                                // Successfully sent the request
-                                Log.d(TAG, "Notification sent successfully.")
-                            } else {
-                                // Handle the error
-                                Log.e(
-                                    TAG,
-                                    "Failed to send notification. Error code: ${response.code()}"
-                                )
-                            }
-                        }
-
-                        override fun onFailure(call: Call<Void>, t: Throwable) {
-                            // Handle failure
-                            println("Error: ${t.message}")
-                        }
-                    })
-            }
+//            for (token in fcmTokens) {
+//                Log.d(TAG, "Token is : $token")
+//                val notificationBody = NotificationRequest(
+//                    fcmToken = token,
+//                    title = message.senderId,
+//                    body = encryptionService.byteArrayToString(encryptedMessage),
+//                    chatId = chatId
+//                )
+////                notificationApiSending.sendNotificationToDevice(notificationBody)
+////                    .enqueue(object : retrofit2.Callback<Void> {
+////                        override fun onResponse(
+////                            call: Call<Void>,
+////                            response: retrofit2.Response<Void>
+////                        ) {
+////                            if (response.isSuccessful) {
+////                                // Successfully sent the request
+////                                Log.d(TAG, "Notification sent successfully.")
+////                            } else {
+////                                // Handle the error
+////                                Log.e(
+////                                    TAG,
+////                                    "Failed to send notification. Error code: ${response.code()}"
+////                                )
+////                            }
+////                        }
+////
+////                        override fun onFailure(call: Call<Void>, t: Throwable) {
+////                            // Handle failure
+////                            println("Error: ${t.message}")
+////                        }
+////                    })
+//            }
 //            notificationApiSending.sendNotification()
             val staus =
                 apiService.sendNewMessage(

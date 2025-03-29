@@ -217,7 +217,7 @@ fun MessagesBodySuccess(
         },
         bottomBar = {
             BottomMessageSend(
-                modifier = Modifier.statusBarsPadding(),
+
                 appUistate = uiState,
                 sendMessage = {
                     sendMessage()
@@ -238,6 +238,7 @@ fun MessagesBodySuccess(
         modifier = modifier
             .background(MaterialTheme.colorScheme.background)
             .imePadding()
+            .navigationBarsPadding()
     ) { padding ->
 
 
@@ -1289,7 +1290,7 @@ fun BottomMessageSend(
     val haptic = LocalHapticFeedback.current
     ElevatedCard(
         modifier= modifier
-            .navigationBarsPadding()
+//            .navigationBarsPadding()
 //            .animateContentSize(
 //
 //                animationSpec = spring(
