@@ -29,8 +29,11 @@ import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.imePadding
+import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.statusBarsPadding
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.layout.wrapContentWidth
 import androidx.compose.foundation.lazy.LazyColumn
@@ -214,6 +217,7 @@ fun MessagesBodySuccess(
         },
         bottomBar = {
             BottomMessageSend(
+                modifier = Modifier.statusBarsPadding(),
                 appUistate = uiState,
                 sendMessage = {
                     sendMessage()
@@ -233,6 +237,7 @@ fun MessagesBodySuccess(
 
         modifier = modifier
             .background(MaterialTheme.colorScheme.background)
+            .imePadding()
     ) { padding ->
 
 
@@ -1274,6 +1279,7 @@ fun ReceiverGroupChat(
 
 @Composable
 fun BottomMessageSend(
+    modifier: Modifier = Modifier,
     appUistate: MessagesUiState,
     sendMessage: () -> Unit,
     updateMessage: (String) -> Unit,
@@ -1282,7 +1288,8 @@ fun BottomMessageSend(
     val scope = rememberCoroutineScope()
     val haptic = LocalHapticFeedback.current
     ElevatedCard(
-        Modifier
+        modifier= modifier
+            .navigationBarsPadding()
 //            .animateContentSize(
 //
 //                animationSpec = spring(
@@ -1466,7 +1473,7 @@ fun SecureMessageTag(
 //    }
 //}
 
-@Preview(device = "spec:parent=pixel_5")
+@Preview(device = "id:pixel_9_pro", showSystemUi = true, showBackground = true)
 @Composable
 fun PreviewMessagebodySuccess() {
     ChitChatTheme(

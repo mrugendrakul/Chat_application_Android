@@ -132,7 +132,10 @@ fun HandleSharedContentScreen(
                 sendMessage = sendMessage,
                 updateMessage = updateShareDate
             )
-        }
+        },
+        modifier = Modifier
+            .imePadding()
+            .background(MaterialTheme.colorScheme.background)
     )
     {
 
@@ -149,7 +152,7 @@ fun HandleSharedContentScreen(
                     items = uiState.toShareChats
                 ) { chat ->
                     SingleChatToShare(
-                        chat = chat,
+                        chat = chat,    
                         currentUsername = "",
                         addToSelection = addToSelection,
                         isCardEnabled = true,
@@ -334,7 +337,7 @@ fun BottomMessageShare(
 //                )
 
 //            )
-
+            .navigationBarsPadding()
             .fillMaxWidth()
             .padding(8.dp)
             .background(MaterialTheme.colorScheme.background),
