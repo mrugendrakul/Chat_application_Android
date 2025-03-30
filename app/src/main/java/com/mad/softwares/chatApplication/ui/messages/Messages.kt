@@ -1,5 +1,6 @@
 package com.mad.softwares.chatApplication.ui.messages
 
+import StyledTextVisualTransformation
 import android.content.Intent
 import android.net.Uri
 import android.os.Message
@@ -460,42 +461,40 @@ data class StyleRegex(
     val symbol: String = ""
 )
 
+val styleMap: List<StyleRegex> = listOf(
+    StyleRegex(
+        Regex = Regex("~(.*?)~", RegexOption.DOT_MATCHES_ALL),
+        style = SpanStyle(
+            textDecoration = TextDecoration.LineThrough
+        ),
+        symbol = "~"
+    ),
+    StyleRegex(
+        Regex = Regex("_(.*?)_", RegexOption.DOT_MATCHES_ALL),
+        style = SpanStyle(
+            fontStyle = FontStyle.Italic,
+//                fontWeight = FontWeight.Bold
+        ),
+        symbol = "_"
+    ),
+    StyleRegex(
+        Regex = Regex("\\*(.*?)\\*", RegexOption.DOT_MATCHES_ALL),
+        style = SpanStyle(
+            fontWeight = FontWeight.Bold
+        ),
+        symbol = "*"
+    ),
+    StyleRegex(
+        Regex = Regex("!(.*?)!", RegexOption.DOT_MATCHES_ALL),
+        style = SpanStyle(
+            textDecoration = TextDecoration.Underline
+        )
+    )
+)
+
 fun annotateMessage(
     msg: String
 ): AnnotatedString {
-    val strideCodex = Regex("~(.*?)~", RegexOption.DOT_MATCHES_ALL)
-    val italicCodex = Regex("_(.*?)_", RegexOption.DOT_MATCHES_ALL)
-
-    val styleMap: List<StyleRegex> = listOf(
-        StyleRegex(
-            Regex = Regex("~(.*?)~", RegexOption.DOT_MATCHES_ALL),
-            style = SpanStyle(
-                textDecoration = TextDecoration.LineThrough
-            ),
-            symbol = "~"
-        ),
-        StyleRegex(
-            Regex = Regex("_(.*?)_", RegexOption.DOT_MATCHES_ALL),
-            style = SpanStyle(
-                fontStyle = FontStyle.Italic,
-//                fontWeight = FontWeight.Bold
-            ),
-            symbol = "_"
-        ),
-        StyleRegex(
-            Regex = Regex("\\*(.*?)\\*", RegexOption.DOT_MATCHES_ALL),
-            style = SpanStyle(
-                fontWeight = FontWeight.Bold
-            ),
-            symbol = "*"
-        ),
-        StyleRegex(
-            Regex = Regex("!(.*?)!", RegexOption.DOT_MATCHES_ALL),
-            style = SpanStyle(
-                textDecoration = TextDecoration.Underline
-            )
-        )
-    )
     val annotedMessage = buildAnnotatedString {
 
         var currentIndex = 0
@@ -1288,6 +1287,7 @@ fun BottomMessageSend(
 ) {
     val scope = rememberCoroutineScope()
     val haptic = LocalHapticFeedback.current
+    val visualTransformation = remember { StyledTextVisualTransformation(styleMap) }
     ElevatedCard(
         modifier= modifier
 //            .navigationBarsPadding()
@@ -1373,7 +1373,7 @@ fun BottomMessageSend(
                         disabledBorderColor = Color(0, 0, 0, alpha = 0),
 //                        focusedTextColor = MaterialTheme.colorScheme.onSecondaryContainer
                     ),
-
+                    visualTransformation = visualTransformation
                     //                trailingIcon =
 //                {
 //
@@ -1524,6 +1524,7 @@ fun PreviewMessagebodySuccess() {
                     timeStamp = Timestamp(Date(2024 - 1900, 10, 2, 7, 45))
                 )
                 ),
+                messageToSend = "Hey *buddy*"
             ),
             updateMessage = {},
             getMessagesAgain = { },

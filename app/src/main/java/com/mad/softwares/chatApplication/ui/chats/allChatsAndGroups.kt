@@ -3,6 +3,7 @@
 package com.mad.softwares.chatApplication.ui.chats
 
 import android.Manifest
+import android.graphics.drawable.Icon
 import android.os.Build
 import androidx.annotation.RequiresApi
 import androidx.compose.foundation.ExperimentalFoundationApi
@@ -39,6 +40,8 @@ import androidx.compose.material.icons.filled.Groups
 import androidx.compose.material.icons.filled.MoreVert
 import androidx.compose.material.icons.filled.Person
 import androidx.compose.material.icons.filled.SelectAll
+import androidx.compose.material.icons.outlined.Groups
+import androidx.compose.material.icons.outlined.Person
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
 import androidx.compose.material3.Card
@@ -49,11 +52,11 @@ import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.ExtendedFloatingActionButton
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.PrimaryTabRow
+import androidx.compose.material3.NavigationBar
+import androidx.compose.material3.NavigationBarItem
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.SnackbarHost
 import androidx.compose.material3.SnackbarHostState
-import androidx.compose.material3.Tab
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.material3.TopAppBarDefaults
@@ -70,21 +73,23 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.ColorFilter
+import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.hapticfeedback.HapticFeedbackType
 import androidx.compose.ui.input.nestedscroll.nestedScroll
 import androidx.compose.ui.platform.LocalHapticFeedback
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.text.buildAnnotatedString
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.lifecycle.viewmodel.compose.viewModel
+import androidx.room.util.TableInfo
 import com.google.accompanist.permissions.ExperimentalPermissionsApi
 import com.google.accompanist.permissions.PermissionState
 import com.google.accompanist.permissions.isGranted
 import com.google.accompanist.permissions.rememberPermissionState
-import com.google.accompanist.permissions.shouldShowRationale
 import com.google.firebase.Timestamp
 import com.mad.softwares.chatApplication.R
 import com.mad.softwares.chatApplication.data.ChatOrGroup
@@ -93,8 +98,8 @@ import com.mad.softwares.chatApplication.data.lastMessage
 import com.mad.softwares.chatApplication.ui.ApptopBar
 import com.mad.softwares.chatApplication.ui.GodViewModelProvider
 import com.mad.softwares.chatApplication.ui.destinationData
+import com.mad.softwares.chatApplication.ui.messages.annotateMessage
 import com.mad.softwares.chatApplication.ui.theme.ChitChatTheme
-import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.launch
 
 object chatsScreenDestination : destinationData {
@@ -167,6 +172,12 @@ fun ShowErrorChatsPreview() {
     ShowErrorAndRetry(retry = {})
 }
 
+data class NavBarItemsTitleAndIcons(
+    val title: String,
+    val openIcon: ImageVector,
+    val closeIcon: ImageVector
+)
+
 @RequiresApi(Build.VERSION_CODES.TIRAMISU)
 @OptIn(ExperimentalMaterial3Api::class, ExperimentalPermissionsApi::class)
 @Composable
@@ -191,9 +202,18 @@ fun UserChatsBody(
         derivedStateOf { listState.firstVisibleItemIndex == 0 }
     }
     val pagerState = rememberPagerState(0, pageCount = { 2 })
-    val titleAndIcon = listOf(
-        "Chats" to Icons.Default.Person,
-        "Groups" to Icons.Default.Groups
+
+    val titleAndIcons = listOf(
+        NavBarItemsTitleAndIcons(
+            title = "Chats",
+            openIcon = Icons.Filled.Person,
+            closeIcon = Icons.Outlined.Person
+        ),
+        NavBarItemsTitleAndIcons(
+            title = "Groups",
+            openIcon = Icons.Filled.Person,
+            closeIcon = Icons.Outlined.Groups
+        )
     )
     val scope = rememberCoroutineScope()
     var expandDDMenu by remember {
@@ -273,24 +293,7 @@ fun UserChatsBody(
                         }
                     }
                 )
-                PrimaryTabRow(
-                    selectedTabIndex = pagerState.currentPage,
-                    containerColor = MaterialTheme.colorScheme.surfaceVariant
-                ) {
-                    titleAndIcon.forEachIndexed { index, (text, icon) ->
-                        Tab(
-                            selected = pagerState.currentPage == index,
-                            onClick = {
-                                scope.launch {
-                                    pagerState.animateScrollToPage(index)
-                                }
-                            },
-                            text = { Text(text = text) },
-//                            icon = { Icon(imageVector = icon, contentDescription = null) }
-                        )
-                    }
 
-                }
                 if (permissionState?.status?.isGranted == true) {
 //                Text(text = "Notification permission granted")
                 } else {
@@ -323,7 +326,44 @@ fun UserChatsBody(
                 }
             }
         },
-
+        bottomBar = {
+            NavigationBar {
+                titleAndIcons.forEachIndexed { index,item->
+                   NavigationBarItem(
+                       icon = {
+                           Icon(
+                               if (pagerState.currentPage == index) item.openIcon else item.closeIcon,
+                               contentDescription = item.title
+                           )
+                       },
+                       selected = pagerState.currentPage == index,
+                       onClick = {
+                          scope.launch {
+                              pagerState.animateScrollToPage(index)
+                          }
+                       },
+                       label = {Text(item.title)},
+                       alwaysShowLabel = false
+                   )
+                }
+            }
+        }
+//                PrimaryTabRow(
+//                selectedTabIndex = pagerState.currentPage,
+//        containerColor = MaterialTheme.colorScheme.surfaceVariant
+//    ) {
+//        titleAndIcon.forEachIndexed { index, (text, icon) ->
+//            Tab(
+//                selected = pagerState.currentPage == index,
+//                onClick = {
+//                    scope.launch {
+//                        pagerState.animateScrollToPage(index)
+//                    }
+//                },
+//                text = { Text(text = text) },
+////                            icon = { Icon(imageVector = icon, contentDescription = null) }
+//            )
+//        }
         ) { paddingValues ->
         if (dialogState) {
             AlertDialog(
@@ -348,25 +388,35 @@ fun UserChatsBody(
         }
         HorizontalPager(state = pagerState) { page ->
             when (page) {
-                0 -> ShowChatsSuccessful(
-                    chatsUiState = chatsUiState,
-                    paddingValues = paddingValues,
-                    listState = listState,
-                    navigateToCurrentChat = navigateToCurrentChat,
-                    isCardEnabled = isCardEnabled,
-                    setSelectionChats = setSelect,
-                    addToSelection = addToSelection
-                )
+                0 -> Column(
+                    modifier = Modifier.fillMaxSize(),
+                    verticalArrangement = Arrangement.Top
+                ){
+                    ShowChatsSuccessful(
+                        chatsUiState = chatsUiState,
+                        paddingValues = paddingValues,
+                        listState = listState,
+                        navigateToCurrentChat = navigateToCurrentChat,
+                        isCardEnabled = isCardEnabled,
+                        setSelectionChats = setSelect,
+                        addToSelection = addToSelection
+                    )
+                }
 
-                1 -> ShowGroupsSuccessful(
-                    chatsUiState = chatsUiState,
-                    paddingValues = paddingValues,
-                    listState = listState,
-                    navigateToCurrentChat = navigateToCurrentChat,
-                    isCardEnabled = isCardEnabled,
-                    setSelectionChats = setSelect,
-                    addToSelection = addToSelection
-                )
+                1 -> Column(
+                    modifier = Modifier.fillMaxSize(),
+                    verticalArrangement = Arrangement.Top
+                ) {
+                    ShowGroupsSuccessful(
+                        chatsUiState = chatsUiState,
+                        paddingValues = paddingValues,
+                        listState = listState,
+                        navigateToCurrentChat = navigateToCurrentChat,
+                        isCardEnabled = isCardEnabled,
+                        setSelectionChats = setSelect,
+                        addToSelection = addToSelection
+                    )
+                }
             }
         }
     }
@@ -388,7 +438,8 @@ fun ShowGroupsSuccessful(
         Column(
             modifier = Modifier
                 .padding(paddingValues)
-                .fillMaxSize(),
+//                .fillMaxSize()
+            ,
             verticalArrangement = Arrangement.Center,
             horizontalAlignment = Alignment.CenterHorizontally
         ) {
@@ -403,7 +454,8 @@ fun ShowGroupsSuccessful(
             state = listState,
             modifier = Modifier
                 .padding(paddingValues)
-                .fillMaxSize(),
+//                .fillMaxSize()
+                ,
             contentPadding = PaddingValues(bottom = 100.dp)
         ) {
             if (!chatsUiState.selectStatus) {
@@ -593,7 +645,8 @@ fun ShowChatsSuccessful(
         Column(
             modifier = Modifier
                 .padding(paddingValues)
-                .fillMaxSize(),
+//                .fillMaxSize()
+                ,
             verticalArrangement = Arrangement.Center,
             horizontalAlignment = Alignment.CenterHorizontally
         ) {
@@ -609,7 +662,8 @@ fun ShowChatsSuccessful(
             modifier = Modifier
                 .padding(paddingValues)
 //                .padding(start = 5.dp, end = 5.dp)
-                .fillMaxSize(),
+//                .fillMaxSize()
+            ,
             contentPadding = PaddingValues(bottom = 100.dp)
         ) {
             if (!chatsUiState.selectStatus) {
@@ -788,13 +842,15 @@ fun SingleChat(
                             )
                         )
                     }
-
+                    val annotatedMessage = annotateMessage(chat.lastMessage.content)
 
                     Text(
                         text = if (chat.lastMessage.timestamp == Timestamp(0, 0)) {
-                            "Not yet contacted"
+                            buildAnnotatedString {
+                                append("No Contact Yet!")
+                            }
                         } else {
-                            chat.lastMessage.content
+                            annotatedMessage
                         },
                         fontSize = 18.sp,
                         lineHeight = 18.sp,
@@ -866,7 +922,7 @@ fun UserChatsPreview() {
                     ChatOrGroup(
                         chatName = "mrg@123.com",
                         lastMessage = lastMessage(
-                            content = "Big text here goed to test the message capacity and the other things",
+                            content = "Big text here *goed* to test the ~message~ capacity and the other things",
                             timestamp = Timestamp(1, 1),
                             sender = "mrg@123.com"
                         )
