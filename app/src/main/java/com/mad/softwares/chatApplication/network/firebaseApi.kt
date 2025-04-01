@@ -18,6 +18,7 @@ import com.mad.softwares.chatApplication.data.PublicRSAKey
 import com.mad.softwares.chatApplication.data.User
 import com.mad.softwares.chatApplication.data.chatUser
 import com.mad.softwares.chatApplication.data.lastMessage
+import com.mad.softwares.chatApplication.data.messageStatus
 import kotlinx.coroutines.CompletableDeferred
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.tasks.await
@@ -709,7 +710,7 @@ class NetworkFirebaseApi(
             val senderId = doc.getString("senderId") ?: ""
             val timeStamp = doc.getTimestamp("timeStamp") ?: Timestamp.now()
 
-            val mess = MessageReceived(content, contentType = ContentType.text, senderId, timeStamp)
+            val mess = MessageReceived(content = content, contentType = ContentType.text, senderId = senderId, timeStamp = timeStamp)
             messages.add(mess)
         }
 
@@ -754,11 +755,13 @@ class NetworkFirebaseApi(
 //                                    messages.add(mess)
 //                                }
                                     val mess = MessageReceived(
+                                        messageId = dc.document.id,
                                         content = dc.document.data["content"].toString(),
                                         contentType = ContentType.text,
                                         senderId = dc.document.data["senderId"].toString(),
                                         timeStamp = dc.document.data["timeStamp"] as Timestamp
-                                            ?: Timestamp.now()
+                                            ?: Timestamp.now(),
+                                        status = messageStatus.Send
                                     )
 //                                onChange(messages.sortedBy { it.timeStamp })
                                     onAdd(mess)

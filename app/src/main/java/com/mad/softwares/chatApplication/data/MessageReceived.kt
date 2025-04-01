@@ -21,9 +21,10 @@ enum class messageStatus(){
 }
 
 data class MessageReceived(
+    val messageId:String = "",
     val content:String = "",
     val contentType:ContentType = ContentType.text,
     val senderId:String = "",
     val timeStamp:Timestamp = Timestamp.now(),
-    val status:messageStatus = messageStatus.Send,
+    val status:messageStatus = messageStatus.Sending,
 )

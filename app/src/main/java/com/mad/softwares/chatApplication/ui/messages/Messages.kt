@@ -10,11 +10,13 @@ import androidx.compose.animation.animateContentSize
 import androidx.compose.animation.core.Spring
 import androidx.compose.animation.core.spring
 import androidx.compose.animation.core.tween
+import androidx.compose.animation.expandHorizontally
 import androidx.compose.animation.expandVertically
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
 import androidx.compose.animation.scaleIn
 import androidx.compose.animation.scaleOut
+import androidx.compose.animation.shrinkHorizontally
 import androidx.compose.animation.shrinkVertically
 import androidx.compose.animation.slideInVertically
 import androidx.compose.animation.slideOutVertically
@@ -128,6 +130,12 @@ object messagesdestinationData : destinationData {
     val routeWithArgs = "$route/{$chatIDAndUsername}"
 }
 
+enum class messagePosition(){
+    Top,
+    Middle,
+    Bottom,
+    Alone
+}
 @Composable
 fun Messages(
     viewModel: MessagesViewModel = viewModel(factory = GodViewModelProvider.Factory),
@@ -190,6 +198,7 @@ fun MessagesBodySuccess(
     var currentDate by remember {
         mutableStateOf("")
     }
+
     Scaffold(
         topBar = {
             ApptopBar(
@@ -243,84 +252,108 @@ fun MessagesBodySuccess(
     ) { padding ->
 
 
-        if (uiState.messages.isNotEmpty()) {
-            val groupedMessages = uiState.messages.sortedBy { message ->
-                message.timeStamp
-            }.reversed().groupBy { message ->
-                message.timeStamp.toDate().toInstant().atZone(ZoneId.systemDefault()).toLocalDate()
-            }
-//                .entries.toList()
-//                .foldIndexed(mutableListOf<Pair<LocalDate?, List<MessageReceived>>>()) { index, acc, entry ->
-//                    val date = if (index == 0) null else entry.key // Assign null to the first group
-//                    acc.apply { add(date to entry.value) }
-//                }
-//            LaunchedEffect(listState) {
-//                listState.scrollToItem(index =listState )
-//            }
+            if (uiState.messages.isNotEmpty()) {
+                val groupedMessages = uiState.messages.sortedBy { message ->
+                    message.timeStamp
+                }.reversed().groupBy { message ->
+                    message.timeStamp.toDate().toInstant().atZone(ZoneId.systemDefault()).toLocalDate()
+                }
+    //                .entries.toList()
+    //                .foldIndexed(mutableListOf<Pair<LocalDate?, List<MessageReceived>>>()) { index, acc, entry ->
+    //                    val date = if (index == 0) null else entry.key // Assign null to the first group
+    //                    acc.apply { add(date to entry.value) }
+    //                }
+    //            LaunchedEffect(listState) {
+    //                listState.scrollToItem(index =listState )
+    //            }
 
-            LazyColumn(
-                modifier = modifier
-                    .padding(padding)
-                    .fillMaxSize(),
-//                    .background(MaterialTheme.colorScheme.background),
-                reverseLayout = true,
-                state = listState,
-                verticalArrangement = Arrangement.Top,
-//                contentPadding = PaddingValues(top = 100.dp)
-            ) {
+                LazyColumn(
+                    modifier = modifier
+                        .padding(padding)
+                        .fillMaxSize(),
+    //                    .background(MaterialTheme.colorScheme.background),
+                    reverseLayout = true,
+                    state = listState,
+                    verticalArrangement = Arrangement.Top,
+    //                contentPadding = PaddingValues(top = 100.dp)
+                ) {
 
 
-                groupedMessages.forEach { (date, messages) ->
-//                    stickyHeader {
+                    groupedMessages.forEach { (date, messages) ->
+    //                    stickyHeader {
 
-//
-//                    }
-//                    stickyHeader(
-//
-//                    ) {
-//                        Text(
-//                            modifier = Modifier.fillMaxWidth(),
-//                            text = date.toString(),
-//                            textAlign = TextAlign.Center
-//                        )
-//
-//                    }
-                    items(
-//                        items = uiState.messages.reversed(),
-                        items = messages,
-//                        key = { message ->
-//                            message.timeStamp
-//                        }
-                    ) {
+    //
+    //                    }
+    //                    stickyHeader(
+    //
+    //                    ) {
+    //                        Text(
+    //                            modifier = Modifier.fillMaxWidth(),
+    //                            text = date.toString(),
+    //                            textAlign = TextAlign.Center
+    //                        )
+    //
+    //                    }
+                        items(
+    //                        items = uiState.messages.reversed(),
+                            items = messages,
+    //                        key = { message ->
+    //                            message.timeStamp
+    //                        }
+//                            key = {
+//                                message -> message.messageId
+//                            }
+                        ) { message ->
+                            val index = messages.indexOf(message)
+                            val prevMessage = messages.getOrNull(index + 1)
+                            val nextMessage = messages.getOrNull(index - 1)
 
-                        if (it.senderId != uiState.currentUser) {
-                            if (uiState.currChat.isGroup == false) {
-                                ReceiverChat(message = it)
-                            } else {
-                                ReceiverGroupChat(message = it)
+                            val prevWithin5Min = prevMessage?.let {
+                                (message.timeStamp.toDate().time - it.timeStamp.toDate().time)/(1000 *60 ) <= 5
+                                        && it.senderId == message.senderId
+                            } ?: false
+
+                            val nextWithin5Min = nextMessage?.let {
+                                (it.timeStamp.toDate().time - message.timeStamp.toDate().time)/(1000*60) <= 5
+                                        && it.senderId == message.senderId
+                            } ?:false
+
+                            val msgPosition = when {
+                                prevWithin5Min && nextWithin5Min -> messagePosition.Middle
+                                prevWithin5Min -> messagePosition.Bottom
+                                nextWithin5Min -> messagePosition.Top
+                                else -> messagePosition.Alone
                             }
-                        } else {
-                            SenderChat(message = it)
+
+                            if (message.senderId != uiState.currentUser) {
+                                if (uiState.currChat.isGroup == false) {
+                                    ReceiverChat(message = message,msgPosition = msgPosition)
+                                } else {
+                                    ReceiverGroupChat(message = message)
+                                }
+                            } else {
+                                SenderChat(message = message, msgPosition = msgPosition )
+
+                            }
                         }
+                        item() {
+                            Text(
+                                modifier = Modifier.fillMaxWidth(),
+                                text = date.toString(),
+                                textAlign = TextAlign.Center
+                            )
+                        }
+
                     }
                     item() {
-                        Text(
-                            modifier = Modifier.fillMaxWidth(),
-                            text = date.toString(),
-                            textAlign = TextAlign.Center
-                        )
+                        Row(
+                            modifier = Modifier
+                                .fillMaxWidth(),
+                            horizontalArrangement = Arrangement.Center
+                        ) { SecureMessageTag() }
                     }
 
                 }
-                item() {
-                    Row(
-                        modifier = Modifier
-                            .fillMaxWidth(),
-                        horizontalArrangement = Arrangement.Center
-                    ) { SecureMessageTag() }
-                }
-
-            }
 
             if (sheetVisible) {
                 ModalBottomSheet(
@@ -488,7 +521,9 @@ val styleMap: List<StyleRegex> = listOf(
         Regex = Regex("!(.*?)!", RegexOption.DOT_MATCHES_ALL),
         style = SpanStyle(
             textDecoration = TextDecoration.Underline
-        )
+        ),
+        symbol = "!"
+
     )
 )
 
@@ -610,7 +645,7 @@ fun checkForLink(message: String): Boolean {
     return codeRegex.containsMatchIn(message)
 }
 
-enum class textTypeParse{
+enum class textTypeParse {
     text,
     code,
     link
@@ -633,8 +668,10 @@ fun parseMessage(message: String): Map<String, textTypeParse> {
     // Collect matches from al regex patterns
     val matches = mutableListOf<Triple<IntRange, textTypeParse, String>>()
 
-    codeRegex.findAll(message).forEach { matches.add(Triple(it.range, textTypeParse.code, it.groupValues[1])) }
-    linkRegex.findAll(message).forEach { matches.add(Triple(it.range , textTypeParse.link, it.groupValues[1])) }
+    codeRegex.findAll(message)
+        .forEach { matches.add(Triple(it.range, textTypeParse.code, it.groupValues[1])) }
+    linkRegex.findAll(message)
+        .forEach { matches.add(Triple(it.range, textTypeParse.link, it.groupValues[1])) }
 
     // Sort matches by their start positions
     matches.sortBy { it.first.first }
@@ -642,7 +679,7 @@ fun parseMessage(message: String): Map<String, textTypeParse> {
     var lastIndex = 0
 
     // Iterate through sorted matches and build the map
-    for ((range, type,content) in matches) {
+    for ((range, type, content) in matches) {
         val start = range.first
         val end = range.last + 1
 
@@ -656,12 +693,14 @@ fun parseMessage(message: String): Map<String, textTypeParse> {
         // Add the matched text
 //        var matchedPart = message.substring(start, end)
         var matchedPart = content
-        when(type){
+        when (type) {
             textTypeParse.text -> {
             }
+
             textTypeParse.code -> {
 //                matchedPart = matchedPart.removeSurrounding("```")
             }
+
             textTypeParse.link -> {
 //                matchedPart = matchedPart.removeSurrounding("<",">")
 
@@ -681,7 +720,6 @@ fun parseMessage(message: String): Map<String, textTypeParse> {
 
     return result
 }
-
 
 
 /*fun parseLinkInMessage(message: String): Map<String, Boolean> {
@@ -785,8 +823,7 @@ fun GetCodeMessage(msg: String) {
                         )
                     }
                 }
-            }
-            else if(it.value == textTypeParse.link){
+            } else if (it.value == textTypeParse.link) {
 //                Card(
 //                    modifier = Modifier,
 //                    shape = RoundedCornerShape(10.dp),
@@ -794,27 +831,25 @@ fun GetCodeMessage(msg: String) {
 //                        containerColor = MaterialTheme.colorScheme.error
 //                    )
 //                ) {
-                    SelectionContainer {
-                        Text(
-                            text = it.key,
-                            modifier = Modifier
-                                .padding(6.dp)
-                                .clickable(enabled = true, onClick = {
+                SelectionContainer {
+                    Text(
+                        text = it.key,
+                        modifier = Modifier
+                            .padding(6.dp)
+                            .clickable(enabled = true, onClick = {
 //                                    val intend = Intent(Intent.ACTION_VIEW, Uri.parse(it.key))
 //                                    context.startActivity(intend)
-                                    handler.openUri(it.key)
-                                })
-                            ,
-                            fontSize = 18.sp,
-                            fontFamily = FontFamily.Monospace,
-                            textDecoration = TextDecoration.Underline
+                                handler.openUri(it.key)
+                            }),
+                        fontSize = 18.sp,
+                        fontFamily = FontFamily.Monospace,
+                        textDecoration = TextDecoration.Underline
 //                    inlineContent = InlineStyles(msg = msg),
 //                    onTextLayout = {}
-                        )
-                    }
+                    )
+                }
 //                }
-            }
-            else if (it.value == textTypeParse.text) {
+            } else if (it.value == textTypeParse.text) {
                 Text(
                     text = annotateMessage(it.key),
                     modifier = Modifier,
@@ -825,9 +860,26 @@ fun GetCodeMessage(msg: String) {
     }
 }
 
+val aloneModifier = Modifier
+    .padding(top = 8.dp)
+    .padding(horizontal = 5.dp)
+
+val topModifier = Modifier
+    .padding(top = 5.dp, bottom = 0.5.dp)
+    .padding(horizontal = 5.dp)
+
+val bottomModifier = Modifier
+    .padding(vertical = 0.5.dp)
+    .padding(horizontal = 5.dp)
+
+val middleModifier = Modifier
+    .padding(vertical = 1.dp)
+    .padding(horizontal = 5.dp)
+
 @Composable
 fun SenderChat(
-    message: MessageReceived
+    message: MessageReceived,
+    msgPosition : messagePosition = messagePosition.Alone
 ) {
     val date = message.timeStamp.toDate()
     //    val sdf  = SimpleDateFormat("HH:mm")
@@ -837,6 +889,10 @@ fun SenderChat(
     var showTime by remember {
         mutableStateOf(false)
     }
+    val aloneShape = RoundedCornerShape(20.dp, 0.dp, 20.dp, 20.dp)
+    val topShape = RoundedCornerShape(20.dp,20.dp,0.dp,20.dp)
+    val middleShape = RoundedCornerShape(20.dp,0.dp,0.dp,20.dp)
+    val bottomShape = RoundedCornerShape(20.dp,0.dp,20.dp,20.dp)
 
 
     //    val inlineContentMap = codeRegex.findAll(msg).associate { match->
@@ -877,26 +933,43 @@ fun SenderChat(
             .fillMaxWidth(1f),
         horizontalArrangement = Arrangement.End
     ) {
-        Column {
+        Column(
+            modifier = Modifier
+//                .clickable(
+//                    enabled = true,
+//                    onClick = { showTime = !showTime },
+//                    interactionSource = IntrSource,
+//                    indication = null
+//                )
+        ) {
             Row {
                 Card(
-                    modifier = Modifier
+                    modifier = when(msgPosition){
+                        messagePosition.Alone -> aloneModifier
+                        messagePosition.Top -> topModifier
+                        messagePosition.Middle -> middleModifier
+                        messagePosition.Bottom -> bottomModifier
+                    }
                         .fillMaxWidth(0.8f)
                         //                .weight(5f)
                         .wrapContentWidth(Alignment.End)
-                        .padding(top = 10.dp)
-                        .padding(horizontal = 5.dp)
+
                         .clickable(
                             enabled = true,
                             onClick = { showTime = !showTime },
                             interactionSource = IntrSource,
                             indication = null
-                        ),
+                        )
+                    ,
                     //                .height(60.dp),
-                    shape = RoundedCornerShape(20.dp, 0.dp, 20.dp, 20.dp),
+                    shape = when(msgPosition){
+                        messagePosition.Alone -> aloneShape
+                        messagePosition.Top -> topShape
+                        messagePosition.Middle -> middleShape
+                        messagePosition.Bottom -> bottomShape
+                    },
                     colors = CardDefaults.cardColors(
                         containerColor = MaterialTheme.colorScheme.primaryContainer
-
                     )
                 ) {
                     Row {
@@ -977,55 +1050,75 @@ fun SenderChat(
 
                     }
                 }
-                if (message.status == messageStatus.Send) {
-                    Card(
-                        modifier = Modifier
-                            .padding(top = 10.dp),
-                        shape = RoundedCornerShape(50)
-                    ) {
-                        Icon(
-                            imageVector = Icons.Default.ArrowOutward,
-                            contentDescription = null,
+//                if (message.status == messageStatus.Send) {
+//                    Card(
+//                        modifier = Modifier
+//                            .padding(top = 10.dp),
+//                        shape = RoundedCornerShape(50)
+//                    ) {
+//                        Icon(
+//                            imageVector = Icons.Default.ArrowOutward,
+//                            contentDescription = null,
+//                            modifier = Modifier
+//                                .background(color = MaterialTheme.colorScheme.primaryContainer)
+//                                .padding(1.dp)
+////                                .clip(shape = RoundedCornerShape(50.dp))
+//                        )
+//                    }
+//                } else if (message.status == messageStatus.Sending) {
+                AnimatedVisibility(
+                    label = "Message Status",
+                    visible = message.status != messageStatus.Send,
+//                    enter = expandHorizontally(
+//                        animationSpec = tween(500)
+//                    ) + fadeIn(),
+
+                    exit = shrinkHorizontally(
+                        animationSpec = tween(1500)
+                    ) + fadeOut()
+                ){
+                    if (message.status == messageStatus.Sending) {
+                        Card(
                             modifier = Modifier
-                                .background(color = MaterialTheme.colorScheme.primaryContainer)
-                                .padding(1.dp)
+                                .padding(top = 10.dp),
+                            shape = RoundedCornerShape(50)
+                        ) {
+                            Icon(
+                                imageVector = Icons.Default.CloudQueue,
+                                contentDescription = null,
+                                modifier = Modifier
+                                    .background(color = MaterialTheme.colorScheme.primaryContainer)
+                                    .padding(1.dp)
 //                                .clip(shape = RoundedCornerShape(50.dp))
-                        )
-                    }
-                } else if (message.status == messageStatus.Sending) {
-                    Card(
-                        modifier = Modifier
-                            .padding(top = 10.dp),
-                        shape = RoundedCornerShape(50)
-                    ) {
-                        Icon(
-                            imageVector = Icons.Default.CloudQueue,
-                            contentDescription = null,
+                            )
+                        }
+                    } else if (message.status == messageStatus.Error) {
+                        Card(
                             modifier = Modifier
-                                .background(color = MaterialTheme.colorScheme.primaryContainer)
-                                .padding(1.dp)
+                                .padding(top = 10.dp),
+                            shape = RoundedCornerShape(50)
+                        ) {
+                            Icon(
+                                imageVector = Icons.Default.Error,
+                                contentDescription = null,
+                                modifier = Modifier
+                                    .background(color = MaterialTheme.colorScheme.primaryContainer)
+                                    .padding(1.dp)
 //                                .clip(shape = RoundedCornerShape(50.dp))
-                        )
-                    }
-                } else if (message.status == messageStatus.Error) {
-                    Card(
-                        modifier = Modifier
-                            .padding(top = 10.dp),
-                        shape = RoundedCornerShape(50)
-                    ) {
-                        Icon(
-                            imageVector = Icons.Default.Error,
-                            contentDescription = null,
-                            modifier = Modifier
-                                .background(color = MaterialTheme.colorScheme.primaryContainer)
-                                .padding(1.dp)
-//                                .clip(shape = RoundedCornerShape(50.dp))
-                        )
+                            )
+                        }
                     }
                 }
 
             }
             AnimatedVisibility(
+                modifier = Modifier
+                    .padding(horizontal = 5.dp)
+                    .padding(vertical = 2.dp)
+                    .align(alignment = Alignment.End)
+//                        .fillMaxWidth(0.7f)
+                ,
+                label = "Message Time",
                 visible = showTime,
                 enter = expandVertically(
 //                    initialOffsetY = { -it/2 },
@@ -1037,16 +1130,18 @@ fun SenderChat(
                     animationSpec = tween(500)
                 ) + fadeOut(animationSpec = tween(300))
             ) {
-                Text(
-                    modifier = Modifier
-                        .padding(horizontal = 15.dp)
-                        .padding(vertical = 2.dp)
-                        .fillMaxWidth(0.8f),
-                    text = fDate.toString(),
+                Row(
+
+                    horizontalArrangement = Arrangement.End
+                ) {
+                    Text(
+
+                        text = fDate.toString(),
 //                    text = difference.toString(),
 //                text = message.timeStamp.toDate().toString(),
-                    textAlign = TextAlign.End
-                )
+                        textAlign = TextAlign.End
+                    )
+                }
             }
 
         }
@@ -1056,7 +1151,8 @@ fun SenderChat(
 
 @Composable
 fun ReceiverChat(
-    message: MessageReceived
+    message: MessageReceived,
+    msgPosition: messagePosition = messagePosition.Alone
 ) {
     val date = message.timeStamp.toDate()
 //    val sdf  = SimpleDateFormat("HH:mm")
@@ -1071,6 +1167,12 @@ fun ReceiverChat(
     var showTime by remember {
         mutableStateOf(false)
     }
+
+    val aloneShape = RoundedCornerShape(0.dp, 20.dp, 20.dp, 20.dp)
+    val topShape = RoundedCornerShape(20.dp,20.dp,20.dp,0.dp)
+    val middleShape = RoundedCornerShape(0.dp,20.dp,20.dp,0.dp)
+    val bottomShape = RoundedCornerShape(0.dp,20.dp,20.dp,20.dp)
+
     Row(
         modifier = Modifier
             .fillMaxWidth(0.8f),
@@ -1078,9 +1180,12 @@ fun ReceiverChat(
     ) {
         Column {
             Card(
-                modifier = Modifier
-                    .padding(top = 10.dp)
-                    .padding(horizontal = 5.dp)
+                modifier = when(msgPosition){
+                    messagePosition.Alone -> aloneModifier
+                    messagePosition.Top -> topModifier
+                    messagePosition.Middle -> middleModifier
+                    messagePosition.Bottom -> bottomModifier
+                }
                     .wrapContentWidth(Alignment.Start)
                     .clickable(
                         enabled = true,
@@ -1091,7 +1196,12 @@ fun ReceiverChat(
 //                .fillMaxWidth(1f)
                 ,
 //                .height(60.dp),
-                shape = RoundedCornerShape(0.dp, 20.dp, 20.dp, 20.dp),
+                shape = when(msgPosition){
+                    messagePosition.Alone -> aloneShape
+                    messagePosition.Top -> topShape
+                    messagePosition.Middle -> middleShape
+                    messagePosition.Bottom -> bottomShape
+                },
                 colors = CardDefaults.cardColors(
 //                    containerColor = MaterialTheme.colorScheme.secondaryContainer
                 )
@@ -1289,7 +1399,7 @@ fun BottomMessageSend(
     val haptic = LocalHapticFeedback.current
     val visualTransformation = remember { StyledTextVisualTransformation(styleMap) }
     ElevatedCard(
-        modifier= modifier
+        modifier = modifier
 //            .navigationBarsPadding()
 //            .animateContentSize(
 //
@@ -1486,43 +1596,45 @@ fun PreviewMessagebodySuccess() {
                 chatName = "ThereSelf",
                 currChat = ChatOrGroup(
                     isGroup = false,
-                    chatName = "ThereSelf"
+                    chatName = "ChatName@123"
                 ),
                 currentUser = "ThereSelf",
                 messages = mutableListOf(
-
                     MessageReceived(
-                        content = "Ok Bye",
-                        senderId = "ThereSelf",
-                        timeStamp = Timestamp(Date(2024 - 1900, 2, 26, 20, 15))
+                        messageId = "1",
+                        content = "Hello Friend",
+                        timeStamp = Timestamp(Date(2024 - 1900, 1, 25, 20, 15)),
+                        senderId = "mys",
+                        status = messageStatus.Sending
                     ),
                     MessageReceived(
-                        content = "Hello *Friend*",
-                        senderId = "mySelf",
-                        timeStamp = Timestamp(Date(2024 - 1900, 1, 25, 20, 15))
-                    ),
-
-                    MessageReceived(
-                        content = "good to say ```fda and we ate goin to teshio thaio``` nlhasfihobphbkjwahf aw;jhflkb aweklfb ",
-                        senderId = "mySelf",
-                        timeStamp = Timestamp(Date(2024 - 1900, 2, 5, 20, 15))
+                        messageId="2",
+                        content = "Hello Friend How are you doing",
+                        timeStamp = Timestamp(Date(2024 - 1900, 1, 25, 20, 18)),
+                        senderId = "mys",
+                        status = messageStatus.Send
                     ),
                     MessageReceived(
-                        content = "<Bold> \n Here is a code block\n ```_Italic_ and ~Strikethrough~``` and now ! Underlined !" +
-                                "<https://google.com>",
-                        senderId = "ThereSelf",
-                        timeStamp = Timestamp(Date(2024 - 1900, 10, 2, 7, 45))
+                        messageId = "3",
+                        content = "Hello Friend its nice to see you",
+                        timeStamp = Timestamp(Date(2024 - 1900, 1, 25, 20, 19)),
+                        senderId = "mys",
+                        status = messageStatus.Send
                     ),
                     MessageReceived(
-                        content = "Here is a code block: ```val x = 42``` and a link: <https://example.com>",
-                        senderId = "Myself",
-                        timeStamp = Timestamp(Date(2024 - 1900, 10, 2, 7, 45))
+                        messageId = "4",
+                        content = "Hello Friend good day",
+                        timeStamp = Timestamp(Date(2024 - 1900, 1, 25, 20, 20)),
+                        senderId = "mys",
+                        status = messageStatus.Send
                     ),
-                            MessageReceived(
-                            content = "<https://example.com>",
-                    senderId = "Myself",
-                    timeStamp = Timestamp(Date(2024 - 1900, 10, 2, 7, 45))
-                )
+                    MessageReceived(
+                        messageId = "5",
+                        content = "Hello Friend good day",
+                        timeStamp = Timestamp(Date(2024 - 1900, 2, 25, 20, 18)),
+                        senderId = "mys",
+                        status = messageStatus.Send
+                    ),
                 ),
                 messageToSend = "Hey *buddy*"
             ),

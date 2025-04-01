@@ -340,7 +340,8 @@ fun BottomMessageShare(
             .navigationBarsPadding()
             .fillMaxWidth()
             .padding(8.dp)
-            .background(MaterialTheme.colorScheme.background),
+//            .background(MaterialTheme.colorScheme.background)
+        ,
         colors = CardDefaults.elevatedCardColors(
             containerColor = MaterialTheme.colorScheme.secondaryContainer,
 
@@ -460,9 +461,13 @@ fun BottomMessageShare(
 }
 
 @Composable
-@Preview
+@Preview(showBackground = true, showSystemUi = true,
+    device = "spec:parent=pixel_5,navigation=buttons"
+)
 fun HandleSharedContentPreview() {
-    ChitChatTheme {
+    ChitChatTheme(
+        darkTheme = false   
+    ) {
         HandleSharedContentScreen(
             "Hello", null, uiState = ShareHandlerUiState(
 //                isError = true,

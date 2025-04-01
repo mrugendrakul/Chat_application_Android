@@ -299,6 +299,7 @@ class MessagesViewModel(
             dataRepository.getLiveMessages(
                 chatId = messagesUiState.value.chatID,
                 secureAESKey = messagesUiState.value.currChat.secureAESKey,
+                //Not in use.
                 onMessagesChange = { messageList ->
                     Log.d(TAGmess, "New Message is: ${messageList.last().content}")
                     messagesUiState.update {
