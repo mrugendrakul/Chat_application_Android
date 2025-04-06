@@ -320,12 +320,12 @@ fun MessagesBodySuccess(
                         val nextMessage = messages.getOrNull(index - 1)
 
                         val prevWithin5Min = prevMessage?.let {
-                            (message.timeStamp.toDate().time - it.timeStamp.toDate().time) / (1000 * 60) <= 5
+                            (message.timeStamp.toDate().time - it.timeStamp.toDate().time) / (1000 * 60) <= 2
                                     && it.senderId == message.senderId
                         } ?: false
 
                         val nextWithin5Min = nextMessage?.let {
-                            (it.timeStamp.toDate().time - message.timeStamp.toDate().time) / (1000 * 60) <= 5
+                            (it.timeStamp.toDate().time - message.timeStamp.toDate().time) / (1000 * 60) <= 2
                                     && it.senderId == message.senderId
                         } ?: false
 
@@ -340,7 +340,7 @@ fun MessagesBodySuccess(
                             if (uiState.currChat.isGroup == false) {
                                 ReceiverChat(message = message, msgPosition = msgPosition)
                             } else {
-                                ReceiverGroupChat(message = message)
+                                ReceiverGroupChat(message = message, msgPosition = msgPosition)
                             }
                         } else {
                             SenderChat(message = message, msgPosition = msgPosition)
@@ -1332,7 +1332,8 @@ fun ReceiverChat(
 
 @Composable
 fun ReceiverGroupChat(
-    message: MessageReceived
+    message: MessageReceived,
+    msgPosition: messagePosition
 ) {
     val date = message.timeStamp.toDate()
 //    val sdf  = SimpleDateFormat("HH:mm")
@@ -1347,22 +1348,33 @@ fun ReceiverGroupChat(
     var showTime by remember {
         mutableStateOf(false)
     }
+
+    val aloneShape = RoundedCornerShape(5.dp, 20.dp, 20.dp, 20.dp)
+    val topShape = RoundedCornerShape(20.dp, 20.dp, 20.dp, 5.dp)
+    val middleShape = RoundedCornerShape(5.dp, 20.dp, 20.dp, 5.dp)
+    val bottomShape = RoundedCornerShape(5.dp, 20.dp, 20.dp, 20.dp)
+
     Row(
         modifier = Modifier
             .fillMaxWidth(0.8f),
 //            .fillMaxWidth()
     ) {
         Column {
-            Text(
-                modifier = Modifier
-                    .padding(horizontal = 5.dp)
-                    .padding(top = 10.dp),
-                text = message.senderId
-            )
+            if(msgPosition == messagePosition.Alone || msgPosition == messagePosition.Top){
+                Text(
+                    modifier = Modifier
+                        .padding(horizontal = 5.dp)
+                        .padding(top = 10.dp),
+                    text = message.senderId
+                )
+            }
             Card(
-                modifier = Modifier
-                    .padding(bottom = 0.dp)
-                    .padding(horizontal = 5.dp)
+                modifier = when(msgPosition){
+                    messagePosition.Alone -> aloneModifier
+                    messagePosition.Top -> topModifier
+                    messagePosition.Middle -> middleModifier
+                    messagePosition.Bottom -> bottomModifier
+                }
                     .wrapContentWidth(Alignment.Start)
                     .clickable(
                         enabled = true,
@@ -1373,7 +1385,12 @@ fun ReceiverGroupChat(
 //                .fillMaxWidth(1f)
                 ,
 //                .height(60.dp),
-                shape = RoundedCornerShape(0.dp, 20.dp, 20.dp, 20.dp),
+                shape = when(msgPosition){
+                    messagePosition.Alone -> aloneShape
+                    messagePosition.Top -> topShape
+                    messagePosition.Middle -> middleShape
+                    messagePosition.Bottom -> bottomShape
+                },
                 colors = CardDefaults.cardColors(
 //                    containerColor = MaterialTheme.colorScheme.secondaryContainer
                 )
