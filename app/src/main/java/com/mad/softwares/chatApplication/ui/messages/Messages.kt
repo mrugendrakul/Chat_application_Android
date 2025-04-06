@@ -7,11 +7,13 @@ import android.os.Message
 import android.util.Log
 import androidx.compose.animation.AnimatedContent
 import androidx.compose.animation.AnimatedVisibility
+import androidx.compose.animation.ContentTransform
 import androidx.compose.animation.SizeTransform
 import androidx.compose.animation.animateContentSize
 import androidx.compose.animation.core.Spring
 import androidx.compose.animation.core.spring
 import androidx.compose.animation.core.tween
+import androidx.compose.animation.core.updateTransition
 import androidx.compose.animation.expandHorizontally
 import androidx.compose.animation.expandVertically
 import androidx.compose.animation.fadeIn
@@ -885,6 +887,7 @@ val middleModifier = Modifier
     .padding(vertical = 1.dp)
     .padding(horizontal = 5.dp)
 
+
 @Composable
 fun SenderChat(
     message: MessageReceived,
@@ -937,6 +940,8 @@ fun SenderChat(
     val IntrSource = remember {
         MutableInteractionSource()
     }
+
+
     Row(
         modifier = Modifier
             .fillMaxWidth(1f),
@@ -1074,67 +1079,91 @@ fun SenderChat(
 //                        )
 //                    }
 //                } else if (message.status == messageStatus.Sending) {
-                AnimatedContent(
-                    label = "Message Status",
-                    transitionSpec = {
-                        expandHorizontally(
-//                            initialOffsetY = { -it },
-                            animationSpec = tween(500)
-                        ) + fadeIn(animationSpec = tween(200)) togetherWith shrinkHorizontally(
-                            shrinkTowards = Alignment.End
-                        )+fadeOut() using SizeTransform(
-                            clip = false,
+                AnimatedVisibility(
+                    label = "message Status not send ${message.content}",
+                    visible = message.status!= messageStatus.Send,
+                    enter = fadeIn(tween(0)),
+                    exit = shrinkHorizontally(
+                        animationSpec = tween(durationMillis = 1300, delayMillis = 800)
+                    )+ slideOutHorizontally(
+                        targetOffsetX = {it},
+                        animationSpec = tween(durationMillis = 1000, delayMillis = 500)
+                    )
+                ){
+                    AnimatedContent(
+                        label = "Message Status - ${message.content}",
+                        transitionSpec = {
+                            if (targetState == messageStatus.Sending) {
+                                (fadeIn(animationSpec = tween(0))
+                                        togetherWith
+                                        slideOutHorizontally(animationSpec = tween(100, delayMillis = 200)) + fadeOut()
+                                        )
+                                    .using(SizeTransform(clip = false))
+                            } else {
+                                (expandHorizontally(animationSpec = tween(200, delayMillis = 200)) + fadeIn()
+                                        togetherWith
+                                        slideOutHorizontally(
+                                            targetOffsetX = {it},
+                                            animationSpec = tween(durationMillis = 200, delayMillis = 200)
+                                        )
+                                        )
+                                    .using(SizeTransform(clip = false))
+                            }
 
-                        )
-                    },
-                    targetState = message.status
-                ) { targetStatue ->
-//                    if (targetStatue == messageStatus.Send) {
-//                        Card(
-//                            modifier = Modifier
-//                                .padding(top = 10.dp),
-//                            shape = RoundedCornerShape(50)
-//                        ) {
-//                            Icon(
-//                                imageVector = Icons.AutoMirrored.Default.ArrowForward,
-//                                contentDescription = null,
-//                                modifier = Modifier
-//                                    .background(color = MaterialTheme.colorScheme.primaryContainer)
-//                                    .padding(1.dp)
-////                                .clip(shape = RoundedCornerShape(50.dp))
-//                            )
-//                        }
-//                    } else
-                        if (targetStatue == messageStatus.Sending) {
-                        Card(
-                            modifier = Modifier
-                                .padding(top = 10.dp),
-                            shape = RoundedCornerShape(50)
-                        ) {
-                            Icon(
-                                imageVector = Icons.Default.CloudQueue,
-                                contentDescription = null,
+                        },
+                        targetState = message.status
+                    ) { targetStatue ->
+                        if (targetStatue == messageStatus.Send) {
+
+                            Card(
                                 modifier = Modifier
-                                    .background(color = MaterialTheme.colorScheme.primaryContainer)
-                                    .padding(1.dp)
+                                    .padding(top = 10.dp),
+                                shape = RoundedCornerShape(50)
+                            ) {
+                                Icon(
+                                    imageVector = Icons.AutoMirrored.Default.ArrowForward,
+                                    contentDescription = null,
+                                    modifier = Modifier
+                                        .background(color = MaterialTheme.colorScheme.primaryContainer)
+                                        .padding(1.dp)
 //                                .clip(shape = RoundedCornerShape(50.dp))
-                            )
-                        }
-                    } else if (targetStatue == messageStatus.Error) {
-                        Card(
-                            modifier = Modifier
-                                .padding(top = 10.dp),
-                            shape = RoundedCornerShape(50)
-                        ) {
-                            Icon(
-                                imageVector = Icons.Default.Error,
-                                contentDescription = null,
-                                modifier = Modifier
-                                    .background(color = MaterialTheme.colorScheme.primaryContainer)
-                                    .padding(1.dp)
+                                )
+                            }
+
+                        } else
+                            if (targetStatue == messageStatus.Sending) {
+
+                                Card(
+                                    modifier = Modifier
+                                        .padding(top = 10.dp),
+                                    shape = RoundedCornerShape(50)
+                                ) {
+                                    Icon(
+                                        imageVector = Icons.Default.CloudQueue,
+                                        contentDescription = null,
+                                        modifier = Modifier
+                                            .background(color = MaterialTheme.colorScheme.primaryContainer)
+                                            .padding(1.dp)
 //                                .clip(shape = RoundedCornerShape(50.dp))
-                            )
-                        }
+                                    )
+                                }
+
+                            } else if (targetStatue == messageStatus.Error) {
+                                Card(
+                                    modifier = Modifier
+                                        .padding(top = 10.dp),
+                                    shape = RoundedCornerShape(50)
+                                ) {
+                                    Icon(
+                                        imageVector = Icons.Default.Error,
+                                        contentDescription = null,
+                                        modifier = Modifier
+                                            .background(color = MaterialTheme.colorScheme.primaryContainer)
+                                            .padding(1.dp)
+//                                .clip(shape = RoundedCornerShape(50.dp))
+                                    )
+                                }
+                            }
                     }
                 }
 
@@ -1624,7 +1653,7 @@ fun PreviewMessagebodySuccess() {
             uiState = MessagesUiState(
                 chatName = "ThereSelf",
                 currChat = ChatOrGroup(
-                    isGroup = false,
+                    isGroup = true,
                     chatName = "ChatName@123"
                 ),
                 currentUser = "ThereSelf",
@@ -1633,14 +1662,14 @@ fun PreviewMessagebodySuccess() {
                         messageId = "1",
                         content = "Hello Friend",
                         timeStamp = Timestamp(Date(2024 - 1900, 1, 25, 20, 15)),
-                        senderId = "ThereSelf",
+                        senderId = "nys",
                         status = messageStatus.Sending
                     ),
                     MessageReceived(
                         messageId = "2",
                         content = "Hello Friend How are you doing",
                         timeStamp = Timestamp(Date(2024 - 1900, 1, 25, 20, 18)),
-                        senderId = "ThereSelf",
+                        senderId = "nys",
                         status = messageStatus.Send
                     ),
                     MessageReceived(
@@ -1654,14 +1683,14 @@ fun PreviewMessagebodySuccess() {
                         messageId = "4",
                         content = "Hello Friend good day",
                         timeStamp = Timestamp(Date(2024 - 1900, 1, 25, 20, 20)),
-                        senderId = "ThereSelf",
+                        senderId = "mys",
                         status = messageStatus.Send
                     ),
                     MessageReceived(
                         messageId = "5",
                         content = "Hello Friend good day",
                         timeStamp = Timestamp(Date(2024 - 1900, 2, 25, 20, 18)),
-                        senderId = "ThereSelf",
+                        senderId = "nys",
                         status = messageStatus.Send
                     ),
                 ),

@@ -17,6 +17,7 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.async
 import kotlinx.coroutines.coroutineScope
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.collect
 import kotlinx.coroutines.flow.update
@@ -181,7 +182,7 @@ class MessagesViewModel(
 //        }
         backgroundScope.launch() {
 
-//            delay(5000)
+//            delay(500)
             try {
 
                 dataRepository.sendMessage(
