@@ -36,10 +36,12 @@ import androidx.compose.material.icons.filled.ArrowDownward
 import androidx.compose.material.icons.filled.ArrowUpward
 import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material.icons.filled.Deselect
+import androidx.compose.material.icons.filled.Group
 import androidx.compose.material.icons.filled.Groups
 import androidx.compose.material.icons.filled.MoreVert
 import androidx.compose.material.icons.filled.Person
 import androidx.compose.material.icons.filled.SelectAll
+import androidx.compose.material.icons.outlined.Group
 import androidx.compose.material.icons.outlined.Groups
 import androidx.compose.material.icons.outlined.Person
 import androidx.compose.material3.AlertDialog
@@ -207,12 +209,12 @@ fun UserChatsBody(
         NavBarItemsTitleAndIcons(
             title = "Chats",
             openIcon = Icons.Filled.Person,
-            closeIcon = Icons.Outlined.Person
+            closeIcon = Icons.Outlined.Groups
         ),
         NavBarItemsTitleAndIcons(
             title = "Groups",
-            openIcon = Icons.Filled.Person,
-            closeIcon = Icons.Outlined.Groups
+            openIcon = Icons.Filled.Group,
+            closeIcon = Icons.Outlined.Group
         )
     )
     val scope = rememberCoroutineScope()
