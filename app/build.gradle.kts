@@ -1,10 +1,15 @@
+import org.gradle.kotlin.dsl.composeCompiler
+
 plugins {
     id("com.android.application")
     id("org.jetbrains.kotlin.android")
 
     id("com.google.gms.google-services")
     id("com.google.devtools.ksp")
+    id("org.jetbrains.kotlin.plugin.compose") version "2.1.20"
 }
+
+
 
 android {
     signingConfigs {
@@ -68,9 +73,15 @@ android {
     }
 }
 
+composeCompiler {
+    reportsDestination = layout.buildDirectory.dir("compose_compiler")
+    stabilityConfigurationFile = rootProject.layout.projectDirectory.file("stability_config.conf")
+}
+
 dependencies {
 
     implementation(libs.androidx.core.ktx)
+    implementation(libs.kotlin.stdlib)
     implementation(libs.androidx.lifecycle.runtime.ktx)
     implementation(libs.androidx.activity.compose)
     implementation(platform(libs.androidx.compose.bom))

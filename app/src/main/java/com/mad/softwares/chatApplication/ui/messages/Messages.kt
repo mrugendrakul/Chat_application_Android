@@ -1,19 +1,14 @@
 package com.mad.softwares.chatApplication.ui.messages
 
 import StyledTextVisualTransformation
-import android.content.Intent
-import android.net.Uri
-import android.os.Message
 import android.util.Log
 import androidx.compose.animation.AnimatedContent
 import androidx.compose.animation.AnimatedVisibility
-import androidx.compose.animation.ContentTransform
 import androidx.compose.animation.SizeTransform
 import androidx.compose.animation.animateContentSize
 import androidx.compose.animation.core.Spring
 import androidx.compose.animation.core.spring
 import androidx.compose.animation.core.tween
-import androidx.compose.animation.core.updateTransition
 import androidx.compose.animation.expandHorizontally
 import androidx.compose.animation.expandVertically
 import androidx.compose.animation.fadeIn
@@ -22,6 +17,7 @@ import androidx.compose.animation.scaleIn
 import androidx.compose.animation.scaleOut
 import androidx.compose.animation.shrinkHorizontally
 import androidx.compose.animation.shrinkVertically
+import androidx.compose.animation.slideInHorizontally
 import androidx.compose.animation.slideInVertically
 import androidx.compose.animation.slideOutHorizontally
 import androidx.compose.animation.slideOutVertically
@@ -29,11 +25,11 @@ import androidx.compose.animation.togetherWith
 import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.combinedClickable
 import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.IntrinsicSize
-import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxSize
@@ -42,23 +38,22 @@ import androidx.compose.foundation.layout.imePadding
 import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
-import androidx.compose.foundation.layout.statusBarsPadding
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.layout.wrapContentWidth
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.lazy.rememberLazyListState
+import androidx.compose.foundation.selection.toggleable
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.selection.SelectionContainer
 import androidx.compose.material3.Scaffold
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.automirrored.filled.ArrowForward
 import androidx.compose.material.icons.automirrored.filled.Send
-import androidx.compose.material.icons.filled.ArrowForward
-import androidx.compose.material.icons.filled.ArrowOutward
 import androidx.compose.material.icons.filled.Attachment
 import androidx.compose.material.icons.filled.CloudQueue
+import androidx.compose.material.icons.filled.Delete
+import androidx.compose.material.icons.filled.Deselect
 import androidx.compose.material.icons.filled.Error
 import androidx.compose.material.icons.filled.Image
 import androidx.compose.material.icons.filled.LocationOn
@@ -77,14 +72,11 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.ModalBottomSheet
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.OutlinedTextFieldDefaults
-import androidx.compose.material3.ShapeDefaults
-import androidx.compose.material3.Shapes
 import androidx.compose.material3.SnackbarHost
 import androidx.compose.material3.SnackbarHostState
 import androidx.compose.material3.Text
 import androidx.compose.material3.rememberModalBottomSheetState
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -93,11 +85,9 @@ import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.hapticfeedback.HapticFeedbackType
-import androidx.compose.ui.layout.ModifierInfo
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalHapticFeedback
 import androidx.compose.ui.platform.LocalUriHandler
@@ -108,7 +98,6 @@ import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.buildAnnotatedString
 import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.font.FontStyle
-import androidx.compose.ui.text.font.FontSynthesis
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextDecoration
@@ -127,8 +116,8 @@ import com.mad.softwares.chatApplication.ui.GodViewModelProvider
 import com.mad.softwares.chatApplication.ui.destinationData
 import com.mad.softwares.chatApplication.ui.theme.ChitChatTheme
 import kotlinx.coroutines.launch
+import org.w3c.dom.Text
 import java.text.SimpleDateFormat
-import java.time.LocalDate
 import java.time.ZoneId
 import java.util.Date
 
@@ -154,30 +143,45 @@ fun Messages(
 ) {
     val uiState = viewModel.messagesUiState.collectAsState().value
 //    val currentScreen = uiState.messageScreen
-    when (uiState.messageScreen) {
-        MessageScreen.Loading -> {
-            MessageBodyLoading()
-        }
+//    when (uiState.messageScreen) {
+//        MessageScreen.Loading -> {
+//            MessageBodyLoading()
+//        }
+//
+//        MessageScreen.Error -> {
+//            ShowMessageError {
+////                viewModel.getMessages(isForced = true)
+//            }
+//        }
+//
+//        MessageScreen.Success -> {
+//
+//            MessagesBodySuccess(
+//                uiState = uiState,
+//                updateMessage = { viewModel.messageEdit(it) },
+//                getMessagesAgain = {
+////                    viewModel.getMessages(isForced = true)
+//                },
+//                sendMessage = { viewModel.sendTextMessage() },
+//                toggleMessageSelection = viewModel::toggleMessageSelection,
+//
+//                navigateUp = navigateUp
+//            )
+//        }
+//    }
 
-        MessageScreen.Error -> {
-            ShowMessageError {
-//                viewModel.getMessages(isForced = true)
-            }
-        }
-
-        MessageScreen.Success -> {
-
-            MessagesBodySuccess(
-                uiState = uiState,
-                updateMessage = { viewModel.messageEdit(it) },
-                getMessagesAgain = {
+    MessagesBodySuccess(
+        uiState = uiState,
+        updateMessage = { viewModel.messageEdit(it) },
+        getMessagesAgain = {
 //                    viewModel.getMessages(isForced = true)
-                },
-                sendMessage = { viewModel.sendTextMessage() },
-                navigateUp = navigateUp
-            )
-        }
-    }
+        },
+        sendMessage = { viewModel.sendTextMessage() },
+        toggleMessageSelection = viewModel::toggleMessageSelection,
+
+        navigateUp = navigateUp,
+        deselectAll = viewModel::deSelectAll
+    )
 }
 
 @OptIn(ExperimentalMaterial3Api::class, ExperimentalFoundationApi::class)
@@ -185,9 +189,12 @@ fun Messages(
 fun MessagesBodySuccess(
     uiState: MessagesUiState,
     updateMessage: (String) -> Unit,
+    deselectAll: () -> Unit,
     getMessagesAgain: () -> Unit,
     sendMessage: () -> Unit,
     navigateUp: () -> Unit,
+    toggleMessageSelection: (MessageReceived, Boolean, Boolean) -> Unit = { _, _, _ -> },
+    selectionBoth: () -> Unit = {},
     modifier: Modifier = Modifier
 ) {
     val scope = rememberCoroutineScope()
@@ -209,29 +216,83 @@ fun MessagesBodySuccess(
     var currentDate by remember {
         mutableStateOf("")
     }
+    val haptic = LocalHapticFeedback.current
 
     Scaffold(
         topBar = {
             ApptopBar(
                 destinationData = messagesdestinationData,
                 navigateUp = navigateUp,
-                title = uiState.currChat.chatName,
-                action = {
-                    IconButton(onClick = {
-                        expandDDMenu = true
-                    }) {
-                        Icon(
-                            imageVector = Icons.Default.MoreVert,
-                            contentDescription = "refresh"
-                        )
-                    }
-                    DropdownMenu(
-                        expanded = expandDDMenu,
-                        onDismissRequest = { expandDDMenu = !expandDDMenu }) {
-                        uiState.currChat.members.forEach { mem ->
-                            DropdownMenuItem(text = { Text(text = mem) }, onClick = { /*TODO*/ })
+                title = {
+                    AnimatedContent(
+                        modifier =Modifier.fillMaxWidth(),
+                        targetState = uiState.messageScreen,
+                        label = "Top title Animation",
+                        transitionSpec = {
+                            slideInVertically(
+                                initialOffsetY = {it/2}
+                            )+fadeIn() togetherWith
+                                    slideOutVertically() + fadeOut()
                         }
+                    ) { targetState ->
+                        when (targetState) {
+                            MessageScreen.Success -> Text(
+                                text = uiState.currChat.chatName,
+                                        color = MaterialTheme.colorScheme.onPrimary
+                            )
+                            MessageScreen.Loading -> Text(
+                                "Loading...",
+                                color = MaterialTheme.colorScheme.onPrimary)
+                            MessageScreen.Error -> Text(
+                                "Error",
+                                color = MaterialTheme.colorScheme.onPrimary)
+                        }
+                    }
+                }
+                ,
+                action = {
+                    if (uiState.selectedReceivedMessages.isEmpty() && uiState.selectedSentMessages.isEmpty()) {
+                        IconButton(onClick = {
+                            expandDDMenu = true
+                        }) {
+                            Icon(
+                                imageVector = Icons.Default.MoreVert,
+                                contentDescription = "refresh"
+                            )
+                        }
+                        DropdownMenu(
+                            expanded = expandDDMenu,
+                            onDismissRequest = { expandDDMenu = !expandDDMenu }) {
+                            uiState.currChat.members.forEach { mem ->
+                                DropdownMenuItem(
+                                    text = { Text(text = mem) },
+                                    onClick = { /*TODO*/ })
+                            }
 
+                        }
+                    } else {
+                        IconButton(onClick = {
+                            snackbarHostState.currentSnackbarData?.dismiss()
+                            scope.launch {
+                                snackbarHostState.showSnackbar(
+                                    message = "This function is not implemented yet",
+                                    withDismissAction = true
+                                )
+                            }
+                        }) {
+                            Icon(
+                                imageVector = Icons.Default.Delete,
+                                contentDescription = "delete Message"
+                            )
+                        }
+                        IconButton(onClick = {
+                            deselectAll()
+                        }) {
+                            Icon(
+                                imageVector = Icons.Default.Deselect,
+                                contentDescription = "deselect All"
+                            )
+                        }
                     }
                 }
             )
@@ -338,12 +399,120 @@ fun MessagesBodySuccess(
 
                         if (message.senderId != uiState.currentUser) {
                             if (uiState.currChat.isGroup == false) {
-                                ReceiverChat(message = message, msgPosition = msgPosition)
+                                ReceiverChat(message = message,
+                                    msgPosition = msgPosition,
+                                    modifier = if (uiState.selectedReceivedMessages.isEmpty()) {
+                                        Modifier
+                                            .combinedClickable(
+                                                interactionSource = null,
+                                                indication = null,
+                                                onClick = { },
+                                                onLongClick = {
+                                                    haptic.performHapticFeedback(HapticFeedbackType.LongPress)
+                                                    Log.d("Messages", "Long press detected")
+                                                    selectionBoth()
+                                                    toggleMessageSelection(
+                                                        message,
+                                                        true,
+                                                        true
+                                                    )
+                                                }
+                                            )
+                                    } else {
+                                        Modifier
+                                            .toggleable(
+                                                value = uiState.selectedReceivedMessages.contains(
+                                                    message
+                                                ),
+                                                onValueChange = {
+                                                    toggleMessageSelection(
+                                                        message,
+                                                        it,
+                                                        true
+                                                    )
+                                                }
+                                            )
+                                    },
+                                    isCardSelected = uiState.selectedReceivedMessages.contains(
+                                        message
+                                    )
+                                )
                             } else {
-                                ReceiverGroupChat(message = message, msgPosition = msgPosition)
+                                ReceiverGroupChat(message = message,
+                                    msgPosition = msgPosition,
+                                    modifier = if (uiState.selectedReceivedMessages.isEmpty()) {
+                                        Modifier
+                                            .combinedClickable(
+                                                interactionSource = null,
+                                                indication = null,
+                                                onClick = { },
+                                                onLongClick = {
+                                                    haptic.performHapticFeedback(HapticFeedbackType.LongPress)
+                                                    Log.d("Messages", "Long press detected")
+                                                    selectionBoth()
+                                                    toggleMessageSelection(
+                                                        message,
+                                                        true,
+                                                        true
+                                                    )
+                                                }
+                                            )
+                                    } else {
+                                        Modifier
+                                            .toggleable(
+                                                value = uiState.selectedReceivedMessages.contains(
+                                                    message
+                                                ),
+                                                onValueChange = {
+                                                    toggleMessageSelection(
+                                                        message,
+                                                        it,
+                                                        true
+                                                    )
+                                                }
+                                            )
+                                    },
+                                    isCardSelected = uiState.selectedReceivedMessages.contains(
+                                        message
+                                    )
+                                )
                             }
                         } else {
-                            SenderChat(message = message, msgPosition = msgPosition)
+                            SenderChat(
+                                modifier = if(uiState.selectedSentMessages.isEmpty()){
+                                    Modifier
+                                        .combinedClickable(
+                                            interactionSource = null,
+                                            indication = null,
+                                            onClick = { },
+                                            onLongClick = {
+                                                haptic.performHapticFeedback(HapticFeedbackType.LongPress)
+                                                Log.d("Messages", "Long press detected")
+                                                selectionBoth()
+                                                toggleMessageSelection(
+                                                    message,
+                                                    true,
+                                                    false
+                                                )
+                                            }
+                                        )
+                                } else {
+                                    Modifier
+                                        .toggleable(
+                                            value = uiState.selectedSentMessages.contains(message),
+                                            onValueChange = {
+                                                toggleMessageSelection(
+                                                    message,
+                                                    it,
+                                                    false
+                                                )
+                                            }
+                                        )
+                                },
+                                message = message,
+                                msgPosition = msgPosition,
+                                isCardSelected = uiState.selectedSentMessages.contains(message)
+                            )
 
                         }
                     }
@@ -872,11 +1041,11 @@ fun GetCodeMessage(msg: String) {
 }
 
 val aloneModifier = Modifier
-    .padding(top = 8.dp)
+    .padding(top = 3.dp)
     .padding(horizontal = 5.dp)
 
 val topModifier = Modifier
-    .padding(top = 5.dp, bottom = 0.5.dp)
+    .padding(top = 3.dp, bottom = 0.5.dp)
     .padding(horizontal = 5.dp)
 
 val bottomModifier = Modifier
@@ -890,8 +1059,10 @@ val middleModifier = Modifier
 
 @Composable
 fun SenderChat(
+    modifier: Modifier = Modifier,
     message: MessageReceived,
-    msgPosition: messagePosition = messagePosition.Alone
+    msgPosition: messagePosition = messagePosition.Alone,
+    isCardSelected: Boolean,
 ) {
     val date = message.timeStamp.toDate()
     //    val sdf  = SimpleDateFormat("HH:mm")
@@ -943,274 +1114,318 @@ fun SenderChat(
 
 
     Row(
-        modifier = Modifier
-            .fillMaxWidth(1f),
-        horizontalArrangement = Arrangement.End
+        modifier = modifier
+            .padding(
+                top = when (msgPosition) {
+                    messagePosition.Alone -> 5.dp
+                    messagePosition.Top -> 5.dp
+                    messagePosition.Middle -> 0.dp
+                    messagePosition.Bottom -> 0.dp
+                },
+
+
+                )
     ) {
-        Column(
-            modifier = Modifier
-//                .clickable(
-//                    enabled = true,
-//                    onClick = { showTime = !showTime },
-//                    interactionSource = IntrSource,
-//                    indication = null
-//                )
-        ) {
-            Row {
-                Card(
-                    modifier = when (msgPosition) {
-                        messagePosition.Alone -> aloneModifier
-                        messagePosition.Top -> topModifier
-                        messagePosition.Middle -> middleModifier
-                        messagePosition.Bottom -> bottomModifier
+        Row(
+            modifier = modifier
+                .fillMaxWidth(1f)
+                .background(
+                    color = if (isCardSelected) {
+                        MaterialTheme.colorScheme.outline
+                    } else {
+                        Color.White.copy(alpha = 0f)
                     }
-                        .fillMaxWidth(0.8f)
-                        //                .weight(5f)
-                        .wrapContentWidth(Alignment.End)
-
-                        .clickable(
-                            enabled = true,
-                            onClick = { showTime = !showTime },
-                            interactionSource = IntrSource,
-                            indication = null
-                        ),
-                    //                .height(60.dp),
-                    shape = when (msgPosition) {
-                        messagePosition.Alone -> aloneShape
-                        messagePosition.Top -> topShape
-                        messagePosition.Middle -> middleShape
-                        messagePosition.Bottom -> bottomShape
+                )
+                .padding(
+                    bottom = when (msgPosition) {
+                        messagePosition.Alone -> 5.dp
+                        messagePosition.Top -> 0.dp
+                        messagePosition.Middle -> 0.dp
+                        messagePosition.Bottom -> 5.dp
                     },
-                    colors = CardDefaults.cardColors(
-                        containerColor = MaterialTheme.colorScheme.primaryContainer
-                    )
-                ) {
-                    Row {
-
-                        Column(
-                            modifier = Modifier
-                                .width(IntrinsicSize.Max)
-                        ) {
-//                            if (checkForCode(msg)) {
-//                                GetCodeMessage(msg = msg)
-//                            } else {
-//                                Text(
-//                                    text = annotateMessage(message.content),
-//                                    modifier = Modifier
-//                                        .padding(10.dp),
-//                                    fontSize = 20.sp,
-//                                )
-//                            }
-                            GetCodeMessage(msg = msg)
-                        }
-//                if (message.status == messageStatus.Send) {
-//                            Icon(
-//                                imageVector = Icons.Default.ArrowOutward,
-//                                contentDescription = null
-//                            )
-//                        } else if (message.status == messageStatus.Sending) {
-//                            Icon(
-//                                imageVector = Icons.Default.CloudQueue,
-//                                contentDescription = null
-//                            )
-//                        } else if (message.status == messageStatus.Error) {
-//                            Icon(
-//                                imageVector = Icons.Default.Error,
-//                                contentDescription = null
-//                            )
-//                        }
-
-//                Card(
-//                    modifier = Modifier
-//                        //                    .wrapContentWidth(unbounded = true)
-//                        .fillMaxWidth()
-////                        .padding(0.dp),
-//
-//                ) {
-//                    Row(
-//                        modifier = Modifier
-//                            .fillMaxWidth(),
-//                        horizontalArrangement = Arrangement.End,
-//                    ) {
-//                        Text(
-//                            modifier = Modifier
-//                                //                            .fillMaxWidth()
-//                                .padding(horizontal = 15.dp)
-//                                .padding(vertical = 2.dp),
-//                            text = fDate.toString(),
-//                            //                    text = difference.toString(),
-//                            //                text = message.timeStamp.toDate().toString(),
-//                            textAlign = TextAlign.Start
-//                        )
-//                        if (message.status == messageStatus.Send) {
-//                            Icon(
-//                                imageVector = Icons.Default.ArrowOutward,
-//                                contentDescription = null
-//                            )
-//                        } else if (message.status == messageStatus.Sending) {
-//                            Icon(
-//                                imageVector = Icons.Default.CloudQueue,
-//                                contentDescription = null
-//                            )
-//                        } else if (message.status == messageStatus.Error) {
-//                            Icon(
-//                                imageVector = Icons.Default.Error,
-//                                contentDescription = null
-//                            )
-//                        }
-//                    }
-//                }
-
-                    }
-                }
-//                if (message.status == messageStatus.Send) {
-//                    Card(
-//                        modifier = Modifier
-//                            .padding(top = 10.dp),
-//                        shape = RoundedCornerShape(50)
-//                    ) {
-//                        Icon(
-//                            imageVector = Icons.Default.ArrowOutward,
-//                            contentDescription = null,
-//                            modifier = Modifier
-//                                .background(color = MaterialTheme.colorScheme.primaryContainer)
-//                                .padding(1.dp)
-////                                .clip(shape = RoundedCornerShape(50.dp))
-//                        )
-//                    }
-//                } else if (message.status == messageStatus.Sending) {
-                AnimatedVisibility(
-                    label = "message Status not send ${message.content}",
-                    visible = message.status!= messageStatus.Send,
-                    enter = fadeIn(tween(0)),
-                    exit = shrinkHorizontally(
-                        animationSpec = tween(durationMillis = 1300, delayMillis = 800)
-                    )+ slideOutHorizontally(
-                        targetOffsetX = {it},
-                        animationSpec = tween(durationMillis = 1000, delayMillis = 500)
-                    )
-                ){
-                    AnimatedContent(
-                        label = "Message Status - ${message.content}",
-                        transitionSpec = {
-                            if (targetState == messageStatus.Sending) {
-                                (fadeIn(animationSpec = tween(0))
-                                        togetherWith
-                                        slideOutHorizontally(animationSpec = tween(100, delayMillis = 200)) + fadeOut()
-                                        )
-                                    .using(SizeTransform(clip = false))
-                            } else {
-                                (expandHorizontally(animationSpec = tween(200, delayMillis = 200)) + fadeIn()
-                                        togetherWith
-                                        slideOutHorizontally(
-                                            targetOffsetX = {it},
-                                            animationSpec = tween(durationMillis = 200, delayMillis = 200)
-                                        )
-                                        )
-                                    .using(SizeTransform(clip = false))
-                            }
-
-                        },
-                        targetState = message.status
-                    ) { targetStatue ->
-                        if (targetStatue == messageStatus.Send) {
-
-                            Card(
-                                modifier = Modifier
-                                    .padding(top = 10.dp),
-                                shape = RoundedCornerShape(50)
-                            ) {
-                                Icon(
-                                    imageVector = Icons.AutoMirrored.Default.ArrowForward,
-                                    contentDescription = null,
-                                    modifier = Modifier
-                                        .background(color = MaterialTheme.colorScheme.primaryContainer)
-                                        .padding(1.dp)
-//                                .clip(shape = RoundedCornerShape(50.dp))
-                                )
-                            }
-
-                        } else
-                            if (targetStatue == messageStatus.Sending) {
-
-                                Card(
-                                    modifier = Modifier
-                                        .padding(top = 10.dp),
-                                    shape = RoundedCornerShape(50)
-                                ) {
-                                    Icon(
-                                        imageVector = Icons.Default.CloudQueue,
-                                        contentDescription = null,
-                                        modifier = Modifier
-                                            .background(color = MaterialTheme.colorScheme.primaryContainer)
-                                            .padding(1.dp)
-//                                .clip(shape = RoundedCornerShape(50.dp))
-                                    )
-                                }
-
-                            } else if (targetStatue == messageStatus.Error) {
-                                Card(
-                                    modifier = Modifier
-                                        .padding(top = 10.dp),
-                                    shape = RoundedCornerShape(50)
-                                ) {
-                                    Icon(
-                                        imageVector = Icons.Default.Error,
-                                        contentDescription = null,
-                                        modifier = Modifier
-                                            .background(color = MaterialTheme.colorScheme.primaryContainer)
-                                            .padding(1.dp)
-//                                .clip(shape = RoundedCornerShape(50.dp))
-                                    )
-                                }
-                            }
-                    }
-                }
-
-            }
-            AnimatedVisibility(
+                ),
+            horizontalArrangement = Arrangement.End
+        ) {
+            Column(
                 modifier = Modifier
-//                    .padding(horizontal = 5.dp)
-//                    .padding(vertical = 2.dp)
-                    .align(alignment = Alignment.End)
-//                        .fillMaxWidth(0.7f)
-                ,
-                label = "Message Time",
-                visible = showTime,
-                enter = expandVertically(
-//                    initialOffsetY = { -it/2 },
-
-                    animationSpec = tween(500)
-                ) + fadeIn(animationSpec = tween(200)),
-                exit = shrinkVertically(
-//                    targetOffsetY = { -it },
-                    animationSpec = tween(500)
-                ) + fadeOut(animationSpec = tween(300))
+                //                .clickable(
+                //                    enabled = true,
+                //                    onClick = { showTime = !showTime },
+                //                    interactionSource = IntrSource,
+                //                    indication = null
+                //                )
             ) {
-                Row(
+                Row {
+                    Card(
+                        modifier = when (msgPosition) {
+                            messagePosition.Alone -> aloneModifier
+                            messagePosition.Top -> topModifier
+                            messagePosition.Middle -> middleModifier
+                            messagePosition.Bottom -> bottomModifier
+                        }
+                            .fillMaxWidth(0.8f)
+                            //                .weight(5f)
+                            .wrapContentWidth(Alignment.End)
 
-                    horizontalArrangement = Arrangement.End
-                ) {
-                    Text(
-                        modifier = Modifier
-                            .padding(end = 10.dp),
-                        text = fDate.toString(),
-//                    text = difference.toString(),
-//                text = message.timeStamp.toDate().toString(),
-                        textAlign = TextAlign.End
-                    )
+                            .clickable(
+                                enabled = true,
+                                onClick = { showTime = !showTime },
+                                interactionSource = IntrSource,
+                                indication = null
+                            ),
+                        //                .height(60.dp),
+                        shape = when (msgPosition) {
+                            messagePosition.Alone -> aloneShape
+                            messagePosition.Top -> topShape
+                            messagePosition.Middle -> middleShape
+                            messagePosition.Bottom -> bottomShape
+                        },
+                        colors = CardDefaults.cardColors(
+                            containerColor = MaterialTheme.colorScheme.primaryContainer
+                        )
+                    ) {
+                        Row {
+
+                            Column(
+                                modifier = Modifier
+                                    .width(IntrinsicSize.Max)
+                            ) {
+                                //                            if (checkForCode(msg)) {
+                                //                                GetCodeMessage(msg = msg)
+                                //                            } else {
+                                //                                Text(
+                                //                                    text = annotateMessage(message.content),
+                                //                                    modifier = Modifier
+                                //                                        .padding(10.dp),
+                                //                                    fontSize = 20.sp,
+                                //                                )
+                                //                            }
+                                GetCodeMessage(msg = msg)
+                            }
+                            //                if (message.status == messageStatus.Send) {
+                            //                            Icon(
+                            //                                imageVector = Icons.Default.ArrowOutward,
+                            //                                contentDescription = null
+                            //                            )
+                            //                        } else if (message.status == messageStatus.Sending) {
+                            //                            Icon(
+                            //                                imageVector = Icons.Default.CloudQueue,
+                            //                                contentDescription = null
+                            //                            )
+                            //                        } else if (message.status == messageStatus.Error) {
+                            //                            Icon(
+                            //                                imageVector = Icons.Default.Error,
+                            //                                contentDescription = null
+                            //                            )
+                            //                        }
+
+                            //                Card(
+                            //                    modifier = Modifier
+                            //                        //                    .wrapContentWidth(unbounded = true)
+                            //                        .fillMaxWidth()
+                            ////                        .padding(0.dp),
+                            //
+                            //                ) {
+                            //                    Row(
+                            //                        modifier = Modifier
+                            //                            .fillMaxWidth(),
+                            //                        horizontalArrangement = Arrangement.End,
+                            //                    ) {
+                            //                        Text(
+                            //                            modifier = Modifier
+                            //                                //                            .fillMaxWidth()
+                            //                                .padding(horizontal = 15.dp)
+                            //                                .padding(vertical = 2.dp),
+                            //                            text = fDate.toString(),
+                            //                            //                    text = difference.toString(),
+                            //                            //                text = message.timeStamp.toDate().toString(),
+                            //                            textAlign = TextAlign.Start
+                            //                        )
+                            //                        if (message.status == messageStatus.Send) {
+                            //                            Icon(
+                            //                                imageVector = Icons.Default.ArrowOutward,
+                            //                                contentDescription = null
+                            //                            )
+                            //                        } else if (message.status == messageStatus.Sending) {
+                            //                            Icon(
+                            //                                imageVector = Icons.Default.CloudQueue,
+                            //                                contentDescription = null
+                            //                            )
+                            //                        } else if (message.status == messageStatus.Error) {
+                            //                            Icon(
+                            //                                imageVector = Icons.Default.Error,
+                            //                                contentDescription = null
+                            //                            )
+                            //                        }
+                            //                    }
+                            //                }
+
+                        }
+                    }
+                    //                if (message.status == messageStatus.Send) {
+                    //                    Card(
+                    //                        modifier = Modifier
+                    //                            .padding(top = 10.dp),
+                    //                        shape = RoundedCornerShape(50)
+                    //                    ) {
+                    //                        Icon(
+                    //                            imageVector = Icons.Default.ArrowOutward,
+                    //                            contentDescription = null,
+                    //                            modifier = Modifier
+                    //                                .background(color = MaterialTheme.colorScheme.primaryContainer)
+                    //                                .padding(1.dp)
+                    ////                                .clip(shape = RoundedCornerShape(50.dp))
+                    //                        )
+                    //                    }
+                    //                } else if (message.status == messageStatus.Sending) {
+                    AnimatedVisibility(
+                        label = "message Status not send ${message.content}",
+                        visible = message.status != messageStatus.Send,
+                        enter = fadeIn(tween(0)),
+                        exit = shrinkHorizontally(
+                            animationSpec = tween(durationMillis = 1300, delayMillis = 800)
+                        ) + slideOutHorizontally(
+                            targetOffsetX = { it },
+                            animationSpec = tween(durationMillis = 1000, delayMillis = 500)
+                        )
+                    ) {
+                        AnimatedContent(
+                            label = "Message Status - ${message.content}",
+                            transitionSpec = {
+                                if (targetState == messageStatus.Sending) {
+                                    (fadeIn(animationSpec = tween(0))
+                                            togetherWith
+                                            slideOutHorizontally(
+                                                animationSpec = tween(
+                                                    100,
+                                                    delayMillis = 200
+                                                )
+                                            ) + fadeOut()
+                                            )
+                                        .using(SizeTransform(clip = false))
+                                } else {
+                                    (expandHorizontally(
+                                        animationSpec = tween(
+                                            200,
+                                            delayMillis = 200
+                                        )
+                                    ) + fadeIn()
+                                            togetherWith
+                                            slideOutHorizontally(
+                                                targetOffsetX = { it },
+                                                animationSpec = tween(
+                                                    durationMillis = 200,
+                                                    delayMillis = 200
+                                                )
+                                            )
+                                            )
+                                        .using(SizeTransform(clip = false))
+                                }
+
+                            },
+                            targetState = message.status
+                        ) { targetStatue ->
+                            if (targetStatue == messageStatus.Send) {
+
+                                Card(
+                                    modifier = Modifier
+                                        .padding(top = 10.dp),
+                                    shape = RoundedCornerShape(50)
+                                ) {
+                                    Icon(
+                                        imageVector = Icons.AutoMirrored.Default.ArrowForward,
+                                        contentDescription = null,
+                                        modifier = Modifier
+                                            .background(color = MaterialTheme.colorScheme.primaryContainer)
+                                            .padding(1.dp)
+                                        //                                .clip(shape = RoundedCornerShape(50.dp))
+                                    )
+                                }
+
+                            } else
+                                if (targetStatue == messageStatus.Sending) {
+
+                                    Card(
+                                        modifier = Modifier
+                                            .padding(top = 10.dp),
+                                        shape = RoundedCornerShape(50)
+                                    ) {
+                                        Icon(
+                                            imageVector = Icons.Default.CloudQueue,
+                                            contentDescription = null,
+                                            modifier = Modifier
+                                                .background(color = MaterialTheme.colorScheme.primaryContainer)
+                                                .padding(1.dp)
+                                            //                                .clip(shape = RoundedCornerShape(50.dp))
+                                        )
+                                    }
+
+                                } else if (targetStatue == messageStatus.Error) {
+                                    Card(
+                                        modifier = Modifier
+                                            .padding(top = 10.dp),
+                                        shape = RoundedCornerShape(50)
+                                    ) {
+                                        Icon(
+                                            imageVector = Icons.Default.Error,
+                                            contentDescription = null,
+                                            modifier = Modifier
+                                                .background(color = MaterialTheme.colorScheme.primaryContainer)
+                                                .padding(1.dp)
+                                            //                                .clip(shape = RoundedCornerShape(50.dp))
+                                        )
+                                    }
+                                }
+                        }
+                    }
+
                 }
+                AnimatedVisibility(
+                    modifier = Modifier
+                        //                    .padding(horizontal = 5.dp)
+                        //                    .padding(vertical = 2.dp)
+                        .align(alignment = Alignment.End)
+                    //                        .fillMaxWidth(0.7f)
+                    ,
+                    label = "Message Time",
+                    visible = showTime,
+                    enter = expandVertically(
+                        //                    initialOffsetY = { -it/2 },
+
+                        animationSpec = tween(500)
+                    ) + fadeIn(animationSpec = tween(200)),
+                    exit = shrinkVertically(
+                        //                    targetOffsetY = { -it },
+                        animationSpec = tween(500)
+                    ) + fadeOut(animationSpec = tween(300))
+                ) {
+                    Row(
+
+                        horizontalArrangement = Arrangement.End
+                    ) {
+                        Text(
+                            modifier = Modifier
+                                .padding(end = 10.dp),
+                            text = fDate.toString(),
+                            //                    text = difference.toString(),
+                            //                text = message.timeStamp.toDate().toString(),
+                            textAlign = TextAlign.End
+                        )
+                    }
+                }
+
             }
 
         }
-
     }
 }
 
 @Composable
 fun ReceiverChat(
     message: MessageReceived,
-    msgPosition: messagePosition = messagePosition.Alone
+    msgPosition: messagePosition = messagePosition.Alone,
+    modifier: Modifier = Modifier,
+    isCardSelected: Boolean,
 ) {
     val date = message.timeStamp.toDate()
 //    val sdf  = SimpleDateFormat("HH:mm")
@@ -1232,108 +1447,146 @@ fun ReceiverChat(
     val bottomShape = RoundedCornerShape(5.dp, 20.dp, 20.dp, 20.dp)
 
     Row(
-        modifier = Modifier
-            .fillMaxWidth(0.8f),
-//            .fillMaxWidth()
-    ) {
-        Column {
-            Card(
-                modifier = when (msgPosition) {
-                    messagePosition.Alone -> aloneModifier
-                    messagePosition.Top -> topModifier
-                    messagePosition.Middle -> middleModifier
-                    messagePosition.Bottom -> bottomModifier
-                }
-                    .wrapContentWidth(Alignment.Start)
-                    .clickable(
-                        enabled = true,
-                        onClick = { showTime = !showTime },
-                        interactionSource = null,
-                        indication = null
-                    )
-//                .fillMaxWidth(1f)
-                ,
-//                .height(60.dp),
-                shape = when (msgPosition) {
-                    messagePosition.Alone -> aloneShape
-                    messagePosition.Top -> topShape
-                    messagePosition.Middle -> middleShape
-                    messagePosition.Bottom -> bottomShape
+        modifier = modifier
+            .padding(
+                top = when (msgPosition) {
+                    messagePosition.Alone -> 5.dp
+                    messagePosition.Top -> 5.dp
+                    messagePosition.Middle -> 0.dp
+                    messagePosition.Bottom -> 0.dp
                 },
-                colors = CardDefaults.cardColors(
-//                    containerColor = MaterialTheme.colorScheme.secondaryContainer
-                )
-            ) {
-                Column(
-                    modifier = Modifier
-                        .width(IntrinsicSize.Max)
-                ) {
-//                    if (checkForCode(message.content)
-//                    ) {
-//                        GetCodeMessage(msg = message.content)
-//                    } else {
-//                        Text(
-//                            text = annotateMessage(message.content),
-//                            modifier = Modifier
-//                                .padding(10.dp)
-//                                .wrapContentWidth(),
-//                            fontSize = 20.sp
-//                        )
-//                    }
-                    GetCodeMessage(msg = message.content)
 
-//                Card(
-//                    modifier = Modifier
-//                        .fillMaxWidth()
-//                        .background(color = MaterialTheme.colorScheme.inverseOnSurface)
-//                ) {
-//                    Text(
-//                        modifier = Modifier
-//                            .padding(horizontal = 15.dp)
-//                            .padding(vertical = 2.dp),
-//                        text = fDate.toString(),
-////                    text = difference.toString(),
-////                text = message.timeStamp.toDate().toString(),
-//                        textAlign = TextAlign.End
-//                    )
-//                }
+
+                )
+    ) {
+        Row(
+            modifier = modifier
+                .fillMaxWidth()
+                .fillMaxWidth()
+                .background(
+                    color = if (isCardSelected) {
+                        MaterialTheme.colorScheme.outline
+                    } else {
+                        Color.White.copy(alpha = 0f)
+                    }
+                )
+                .padding(
+                    bottom = when (msgPosition) {
+                        messagePosition.Alone -> 5.dp
+                        messagePosition.Top -> 0.dp
+                        messagePosition.Middle -> 0.dp
+                        messagePosition.Bottom -> 5.dp
+                    },
+                )
+        ) {
+            Row(
+                modifier = Modifier
+                    .fillMaxWidth(0.8f),
+                //            .fillMaxWidth()
+            ) {
+                Column {
+                    Card(
+                        modifier = when (msgPosition) {
+                            messagePosition.Alone -> aloneModifier
+                            messagePosition.Top -> topModifier
+                            messagePosition.Middle -> middleModifier
+                            messagePosition.Bottom -> bottomModifier
+                        }
+                            .wrapContentWidth(Alignment.Start)
+                            .clickable(
+                                enabled = true,
+                                onClick = { showTime = !showTime },
+                                interactionSource = null,
+                                indication = null
+                            )
+                        //                .fillMaxWidth(1f)
+                        ,
+                        //                .height(60.dp),
+                        shape = when (msgPosition) {
+                            messagePosition.Alone -> aloneShape
+                            messagePosition.Top -> topShape
+                            messagePosition.Middle -> middleShape
+                            messagePosition.Bottom -> bottomShape
+                        },
+                        colors = CardDefaults.cardColors(
+                            //                    containerColor = MaterialTheme.colorScheme.secondaryContainer
+                        )
+                    ) {
+                        Column(
+                            modifier = Modifier
+                                .width(IntrinsicSize.Max)
+                        ) {
+                            //                    if (checkForCode(message.content)
+                            //                    ) {
+                            //                        GetCodeMessage(msg = message.content)
+                            //                    } else {
+                            //                        Text(
+                            //                            text = annotateMessage(message.content),
+                            //                            modifier = Modifier
+                            //                                .padding(10.dp)
+                            //                                .wrapContentWidth(),
+                            //                            fontSize = 20.sp
+                            //                        )
+                            //                    }
+                            GetCodeMessage(msg = message.content)
+
+                            //                Card(
+                            //                    modifier = Modifier
+                            //                        .fillMaxWidth()
+                            //                        .background(color = MaterialTheme.colorScheme.inverseOnSurface)
+                            //                ) {
+                            //                    Text(
+                            //                        modifier = Modifier
+                            //                            .padding(horizontal = 15.dp)
+                            //                            .padding(vertical = 2.dp),
+                            //                        text = fDate.toString(),
+                            ////                    text = difference.toString(),
+                            ////                text = message.timeStamp.toDate().toString(),
+                            //                        textAlign = TextAlign.End
+                            //                    )
+                            //                }
+                        }
+
+
+                    }
+                    AnimatedVisibility(
+                        visible = showTime,
+                        enter = expandVertically(
+                            //                    initialOffsetY = { -it/2 },
+
+                            animationSpec = tween(500)
+                        ) + fadeIn(animationSpec = tween(200)),
+                        exit = shrinkVertically(
+                            //                    targetOffsetY = { -it },
+                            animationSpec = tween(500)
+                        ) + fadeOut(animationSpec = tween(300))
+                    ) {
+                        Text(
+                            modifier = Modifier
+                                .padding(horizontal = 15.dp)
+                                .padding(vertical = 2.dp)
+                                .fillMaxWidth(0.8f),
+                            text = fDate.toString(),
+                            //                    text = difference.toString(),
+                            //                text = message.timeStamp.toDate().toString(),
+                            textAlign = TextAlign.Start
+                        )
+                    }
                 }
+                //        Spacer(modifier = Modifier.weight(1f))
 
-
-            }
-            AnimatedVisibility(
-                visible = showTime,
-                enter = expandVertically(
-//                    initialOffsetY = { -it/2 },
-
-                    animationSpec = tween(500)
-                ) + fadeIn(animationSpec = tween(200)),
-                exit = shrinkVertically(
-//                    targetOffsetY = { -it },
-                    animationSpec = tween(500)
-                ) + fadeOut(animationSpec = tween(300))
-            ) {
-                Text(
-                    modifier = Modifier
-                        .padding(horizontal = 15.dp)
-                        .padding(vertical = 2.dp)
-                        .fillMaxWidth(0.8f),
-                    text = fDate.toString(),
-//                    text = difference.toString(),
-//                text = message.timeStamp.toDate().toString(),
-                    textAlign = TextAlign.Start
-                )
             }
         }
-//        Spacer(modifier = Modifier.weight(1f))
-
     }
 }
 
+@OptIn(ExperimentalFoundationApi::class)
 @Composable
 fun ReceiverGroupChat(
+    modifier: Modifier = Modifier,
     message: MessageReceived,
-    msgPosition: messagePosition
+    msgPosition: messagePosition,
+    isCardSelected: Boolean,
 ) {
     val date = message.timeStamp.toDate()
 //    val sdf  = SimpleDateFormat("HH:mm")
@@ -1356,109 +1609,144 @@ fun ReceiverGroupChat(
 
     Row(
         modifier = Modifier
-            .fillMaxWidth(0.8f),
-//            .fillMaxWidth()
-    ) {
-        Column {
-            if(msgPosition == messagePosition.Alone || msgPosition == messagePosition.Top){
-                Text(
-                    modifier = Modifier
-                        .padding(horizontal = 5.dp)
-                        .padding(top = 10.dp),
-                    text = message.senderId
-                )
-            }
-            Card(
-                modifier = when(msgPosition){
-                    messagePosition.Alone -> aloneModifier
-                    messagePosition.Top -> topModifier
-                    messagePosition.Middle -> middleModifier
-                    messagePosition.Bottom -> bottomModifier
-                }
-                    .wrapContentWidth(Alignment.Start)
-                    .clickable(
-                        enabled = true,
-                        onClick = { showTime = !showTime },
-                        interactionSource = null,
-                        indication = null
-                    )
-//                .fillMaxWidth(1f)
-                ,
-//                .height(60.dp),
-                shape = when(msgPosition){
-                    messagePosition.Alone -> aloneShape
-                    messagePosition.Top -> topShape
-                    messagePosition.Middle -> middleShape
-                    messagePosition.Bottom -> bottomShape
+            .padding(
+                top = when (msgPosition) {
+                    messagePosition.Alone -> 5.dp
+                    messagePosition.Top -> 5.dp
+                    messagePosition.Middle -> 0.dp
+                    messagePosition.Bottom -> 0.dp
                 },
-                colors = CardDefaults.cardColors(
-//                    containerColor = MaterialTheme.colorScheme.secondaryContainer
-                )
-            ) {
-                Column(
-                    modifier = Modifier
-                        .width(IntrinsicSize.Max)
-                ) {
-//                    if (checkForCode(message.content)
-//                    ) {
-//                        GetCodeMessage(msg = message.content)
-//                    } else {
-//                        Text(
-//                            text = annotateMessage(message.content),
-//                            modifier = Modifier
-//                                .padding(10.dp)
-//                                .wrapContentWidth(),
-//                            fontSize = 20.sp
-//                        )
-//                    }
-                    GetCodeMessage(msg = message.content)
 
-//                    Card(
-//                        modifier = Modifier
-//                            .fillMaxWidth()
-//                            .background(color = MaterialTheme.colorScheme.inverseOnSurface)
-//                    ) {
-//                        Text(
-//                            modifier = Modifier
-//                                .padding(horizontal = 15.dp)
-//                                .padding(vertical = 2.dp),
-//                            text = fDate.toString(),
-////                    text = difference.toString(),
-////                text = message.timeStamp.toDate().toString(),
-//                            textAlign = TextAlign.End
-//                        )
-//                    }
+
+                )
+    ) {
+        Row(
+            modifier = modifier
+                .fillMaxWidth()
+                .background(
+                    color = if (isCardSelected) {
+                        MaterialTheme.colorScheme.outline
+                    } else {
+                        Color.White.copy(alpha = 0f)
+                    }
+                )
+                .padding(
+                    bottom = when (msgPosition) {
+                        messagePosition.Alone -> 5.dp
+                        messagePosition.Top -> 0.dp
+                        messagePosition.Middle -> 0.dp
+                        messagePosition.Bottom -> 5.dp
+                    },
+                )
+
+        ) {
+            Row(
+                modifier = Modifier
+                    .fillMaxWidth(0.8f),
+                //            .fillMaxWidth()
+            ) {
+                Column {
+                    if (msgPosition == messagePosition.Alone || msgPosition == messagePosition.Top) {
+                        Text(
+                            modifier = Modifier
+                                .padding(horizontal = 5.dp)
+                                .padding(top = 4.dp),
+                            text = message.senderId
+                        )
+                    }
+                    Card(
+                        modifier = when (msgPosition) {
+                            messagePosition.Alone -> aloneModifier
+                            messagePosition.Top -> topModifier
+                            messagePosition.Middle -> middleModifier
+                            messagePosition.Bottom -> bottomModifier
+                        }
+                            .wrapContentWidth(Alignment.Start)
+                            .clickable(
+                                enabled = true,
+                                onClick = { showTime = !showTime },
+                                interactionSource = null,
+                                indication = null
+                            )
+                        //                .fillMaxWidth(1f)
+                        ,
+                        //                .height(60.dp),
+                        shape = when (msgPosition) {
+                            messagePosition.Alone -> aloneShape
+                            messagePosition.Top -> topShape
+                            messagePosition.Middle -> middleShape
+                            messagePosition.Bottom -> bottomShape
+                        },
+                        colors = CardDefaults.cardColors(
+                            //                    containerColor = MaterialTheme.colorScheme.secondaryContainer
+                        )
+                    ) {
+                        Column(
+                            modifier = Modifier
+                                .width(IntrinsicSize.Max)
+                        ) {
+                            //                    if (checkForCode(message.content)
+                            //                    ) {
+                            //                        GetCodeMessage(msg = message.content)
+                            //                    } else {
+                            //                        Text(
+                            //                            text = annotateMessage(message.content),
+                            //                            modifier = Modifier
+                            //                                .padding(10.dp)
+                            //                                .wrapContentWidth(),
+                            //                            fontSize = 20.sp
+                            //                        )
+                            //                    }
+                            GetCodeMessage(msg = message.content)
+
+                            //                    Card(
+                            //                        modifier = Modifier
+                            //                            .fillMaxWidth()
+                            //                            .background(color = MaterialTheme.colorScheme.inverseOnSurface)
+                            //                    ) {
+                            //                        Text(
+                            //                            modifier = Modifier
+                            //                                .padding(horizontal = 15.dp)
+                            //                                .padding(vertical = 2.dp),
+                            //                            text = fDate.toString(),
+                            ////                    text = difference.toString(),
+                            ////                text = message.timeStamp.toDate().toString(),
+                            //                            textAlign = TextAlign.End
+                            //                        )
+                            //                    }
+                        }
+
+
+                    }
+                    AnimatedVisibility(
+                        visible = showTime,
+                        enter = expandVertically(
+                            //                    initialOffsetY = { -it/2 },
+
+                            animationSpec = tween(500)
+                        ) + fadeIn(animationSpec = tween(200)),
+                        exit = shrinkVertically(
+                            //                    targetOffsetY = { -it },
+                            animationSpec = tween(500)
+                        ) + fadeOut(animationSpec = tween(300))
+                    ) {
+                        Text(
+                            modifier = Modifier
+                                .padding(horizontal = 15.dp)
+                                .padding(vertical = 2.dp),
+                            text = fDate.toString(),
+                            //                    text = difference.toString(),
+                            //                text = message.timeStamp.toDate().toString(),
+                            textAlign = TextAlign.Start
+                        )
+                    }
+
+
                 }
-
+                //        Spacer(modifier = Modifier.weight(1f))
 
             }
-            AnimatedVisibility(
-                visible = showTime,
-                enter = expandVertically(
-//                    initialOffsetY = { -it/2 },
-
-                    animationSpec = tween(500)
-                ) + fadeIn(animationSpec = tween(200)),
-                exit = shrinkVertically(
-//                    targetOffsetY = { -it },
-                    animationSpec = tween(500)
-                ) + fadeOut(animationSpec = tween(300))
-            ) {
-                Text(
-                    modifier = Modifier
-                        .padding(horizontal = 15.dp)
-                        .padding(vertical = 2.dp),
-                    text = fDate.toString(),
-//                    text = difference.toString(),
-//                text = message.timeStamp.toDate().toString(),
-                    textAlign = TextAlign.Start
-                )
-            }
-
-
         }
-//        Spacer(modifier = Modifier.weight(1f))
-
     }
 }
 
@@ -1670,7 +1958,7 @@ fun PreviewMessagebodySuccess() {
             uiState = MessagesUiState(
                 chatName = "ThereSelf",
                 currChat = ChatOrGroup(
-                    isGroup = true,
+                    isGroup = false,
                     chatName = "ChatName@123"
                 ),
                 currentUser = "ThereSelf",
@@ -1679,28 +1967,28 @@ fun PreviewMessagebodySuccess() {
                         messageId = "1",
                         content = "Hello Friend",
                         timeStamp = Timestamp(Date(2024 - 1900, 1, 25, 20, 15)),
-                        senderId = "nys",
-                        status = messageStatus.Sending
+                        senderId = "ThereSelf",
+                        status = messageStatus.Send
                     ),
                     MessageReceived(
                         messageId = "2",
                         content = "Hello Friend How are you doing",
                         timeStamp = Timestamp(Date(2024 - 1900, 1, 25, 20, 18)),
-                        senderId = "nys",
+                        senderId = "ThereSelf",
                         status = messageStatus.Send
                     ),
                     MessageReceived(
                         messageId = "3",
                         content = "Hello Friend its nice to see you",
                         timeStamp = Timestamp(Date(2024 - 1900, 1, 25, 20, 19)),
-                        senderId = "mys",
+                        senderId = "nys",
                         status = messageStatus.Send
                     ),
                     MessageReceived(
                         messageId = "4",
                         content = "Hello Friend good day",
                         timeStamp = Timestamp(Date(2024 - 1900, 1, 25, 20, 20)),
-                        senderId = "mys",
+                        senderId = "nys",
                         status = messageStatus.Send
                     ),
                     MessageReceived(
@@ -1711,12 +1999,38 @@ fun PreviewMessagebodySuccess() {
                         status = messageStatus.Send
                     ),
                 ),
-                messageToSend = "Hey *buddy*"
+                messageToSend = "",
+                selectedSentMessages = listOf(
+                    MessageReceived(
+                        messageId = "1",
+                        content = "Hello Friend",
+                        timeStamp = Timestamp(Date(2024 - 1900, 1, 25, 20, 15)),
+                        senderId = "ThereSelf",
+                        status = messageStatus.Send
+                    ),
+                ),
+                selectedReceivedMessages = listOf(
+                    MessageReceived(
+                        messageId = "3",
+                        content = "Hello Friend its nice to see you",
+                        timeStamp = Timestamp(Date(2024 - 1900, 1, 25, 20, 19)),
+                        senderId = "nys",
+                        status = messageStatus.Send
+                    ),
+//                    MessageReceived(
+//                        messageId = "4",
+//                        content = "Hello Friend good day",
+//                        timeStamp = Timestamp(Date(2024 - 1900, 1, 25, 20, 20)),
+//                        senderId = "nys",
+//                        status = messageStatus.Send
+//                    ),
+                )
             ),
             updateMessage = {},
             getMessagesAgain = { },
             sendMessage = {},
-            navigateUp = {}
+            navigateUp = {},
+            deselectAll = {}
         )
     }
 }
