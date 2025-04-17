@@ -209,7 +209,7 @@ fun UserChatsBody(
         NavBarItemsTitleAndIcons(
             title = "Chats",
             openIcon = Icons.Filled.Person,
-            closeIcon = Icons.Outlined.Groups
+            closeIcon = Icons.Outlined.Person
         ),
         NavBarItemsTitleAndIcons(
             title = "Groups",

@@ -250,7 +250,12 @@ fun ApplicationScreen(
 fun ApptopBar(
     destinationData: destinationData,
     scrollBehavior: TopAppBarScrollBehavior? = null,
-    title: String = "",
+    title: @Composable (() ->Unit) = {
+        Text(
+            text = stringResource(id = destinationData.title),
+            color = MaterialTheme.colorScheme.onPrimary
+        )
+    },
     navigateUp: () -> Unit,
     action: @Composable (RowScope.() -> Unit) = {},
     modifier: Modifier = Modifier,
@@ -258,16 +263,17 @@ fun ApptopBar(
     goBack:()->Unit = {}
 ) {
     TopAppBar(
-        title = {
-            if (title == "") {
-                Text(
-                    text = stringResource(id = destinationData.title),
-//                color = MaterialTheme.colorScheme.onPrimary
-                )
-            } else {
-                Text(text = title)
-            }
-        },
+//        title = {
+//            if (title == "") {
+//                Text(
+//                    text = stringResource(id = destinationData.title),
+////                color = MaterialTheme.colorScheme.onPrimary
+//                )
+//            } else {
+//                Text(text = title)
+//            }
+//        },
+        title = title,
         colors = TopAppBarDefaults.topAppBarColors(
             containerColor = MaterialTheme.colorScheme.primary,
             titleContentColor = MaterialTheme.colorScheme.onPrimary,
@@ -324,7 +330,7 @@ fun ApptopBarPreview() {
             welcomeDestinationTest,
             scrollBehavior = TopAppBarDefaults.enterAlwaysScrollBehavior(),
             navigateUp = {},
-            title = "Testing this",
+            title = {Text("Title testing")},
 //            canGoBack = true
         )
     }

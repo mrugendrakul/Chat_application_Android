@@ -16,10 +16,7 @@ import kotlinx.coroutines.Deferred
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.async
-import kotlinx.coroutines.coroutineScope
-import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.MutableStateFlow
-import kotlinx.coroutines.flow.collect
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 
@@ -189,7 +186,8 @@ class MessagesViewModel(
                     message = newMessage,
                     chatId = messagesUiState.value.chatID,
                     secureAESKey = messagesUiState.value.currChat.secureAESKey,
-                    fcmTokens = messagesUiState.value.currChat.membersData.map { it.fcmToken }.flatten()
+                    fcmTokens = messagesUiState.value.currChat.membersData.map { it.fcmToken }
+                        .flatten()
 //                    chatId = "12345677"
                 )
 
@@ -336,6 +334,84 @@ class MessagesViewModel(
             )
         }
     }
+
+    fun toggleMessageSelection(
+        message: MessageReceived,
+        statue: Boolean,
+        isReceiver: Boolean = true
+    ) {
+        if (isReceiver) {
+            if (statue) {
+                messagesUiState.update {
+                    it.copy(
+                        selectedReceivedMessages = it.selectedReceivedMessages + message,
+                        isSenderOnlySelected = false
+                    )
+                }
+            } else {
+                if (messagesUiState.value.selectedReceivedMessages.size != 1) {
+                    messagesUiState.update {
+                        it.copy(
+                            selectedReceivedMessages = it.selectedReceivedMessages - message,
+                            isSenderOnlySelected = false
+                        )
+                    }
+                } else {
+                    messagesUiState.update {
+                        it.copy(
+                            selectedReceivedMessages = listOf(),
+                            isSenderOnlySelected = true
+                        )
+                    }
+                }
+            }
+        } else {
+            if (statue && messagesUiState.value.selectedReceivedMessages.isEmpty()) {
+                messagesUiState.update {
+                    it.copy(
+                        selectedSentMessages = it.selectedSentMessages + message,
+                        isSenderOnlySelected = true
+                    )
+                }
+
+
+            }
+            else if(statue && messagesUiState.value.selectedReceivedMessages.isNotEmpty()){
+                messagesUiState.update {
+                    it.copy(
+                        selectedSentMessages = it.selectedSentMessages + message,
+                        isSenderOnlySelected = false
+                    )
+                }
+            }
+            else{
+                messagesUiState.update {
+                    it.copy(
+                        selectedSentMessages = it.selectedSentMessages - message,
+                        isSenderOnlySelected = false
+                    )
+                }
+            }
+        }
+
+    }
+
+    fun deSelectAll(
+    ){
+        messagesUiState.update {
+            it.copy(
+                selectedReceivedMessages = listOf(),
+                selectedSentMessages = listOf(),
+                isSenderOnlySelected = false)}
+    }
+
+    fun startSelectionMode(){
+        messagesUiState.update {
+            it.copy(
+                selectionMode = true
+            )
+        }
+    }
 }
 
 
@@ -349,7 +425,11 @@ data class MessagesUiState(
     val messageScreen: MessageScreen = MessageScreen.Loading,
     val errorMessage: String = "",
     val messageToSend: String = "",
-    val messages: List<MessageReceived> = listOf()
+    val messages: List<MessageReceived> = listOf(),
+    val selectedReceivedMessages: List<MessageReceived> = listOf(),
+    val selectedSentMessages: List<MessageReceived> = listOf(),
+    val isSenderOnlySelected: Boolean = false,
+    val selectionMode:Boolean = false
 )
 
 enum class MessageScreen() {
