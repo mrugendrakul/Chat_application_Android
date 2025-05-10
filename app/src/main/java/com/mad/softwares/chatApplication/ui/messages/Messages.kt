@@ -1,7 +1,11 @@
 package com.mad.softwares.chatApplication.ui.messages
 
 import StyledTextVisualTransformation
+import android.content.Context
+import android.net.ConnectivityManager
+import android.net.NetworkCapabilities
 import android.util.Log
+import android.widget.Toast
 import androidx.compose.animation.AnimatedContent
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.SizeTransform
@@ -77,6 +81,7 @@ import androidx.compose.material3.SnackbarHostState
 import androidx.compose.material3.Text
 import androidx.compose.material3.rememberModalBottomSheetState
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -116,7 +121,10 @@ import com.mad.softwares.chatApplication.ui.ApptopBar
 import com.mad.softwares.chatApplication.ui.GodViewModelProvider
 import com.mad.softwares.chatApplication.ui.destinationData
 import com.mad.softwares.chatApplication.ui.theme.ChitChatTheme
+import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
+import kotlinx.coroutines.withTimeoutOrNull
 import org.w3c.dom.Text
 import java.text.SimpleDateFormat
 import java.time.ZoneId
@@ -136,6 +144,31 @@ enum class messagePosition() {
     Bottom,
     Alone
 }
+
+@Composable
+fun CheckInternetAndRun(onConnected: () -> Unit) {
+    val context = LocalContext.current
+
+    LaunchedEffect(Unit) {
+        val isConnected = withTimeoutOrNull(2000L) {
+            checkInternet(context)
+        } ?: false
+
+        if (isConnected) {
+            onConnected()
+        } else {
+            Toast.makeText(context, "No Internet Connection", Toast.LENGTH_SHORT).show()
+        }
+    }
+}
+
+suspend fun checkInternet(context: Context): Boolean = withContext(Dispatchers.IO) {
+    val connectivityManager = context.getSystemService(Context.CONNECTIVITY_SERVICE) as ConnectivityManager
+    val network = connectivityManager.activeNetwork ?: return@withContext false
+    val capabilities = connectivityManager.getNetworkCapabilities(network) ?: return@withContext false
+    return@withContext capabilities.hasCapability(NetworkCapabilities.NET_CAPABILITY_INTERNET)
+}
+
 
 @Composable
 fun Messages(
@@ -221,6 +254,7 @@ fun MessagesBodySuccess(
     }
     val haptic = LocalHapticFeedback.current
 
+    val context = LocalContext.current
     Scaffold(
         topBar = {
             ApptopBar(
@@ -276,7 +310,24 @@ fun MessagesBodySuccess(
                     } else {
                         if (uiState.selectedReceivedMessages.isEmpty()){
                             IconButton(onClick = {
-                                deleteMessages()
+                                coroutineScope.launch {
+                                    val isConnected = withTimeoutOrNull (2000L){
+                                        checkInternet(context)
+                                    }?:false
+
+                                    if(isConnected){
+                                        deleteMessages()
+                                    }
+                                    else{
+                                        snackbarHostState.currentSnackbarData?.dismiss()
+                                        scope.launch {
+                                            snackbarHostState.showSnackbar(
+                                                message = context.getString(R.string.please_connect_to_internet_and_try_again),
+                                                withDismissAction = true
+                                            )
+                                        }
+                                    }
+                                }
                             }) {
                                 Icon(
                                     imageVector = Icons.Default.Delete,
@@ -306,6 +357,7 @@ fun MessagesBodySuccess(
                         listState.animateScrollToItem(0)
                     }
                 },
+                isLoading = uiState.messageScreen == MessageScreen.Loading,
                 updateMessage = updateMessage,
                 sendAttatchment = {
                     sheetVisible = true
@@ -556,7 +608,7 @@ fun MessagesBodySuccess(
                             snackbarHostState.currentSnackbarData?.dismiss()
                             scope.launch {
                                 snackbarHostState.showSnackbar(
-                                    message = "This function is not implemented yet",
+                                    message = context.getString(R.string.this_function_is_not_implemented_yet),
                                     withDismissAction = true
                                 )
                             }
@@ -565,7 +617,25 @@ fun MessagesBodySuccess(
 
                 }
             }
-        } else {
+        }
+        else if(uiState.messageScreen == MessageScreen.Loading){
+            Column(
+                modifier = Modifier
+                    .padding(padding)
+                    .fillMaxSize(),
+//                    .background(MaterialTheme.colorScheme.background),
+                verticalArrangement = Arrangement.Center
+            ) {
+                Text(
+                    modifier = Modifier
+                        .fillMaxWidth(),
+                    text = stringResource(R.string.loading_messages),
+                    color = MaterialTheme.colorScheme.onBackground,
+                    textAlign = TextAlign.Center
+                )
+            }
+        }
+        else {
             Column(
                 modifier = Modifier
                     .padding(padding)
@@ -1764,7 +1834,8 @@ fun BottomMessageSend(
     appUistate: MessagesUiState,
     sendMessage: () -> Unit,
     updateMessage: (String) -> Unit,
-    sendAttatchment: () -> Unit
+    sendAttatchment: () -> Unit,
+    isLoading: Boolean
 ) {
     val scope = rememberCoroutineScope()
     val haptic = LocalHapticFeedback.current
@@ -1863,57 +1934,59 @@ fun BottomMessageSend(
                 )
 //
 
-                IconButton(
-                    onClick = {
-                        if (appUistate.messageToSend.isNotEmpty()) {
-                            haptic.performHapticFeedback(HapticFeedbackType.TextHandleMove)
-                            sendMessage()
-                        } else {
-                            haptic.performHapticFeedback(HapticFeedbackType.TextHandleMove)
-                            sendAttatchment()
-                        }
-                    },
+                if (!isLoading){
+                    IconButton(
+                        onClick = {
+                            if (appUistate.messageToSend.isNotEmpty()) {
+                                haptic.performHapticFeedback(HapticFeedbackType.TextHandleMove)
+                                sendMessage()
+                            } else {
+                                haptic.performHapticFeedback(HapticFeedbackType.TextHandleMove)
+                                sendAttatchment()
+                            }
+                        },
 
-                    modifier = Modifier
+                        modifier = Modifier
 //                        .fillMaxWidth()
-                        .padding(bottom = 10.dp, end = 10.dp)
-                        .size(45.dp),
-                    colors = IconButtonDefaults.iconButtonColors(
-                        containerColor = MaterialTheme.colorScheme.primary
+                            .padding(bottom = 10.dp, end = 10.dp)
+                            .size(45.dp),
+                        colors = IconButtonDefaults.iconButtonColors(
+                            containerColor = MaterialTheme.colorScheme.primary
 
-                    )
-                ) {
-                    AnimatedVisibility(
-                        visible = appUistate.messageToSend.isNotEmpty(),
-                        enter = scaleIn(),
-                        exit = scaleOut()
-                    ) {
-                        Icon(
-                            imageVector = Icons.AutoMirrored.Filled.Send,
-                            modifier = Modifier
-                                .fillMaxHeight()
-                                .padding(10.dp)
-                                .size(80.dp),
-                            tint = MaterialTheme.colorScheme.onPrimary,
-                            contentDescription = "send"
                         )
-                    }
-                    AnimatedVisibility(
-                        visible = appUistate.messageToSend.isEmpty(),
-                        enter = scaleIn(),
-                        exit = scaleOut()
                     ) {
-                        Icon(
-                            imageVector = Icons.Default.Attachment,
-                            modifier = Modifier
-                                .fillMaxHeight()
-                                .padding(10.dp)
-                                .size(80.dp),
-                            tint = MaterialTheme.colorScheme.onPrimary,
-                            contentDescription = "send"
-                        )
-                    }
+                        AnimatedVisibility(
+                            visible = appUistate.messageToSend.isNotEmpty(),
+                            enter = scaleIn(),
+                            exit = scaleOut()
+                        ) {
+                            Icon(
+                                imageVector = Icons.AutoMirrored.Filled.Send,
+                                modifier = Modifier
+                                    .fillMaxHeight()
+                                    .padding(10.dp)
+                                    .size(80.dp),
+                                tint = MaterialTheme.colorScheme.onPrimary,
+                                contentDescription = "send"
+                            )
+                        }
+                        AnimatedVisibility(
+                            visible = appUistate.messageToSend.isEmpty(),
+                            enter = scaleIn(),
+                            exit = scaleOut()
+                        ) {
+                            Icon(
+                                imageVector = Icons.Default.Attachment,
+                                modifier = Modifier
+                                    .fillMaxHeight()
+                                    .padding(10.dp)
+                                    .size(80.dp),
+                                tint = MaterialTheme.colorScheme.onPrimary,
+                                contentDescription = "send"
+                            )
+                        }
 
+                    }
                 }
 
             }

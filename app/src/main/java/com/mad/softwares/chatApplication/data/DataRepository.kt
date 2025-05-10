@@ -62,7 +62,7 @@ interface DataRepository {
         chatId: String,
         secureAESKey: String,
         fcmTokens: List<String>
-    )
+    ):String
 
     suspend fun sendNotificationToToken(token: String, title: String, content: String)
 
@@ -79,7 +79,8 @@ interface DataRepository {
         secureAESKey: String,
         onMessagesChange: (MessageReceived) -> Unit,
         onError: (e: Exception) -> Unit,
-        onAdd: (MessageReceived) -> Unit
+        onAdd: (MessageReceived) -> Unit,
+        onDelete:(MessageReceived)->Unit
     )
 
     suspend fun stopLiveMessages()
@@ -106,7 +107,7 @@ interface DataRepository {
 
     suspend fun getAllDeviceChats(): List<ChatOrGroup>?
 
-    suspend fun deleteAMessage(chatId: String,messageId:String,error: (e: Exception) -> Unit)
+    suspend fun deleteAMessage(chatId: String,messageId:String,error: (e: Exception) -> Unit, secureAESKey: String)
 }
 
 class NetworkDataRepository(
@@ -866,7 +867,7 @@ class NetworkDataRepository(
         chatId: String,
         secureAESKey: String,
         fcmTokens: List<String>
-    ) {
+    ): String {
         try {
             val encryptedMessage = encryptionService.aesEncrypt(
                 data = message.content.toByteArray(),
@@ -912,11 +913,11 @@ class NetworkDataRepository(
                     recentMessage = encryptionService.byteArrayToString(encryptedMessage)
                 )
 
-            if (!staus) {
+            if (staus=="") {
                 throw Exception("Unable to send message")
             }
             Log.d(TAG, "send successfully from data ")
-//            return status
+            return staus
         } catch (e: Exception) {
             Log.e(TAG, "unabe to send message to database from data : $e")
 //            return false
@@ -964,7 +965,8 @@ class NetworkDataRepository(
         secureAESKey: String,
         onMessagesChange: (MessageReceived) -> Unit,
         onError: (e: Exception) -> Unit,
-        onAdd: (MessageReceived) -> Unit
+        onAdd: (MessageReceived) -> Unit,
+        onDelete: (MessageReceived) -> Unit
     ) {
         apiService.getLiveMessagesForChat(
             chatId,
@@ -1005,7 +1007,8 @@ class NetworkDataRepository(
                     onAdd(message)
                 }
             },
-            onError
+            onError = onError,
+            onDelete = onDelete
         )
     }
 
@@ -1205,13 +1208,19 @@ class NetworkDataRepository(
     override suspend fun deleteAMessage(
         chatId: String,
         messageId: String,
-        error: (Exception) -> Unit
+        error: (Exception) -> Unit,
+        secureAESKey: String
     ) {
+        val encryptedMessage = encryptionService.aesEncrypt(
+            data = ("A Message was deleted").toByteArray(),
+            secretKey = encryptionService.stringToAESKey(secureAESKey)
+        )
         try{
             apiService.deleteMessage(
                 chatId = chatId,
                 messageId = messageId,
-                error = error)
+                error = error,
+                newDeletedMessage = encryptionService.byteArrayToString(encryptedMessage))
         }
         catch (e: Exception){
             error(e)

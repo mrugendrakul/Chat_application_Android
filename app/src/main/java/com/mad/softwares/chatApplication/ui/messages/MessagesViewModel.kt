@@ -4,7 +4,6 @@ import android.util.Log
 import androidx.lifecycle.SavedStateHandle
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
-import androidx.room.Index
 import com.google.firebase.Timestamp
 import com.mad.softwares.chatApplication.data.ChatOrGroup
 import com.mad.softwares.chatApplication.data.ContentType
@@ -183,7 +182,7 @@ class MessagesViewModel(
 //            delay(500)
             try {
 
-                dataRepository.sendMessage(
+                val messageId = dataRepository.sendMessage(
                     message = newMessage,
                     chatId = messagesUiState.value.chatID,
                     secureAESKey = messagesUiState.value.currChat.secureAESKey,
@@ -197,18 +196,22 @@ class MessagesViewModel(
 //                    index = messagesUiState.value.messages.indexOf(newMessage),
 //                    element = newMessage.copy(status = messageStatus.Send)
 //                )
-                Log.d(TAGmess, "Message status = ${messagesUiState.value.messages.last().status}")
+                Log.d(TAGmess, "Message id: $messageId")
                 messagesUiState.update {
                     it.copy(
                         errorMessage = "No error : ${newMessage.timeStamp}",
                         messages = updateElement(
                             it.messages,
                             index = it.messages.indexOf(newMessage),
-                            newElement = newMessage.copy(status = messageStatus.Send)
+                            newElement = newMessage.copy(
+                                messageId = messageId,
+                                status = messageStatus.Send
+                            )
                         )
 //                        messages = it.messages - newMessage
                     )
                 }
+
                 Log.d(TAGmess, "Message sent successfully ========>--------------->")
                 return@launch
 //                getMessages(true)
@@ -294,17 +297,19 @@ class MessagesViewModel(
 //        }
 //    }
 
-    private fun updateMessageList(messages: MutableList<MessageReceived>,newMessage: MessageReceived): List<MessageReceived>{
-        val index = messages.indexOfFirst { message -> message.messageId == newMessage.messageId  }
-        if (index !=-1){
+    private fun updateMessageList(
+        messages: MutableList<MessageReceived>,
+        newMessage: MessageReceived
+    ): List<MessageReceived> {
+        val index = messages.indexOfFirst { message -> message.messageId == newMessage.messageId }
+        if (index != -1) {
             val oldMessage = messages[index]
             messages[index] = oldMessage.copy(
                 content = newMessage.content,
                 contentType = newMessage.contentType,
             )
             return messages
-        }
-        else{
+        } else {
             return messages
         }
     }
@@ -320,7 +325,10 @@ class MessagesViewModel(
                     Log.d(TAGmess, "Update Message is: ${messageUpdate.messageId}")
                     messagesUiState.update {
                         it.copy(
-                            messages = updateMessageList(messages = messagesUiState.value.messages.toMutableList(), newMessage = messageUpdate)
+                            messages = updateMessageList(
+                                messages = messagesUiState.value.messages.toMutableList(),
+                                newMessage = messageUpdate
+                            )
                         )
                     }
                 },
@@ -338,13 +346,28 @@ class MessagesViewModel(
                     messagesUiState.update {
                         it.copy(
                             messages =
-                            if (it.messages.contains(message)) {
-                                Log.d(TAGmess, "Message already exists : ${message}")
-                                (it.messages + message).sortedBy { it.timeStamp }
-                            } else {
-                                Log.d(TAGmess, "Message does not exists : ${message}")
-                                (it.messages + message).sortedBy { it.timeStamp }
-                            }
+                                if (it.messages.contains(message)) {
+                                    Log.d(TAGmess, "Message already exists : ${message}")
+                                    (it.messages + message).sortedBy { it.timeStamp }
+                                } else {
+                                    Log.d(TAGmess, "Message does not exists : ${message}")
+                                    (it.messages + message).sortedBy { it.timeStamp }
+                                }
+                        )
+                    }
+                },
+                onDelete = { message ->
+                    Log.d(TAGmess, "Messages Delete : ${message.messageId}")
+                    messagesUiState.update {
+                        it.copy(
+                            messages =
+                                if (it.messages.contains(message)) {
+                                    Log.d(TAGmess, "Message already exists delete : ${message.messageId}")
+                                    (it.messages - message).sortedBy { it.timeStamp }
+                                } else {
+                                    Log.d(TAGmess, "Message does not exists delete : ${message.messageId}")
+                                    (it.messages - message).sortedBy { it.timeStamp }
+                                }
                         )
                     }
                 }
@@ -352,17 +375,31 @@ class MessagesViewModel(
         }
     }
 
-    fun deleteMessages(){
+    fun deleteMessages() {
         val chatId = messagesUiState.value.chatID
         viewModelScope.launch {
-            try{
+            try {
                 messagesUiState.value.selectedSentMessages.forEach { message ->
-                    dataRepository.deleteAMessage(chatId = chatId, messageId = message.messageId, error = {
-                        Log.e(TAGmess, "We got error deleteting message inside Api: $it")
-                    })
+                    dataRepository.deleteAMessage(
+                        chatId = chatId,
+                        messageId = message.messageId,
+                        error = {
+                            Log.e(TAGmess, "We got error deleteting message inside Api: $it")
+                            return@deleteAMessage
+                        },
+                        secureAESKey = messagesUiState.value.currChat.secureAESKey
+
+                        )
+                    messagesUiState.update {
+                        it.copy(
+                            messages = it.messages - message
+                            ,
+                            selectedSentMessages = it.selectedSentMessages - message,
+
+                        )
+                    }
                 }
-            }
-            catch (e: Exception){
+            } catch (e: Exception) {
                 Log.e(TAGmess, "We got error while deleting message : $e")
             }
         }
@@ -408,16 +445,14 @@ class MessagesViewModel(
                 }
 
 
-            }
-            else if(statue && messagesUiState.value.selectedReceivedMessages.isNotEmpty()){
+            } else if (statue && messagesUiState.value.selectedReceivedMessages.isNotEmpty()) {
                 messagesUiState.update {
                     it.copy(
                         selectedSentMessages = it.selectedSentMessages + message,
                         isSenderOnlySelected = false
                     )
                 }
-            }
-            else{
+            } else {
                 messagesUiState.update {
                     it.copy(
                         selectedSentMessages = it.selectedSentMessages - message,
@@ -430,15 +465,17 @@ class MessagesViewModel(
     }
 
     fun deSelectAll(
-    ){
+    ) {
         messagesUiState.update {
             it.copy(
                 selectedReceivedMessages = listOf(),
                 selectedSentMessages = listOf(),
-                isSenderOnlySelected = false)}
+                isSenderOnlySelected = false
+            )
+        }
     }
 
-    fun startSelectionMode(){
+    fun startSelectionMode() {
         messagesUiState.update {
             it.copy(
                 selectionMode = true
@@ -462,7 +499,7 @@ data class MessagesUiState(
     val selectedReceivedMessages: List<MessageReceived> = listOf(),
     val selectedSentMessages: List<MessageReceived> = listOf(),
     val isSenderOnlySelected: Boolean = false,
-    val selectionMode:Boolean = false
+    val selectionMode: Boolean = false
 )
 
 enum class MessageScreen() {
