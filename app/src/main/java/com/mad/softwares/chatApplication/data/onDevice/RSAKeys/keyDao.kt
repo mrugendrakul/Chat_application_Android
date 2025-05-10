@@ -25,5 +25,8 @@ interface keyDao {
 
     @Query("SELECT * FROM privateKeys WHERE keyId = :keyId")
      fun getKeyById(keyId: Int): Flow<privateKeys?>
+
+     @Query("Delete from privateKeys")
+     fun cleanAfterLogout()
 }
 

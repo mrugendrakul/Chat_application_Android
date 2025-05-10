@@ -13,6 +13,8 @@ interface LocalAESkeys {
     suspend fun updateAESKey(key: ChatOrGroupAESKeys)
 
     suspend fun deleteAESKey(key: ChatOrGroupAESKeys)
+
+    suspend fun cleanLogout()
 }
 
 class OfflineLocalAESKeys(private val aesKeysDao: aesKeysDao):LocalAESkeys{
@@ -26,4 +28,5 @@ class OfflineLocalAESKeys(private val aesKeysDao: aesKeysDao):LocalAESkeys{
 
     override suspend fun deleteAESKey(key: ChatOrGroupAESKeys) = aesKeysDao.delete(key)
 
+    override suspend fun cleanLogout() = aesKeysDao.cleanLogout()
 }

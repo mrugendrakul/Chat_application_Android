@@ -18,6 +18,7 @@ import kotlinx.coroutines.async
 import kotlinx.coroutines.coroutineScope
 import kotlinx.coroutines.flow.firstOrNull
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
 import retrofit2.Call
 
 val TAG = "DataRepository_Logs"
@@ -248,6 +249,13 @@ class NetworkDataRepository(
                     )
                 )
 
+                localKeyStorge.savePrivateKey(
+                    key = privateKeys(
+                        keyId = 2,
+                        privateKey = loggedUser.publicRSAKey
+                    )
+                )
+
                 toReturn = true
                 return loggedUser
             } catch (e: Exception) {
@@ -315,14 +323,16 @@ class NetworkDataRepository(
 //            val key = localKeyStorge.getPrivateKey(keyId = 1)
 //            val privateKey = key.collect()
             val keyFlow = localKeyStorge.getPrivateKey(keyId = 1)
+            val publicKeyflow = localKeyStorge.getPrivateKey(keyId = 2)
             val privateKey = keyFlow.firstOrNull()?.privateKey
-
+            val publicKey = publicKeyflow.firstOrNull()?.privateKey
             if (privateKey == null) {
                 return User(profilePic = "NoKeyFound")
             }
 //            RSAPublicKeyCache = curUser.publicRSAKey
             return curUser.copy(
-                devicePrivateRSAKey = encryptionService.stringToPrivateKey(privateKey ?: "")
+                devicePrivateRSAKey = encryptionService.stringToPrivateKey(privateKey ?: ""),
+                publicRSAKey = publicKey?:""
 //                privateEncryptedRSAKey = encryptionService.privateKeyToString(
 //                    encryptionService.decryptPrivateKeyWithPassword(
 //                        encryptedPrivateKey = encryptionService.stringToByteArray(curUser.privateEncryptedRSAKey),
@@ -342,15 +352,18 @@ class NetworkDataRepository(
 
     override suspend fun logoutUser(currUser: User): Boolean {
         try {
-            Log.d(TAG, "Logout startd in data for usr : $currUser")
+            Log.d(TAG, "Logout startd in data for usr : ${currUser.username}")
 //            val curr = currUser.copy(fcmToken = "")
             apiService.logoutUser(currUser)
             authServie.logoutUser { throw Exception(it) }
-
+            withContext(Dispatchers.IO){
+                localKeyStorge.cleanAfterLogout()
+                localChatKeysStorage.cleanLogout()
+            }
             Log.d(TAG, "Logout successful")
             return true
         } catch (e: Exception) {
-            Log.d(TAG, "unable to logout from datarepo : $e")
+            Log.e(TAG, "unable to logout from datarepo : $e")
             return false
         }
     }
@@ -443,6 +456,7 @@ class NetworkDataRepository(
                     )
                 )
             }
+//            Log.d(TAG,"Adding My key at backend: ${currentUser.publicRSAKey}")
             AESKeys.add(
                 AESKeyData(
                     username = currentUser.username,
@@ -466,7 +480,7 @@ class NetworkDataRepository(
             )
             Log.d(TAG, "Successfully added chat")
         } catch (e: Exception) {
-            Log.e(TAG, "Failed to add chat at data")
+            Log.e(TAG, "Failed to add chat at data : ${e.message}")
             throw e
         }
 
@@ -988,6 +1002,13 @@ class NetworkDataRepository(
     override suspend fun deleteChat(chatId: String) {
         try {
             apiService.deleteChat(chatId)
+            val aesKeyFlow = localChatKeysStorage.getAESKeyById(chatId.toInt())
+            val aesKey = aesKeyFlow.firstOrNull()?:ChatOrGroupAESKeys(
+                chatId = chatId.toInt(),
+                chatName = "",
+                decryptedASEKey = ""
+            )
+            localChatKeysStorage.deleteAESKey(aesKey)
         } catch (e: Exception) {
             Log.d(TAG, "Error in data delete chatId: $chatId : $e")
         }

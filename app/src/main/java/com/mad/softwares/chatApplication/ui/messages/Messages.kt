@@ -271,19 +271,21 @@ fun MessagesBodySuccess(
 
                         }
                     } else {
-                        IconButton(onClick = {
-                            snackbarHostState.currentSnackbarData?.dismiss()
-                            scope.launch {
-                                snackbarHostState.showSnackbar(
-                                    message = "This function is not implemented yet",
-                                    withDismissAction = true
+                        if (uiState.selectedReceivedMessages.isEmpty()){
+                            IconButton(onClick = {
+                                snackbarHostState.currentSnackbarData?.dismiss()
+                                scope.launch {
+                                    snackbarHostState.showSnackbar(
+                                        message = "This function is not implemented yet",
+                                        withDismissAction = true
+                                    )
+                                }
+                            }) {
+                                Icon(
+                                    imageVector = Icons.Default.Delete,
+                                    contentDescription = "delete Message"
                                 )
                             }
-                        }) {
-                            Icon(
-                                imageVector = Icons.Default.Delete,
-                                contentDescription = "delete Message"
-                            )
                         }
                         IconButton(onClick = {
                             deselectAll()
