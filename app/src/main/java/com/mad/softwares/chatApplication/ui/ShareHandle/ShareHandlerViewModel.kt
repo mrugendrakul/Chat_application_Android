@@ -10,10 +10,6 @@ import com.mad.softwares.chatApplication.data.DataRepository
 import com.mad.softwares.chatApplication.data.MessageReceived
 import com.mad.softwares.chatApplication.data.User
 import com.mad.softwares.chatApplication.data.messageStatus
-import com.mad.softwares.chatApplication.ui.chats.CurrentChatStatus
-import com.mad.softwares.chatApplication.ui.chats.TAGchat
-import com.mad.softwares.chatApplication.ui.messages.TAGmess
-import com.mad.softwares.chatApplication.ui.updateElement
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Deferred
 import kotlinx.coroutines.Dispatchers
