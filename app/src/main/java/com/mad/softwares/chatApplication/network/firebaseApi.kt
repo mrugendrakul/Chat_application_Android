@@ -94,7 +94,7 @@ interface FirebaseApi {
 
     suspend fun getLiveMessagesForChat(
         currentChatId: String,
-        onChange: (List<MessageReceived>) -> Unit,
+        onChange: (MessageReceived) -> Unit,
         onAdd: (MessageReceived) -> Unit,
         onError: (e: Exception) -> Unit
     )
@@ -117,6 +117,8 @@ interface FirebaseApi {
     suspend fun getEncryptedAESKeyForChatSpecialCase(chatId:String): String
 
     suspend fun getPrivateAESKey(chatId:String,username: String): String
+
+    suspend fun deleteMessage(messageId:String, chatId: String , error: (e: Exception) -> Unit)
 
 }
 
@@ -721,7 +723,7 @@ class NetworkFirebaseApi(
 
     override suspend fun getLiveMessagesForChat(
         currentChatId: String,
-        onChange: (List<MessageReceived>) -> Unit,
+        onChange: (MessageReceived) -> Unit,
         onAdd: (MessageReceived) -> Unit,
         onError: (e: Exception) -> Unit
     ) {
@@ -757,7 +759,17 @@ class NetworkFirebaseApi(
                                     val mess = MessageReceived(
                                         messageId = dc.document.id,
                                         content = dc.document.data["content"].toString(),
-                                        contentType = ContentType.text,
+                                        contentType = when(dc.document.data["contentType"].toString()){
+                                            "text" -> ContentType.text
+                                            "image" -> ContentType.image
+                                            "document" -> ContentType.document
+                                            "audio" -> ContentType.audio
+                                            "video" -> ContentType.video
+                                            "deleted"-> ContentType.deleted
+                                            else -> {
+                                                ContentType.default}
+                                        }
+                                        ,
                                         senderId = dc.document.data["senderId"].toString(),
                                         timeStamp = dc.document.data["timeStamp"] as Timestamp
                                             ?: Timestamp.now(),
@@ -770,7 +782,27 @@ class NetworkFirebaseApi(
 
                             DocumentChange.Type.MODIFIED -> {
                                 Log.d(TAG, "Modified Message: ${dc.document.data}")
-
+                                val mess = MessageReceived(
+                                    messageId = dc.document.id,
+                                    content = dc.document.data["content"].toString(),
+                                    contentType = when(dc.document.data["contentType"].toString()){
+                                        "text" -> ContentType.text
+                                        "image" -> ContentType.image
+                                        "document" -> ContentType.document
+                                        "audio" -> ContentType.audio
+                                        "video" -> ContentType.video
+                                        "deleted"-> ContentType.deleted
+                                        else -> {
+                                            ContentType.default}
+                                    }
+                                    ,
+                                    senderId = dc.document.data["senderId"].toString(),
+                                    timeStamp = dc.document.data["timeStamp"] as Timestamp
+                                        ?: Timestamp.now(),
+                                    status = messageStatus.Send
+                                )
+//                                onChange(messages.sortedBy { it.timeStamp })
+                                onChange(mess)
                             }
 
                             DocumentChange.Type.REMOVED -> Log.d(
@@ -1023,5 +1055,28 @@ class NetworkFirebaseApi(
             return "error"
         }
 
+    }
+
+    override suspend fun deleteMessage(
+        messageId: String,
+        chatId: String,
+        error: (Exception) -> Unit
+    ) {
+        try {
+            Log.d(TAG,"Deleting message: $messageId in chat: $chatId")
+            chatsCollection
+                .document(chatId)
+                .collection("Messages")
+                .document(messageId)
+                .update(
+                    "content","Deleted Message","contentType",ContentType.deleted
+                )
+
+            Log.d(TAG,"Message Deleted Successfully")
+        }
+        catch (e: Exception){
+            Log.e(TAG,"Error deleting message: ${e}")
+            error(e)
+        }
     }
 }

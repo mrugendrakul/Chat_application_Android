@@ -4,6 +4,7 @@ import android.util.Log
 import androidx.lifecycle.SavedStateHandle
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import androidx.room.Index
 import com.google.firebase.Timestamp
 import com.mad.softwares.chatApplication.data.ChatOrGroup
 import com.mad.softwares.chatApplication.data.ContentType
@@ -292,6 +293,22 @@ class MessagesViewModel(
 //            }
 //        }
 //    }
+
+    private fun updateMessageList(messages: MutableList<MessageReceived>,newMessage: MessageReceived): List<MessageReceived>{
+        val index = messages.indexOfFirst { message -> message.messageId == newMessage.messageId  }
+        if (index !=-1){
+            val oldMessage = messages[index]
+            messages[index] = oldMessage.copy(
+                content = newMessage.content,
+                contentType = newMessage.contentType,
+            )
+            return messages
+        }
+        else{
+            return messages
+        }
+    }
+
     private fun getLiveMessages() {
         viewModelScope.launch {
             Log.d(TAGmess, "Live messages started here")
@@ -299,11 +316,11 @@ class MessagesViewModel(
                 chatId = messagesUiState.value.chatID,
                 secureAESKey = messagesUiState.value.currChat.secureAESKey,
                 //Not in use.
-                onMessagesChange = { messageList ->
-                    Log.d(TAGmess, "New Message is: ${messageList.last().content}")
+                onMessagesChange = { messageUpdate ->
+                    Log.d(TAGmess, "Update Message is: ${messageUpdate.messageId}")
                     messagesUiState.update {
                         it.copy(
-                            messages = messageList.toMutableList()
+                            messages = updateMessageList(messages = messagesUiState.value.messages.toMutableList(), newMessage = messageUpdate)
                         )
                     }
                 },
@@ -332,6 +349,22 @@ class MessagesViewModel(
                     }
                 }
             )
+        }
+    }
+
+    fun deleteMessages(){
+        val chatId = messagesUiState.value.chatID
+        viewModelScope.launch {
+            try{
+                messagesUiState.value.selectedSentMessages.forEach { message ->
+                    dataRepository.deleteAMessage(chatId = chatId, messageId = message.messageId, error = {
+                        Log.e(TAGmess, "We got error deleteting message inside Api: $it")
+                    })
+                }
+            }
+            catch (e: Exception){
+                Log.e(TAGmess, "We got error while deleting message : $e")
+            }
         }
     }
 

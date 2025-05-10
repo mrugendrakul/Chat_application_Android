@@ -9,8 +9,6 @@ import com.mad.softwares.chatApplication.data.onDevice.chatASEKeys.LocalAESkeys
 import com.mad.softwares.chatApplication.encryption.Encryption
 import com.mad.softwares.chatApplication.network.AuthenticationApi
 import com.mad.softwares.chatApplication.network.FirebaseApi
-import com.mad.softwares.chatApplication.notification.NotificationRequest
-import com.mad.softwares.chatApplication.notification.notificationApiSending
 import kotlinx.coroutines.CompletableDeferred
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
@@ -19,7 +17,6 @@ import kotlinx.coroutines.coroutineScope
 import kotlinx.coroutines.flow.firstOrNull
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
-import retrofit2.Call
 
 val TAG = "DataRepository_Logs"
 
@@ -80,7 +77,7 @@ interface DataRepository {
     suspend fun getLiveMessages(
         chatId: String,
         secureAESKey: String,
-        onMessagesChange: (List<MessageReceived>) -> Unit,
+        onMessagesChange: (MessageReceived) -> Unit,
         onError: (e: Exception) -> Unit,
         onAdd: (MessageReceived) -> Unit
     )
@@ -108,6 +105,8 @@ interface DataRepository {
     suspend fun getAESKeyForChatID(chatId: String): String
 
     suspend fun getAllDeviceChats(): List<ChatOrGroup>?
+
+    suspend fun deleteAMessage(chatId: String,messageId:String,error: (e: Exception) -> Unit)
 }
 
 class NetworkDataRepository(
@@ -963,37 +962,48 @@ class NetworkDataRepository(
     override suspend fun getLiveMessages(
         chatId: String,
         secureAESKey: String,
-        onMessagesChange: (List<MessageReceived>) -> Unit,
+        onMessagesChange: (MessageReceived) -> Unit,
         onError: (e: Exception) -> Unit,
         onAdd: (MessageReceived) -> Unit
     ) {
         apiService.getLiveMessagesForChat(
             chatId,
-            onChange = { messages ->
-                messages.map { t ->
-                    t.copy(
+            onChange = { message ->
+                try{
+                    message.copy(
                         content = String(
                             encryptionService.aesDecrypt(
                                 encryptedData = encryptionService.stringToByteArray(
-                                    t.content
+                                    message.content
                                 ), secretKey = encryptionService.stringToAESKey(secureAESKey)
                             )
                         )
                     )
+
+                    onMessagesChange(message)
                 }
-                onMessagesChange(messages)
+                catch (e: Exception){
+                    Log.e(TAG,"Unable to decrypt the live message updating skiping it...")
+                    onMessagesChange(message)
+                }
             },
             onAdd = { message ->
-                val newMessage = message.copy(
-                    content = String(
-                        encryptionService.aesDecrypt(
-                            encryptedData = encryptionService.stringToByteArray(
-                                message.content
-                            ), secretKey = encryptionService.stringToAESKey(secureAESKey)
+                try{
+                    val newMessage = message.copy(
+                        content = String(
+                            encryptionService.aesDecrypt(
+                                encryptedData = encryptionService.stringToByteArray(
+                                    message.content
+                                ), secretKey = encryptionService.stringToAESKey(secureAESKey)
+                            )
                         )
                     )
-                )
-                onAdd(newMessage)
+                    onAdd(newMessage)
+                }
+                catch (e: Exception){
+                    Log.e(TAG,"Unable to decrypt the live message Adding skiping it...")
+                    onAdd(message)
+                }
             },
             onError
         )
@@ -1189,6 +1199,22 @@ class NetworkDataRepository(
                 secureAESKey = chat.decryptedASEKey
             )
 
+        }
+    }
+
+    override suspend fun deleteAMessage(
+        chatId: String,
+        messageId: String,
+        error: (Exception) -> Unit
+    ) {
+        try{
+            apiService.deleteMessage(
+                chatId = chatId,
+                messageId = messageId,
+                error = error)
+        }
+        catch (e: Exception){
+            error(e)
         }
     }
 }

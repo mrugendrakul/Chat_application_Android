@@ -109,6 +109,7 @@ import androidx.lifecycle.viewmodel.compose.viewModel
 import com.google.firebase.Timestamp
 import com.mad.softwares.chatApplication.R
 import com.mad.softwares.chatApplication.data.ChatOrGroup
+import com.mad.softwares.chatApplication.data.ContentType
 import com.mad.softwares.chatApplication.data.MessageReceived
 import com.mad.softwares.chatApplication.data.messageStatus
 import com.mad.softwares.chatApplication.ui.ApptopBar
@@ -180,7 +181,8 @@ fun Messages(
         toggleMessageSelection = viewModel::toggleMessageSelection,
 
         navigateUp = navigateUp,
-        deselectAll = viewModel::deSelectAll
+        deselectAll = viewModel::deSelectAll,
+        deleteMessages = viewModel::deleteMessages
     )
 }
 
@@ -195,6 +197,7 @@ fun MessagesBodySuccess(
     navigateUp: () -> Unit,
     toggleMessageSelection: (MessageReceived, Boolean, Boolean) -> Unit = { _, _, _ -> },
     selectionBoth: () -> Unit = {},
+    deleteMessages:()-> Unit,
     modifier: Modifier = Modifier
 ) {
     val scope = rememberCoroutineScope()
@@ -273,13 +276,7 @@ fun MessagesBodySuccess(
                     } else {
                         if (uiState.selectedReceivedMessages.isEmpty()){
                             IconButton(onClick = {
-                                snackbarHostState.currentSnackbarData?.dismiss()
-                                scope.launch {
-                                    snackbarHostState.showSnackbar(
-                                        message = "This function is not implemented yet",
-                                        withDismissAction = true
-                                    )
-                                }
+                                deleteMessages()
                             }) {
                                 Icon(
                                     imageVector = Icons.Default.Delete,
@@ -1201,8 +1198,17 @@ fun SenderChat(
                                 //                                        .padding(10.dp),
                                 //                                    fontSize = 20.sp,
                                 //                                )
-                                //                            }
-                                GetCodeMessage(msg = msg)
+                                //                            }GetCodeMessage(msg = msg)
+
+                                when (message.contentType){
+                                    ContentType.text -> GetCodeMessage(msg)
+                                    ContentType.image -> GetCodeMessage(msg)
+                                    ContentType.document -> GetCodeMessage(msg)
+                                    ContentType.audio -> GetCodeMessage(msg)
+                                    ContentType.video -> GetCodeMessage(msg)
+                                    ContentType.deleted -> GetCodeMessage(msg)
+                                    ContentType.default -> GetCodeMessage(msg)
+                                }
                             }
                             //                if (message.status == messageStatus.Send) {
                             //                            Icon(
@@ -2032,7 +2038,8 @@ fun PreviewMessagebodySuccess() {
             getMessagesAgain = { },
             sendMessage = {},
             navigateUp = {},
-            deselectAll = {}
+            deselectAll = {},
+            deleteMessages = {}
         )
     }
 }

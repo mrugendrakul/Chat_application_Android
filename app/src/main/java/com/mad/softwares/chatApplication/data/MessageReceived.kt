@@ -9,7 +9,8 @@ enum class ContentType(){
     document,
     audio,
     video,
-    code
+    deleted,
+    default
 }
 
 enum class messageStatus(){
