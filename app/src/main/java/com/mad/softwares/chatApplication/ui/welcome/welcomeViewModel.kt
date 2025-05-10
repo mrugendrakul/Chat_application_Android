@@ -111,7 +111,8 @@ class welcomeViewModel(
                 val user = newUser.await()
                 if (user.username.isEmpty()) {
                     startUiState.update { it.copy(isError = true,
-                        errorMessage = user.profilePic
+                        errorMessage = user.profilePic,
+                        isLoading = false
                     ) }
                     throw Exception("User not found")
                 }
@@ -121,7 +122,7 @@ class welcomeViewModel(
             catch (e:Exception){
                 Log.d(TAGview,"Login failed error : $e")
                 Log.d(TAGview,"signup failed error message: ${startUiState.value.errorMessage}")
-                startUiState.update { it.copy(isError = true,) }
+                startUiState.update { it.copy(isError = true, isLoading = false) }
             }
             startUiState.update { it.copy(isLoading = false) }
         }
@@ -164,7 +165,8 @@ class welcomeViewModel(
                 val user = signupUser
                 if(user.username.isEmpty()){
                     startUiState.update { it.copy(isError = true,
-                        errorMessage = user.profilePic
+                        errorMessage = user.profilePic,
+                        isLoading = false
                     ) }
                     throw Exception("User not found")
                     }
@@ -173,7 +175,7 @@ class welcomeViewModel(
             }catch (e:Exception){
                 Log.d(TAGview,"signup failed error : $e")
                 Log.d(TAGview,"signup failed error message 2: ${startUiState.value.errorMessage}")
-                startUiState.update { it.copy(isError = true) }
+                startUiState.update { it.copy(isError = true, isLoading = false) }
             }
             startUiState.update { it.copy(isLoading = false) }
         }

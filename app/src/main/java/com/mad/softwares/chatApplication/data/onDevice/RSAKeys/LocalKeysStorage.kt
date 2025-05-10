@@ -13,6 +13,8 @@ interface LocalKeysStorage {
     suspend fun updatePrivateKey(key: privateKeys)
 
     suspend  fun deletePrivateKey(key: privateKeys)
+
+    suspend fun cleanAfterLogout()
 }
 
 class OfflineLocalKeysStorage(private val keyDao: keyDao):LocalKeysStorage{
@@ -25,4 +27,6 @@ class OfflineLocalKeysStorage(private val keyDao: keyDao):LocalKeysStorage{
     override suspend fun updatePrivateKey(key: privateKeys) = keyDao.update(key)
 
     override suspend fun deletePrivateKey(key: privateKeys) = keyDao.delete(key)
+
+    override suspend fun cleanAfterLogout() = keyDao.cleanAfterLogout()
 }

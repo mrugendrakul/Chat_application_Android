@@ -26,4 +26,7 @@ interface aesKeysDao {
     @Query("SELECT * FROM ChatOrGroupAESKeys WHERE chatId = :chatId")
     fun getAESKeyById(chatId: Int): Flow<ChatOrGroupAESKeys?>
 
+    @Query("Delete from ChatOrGroupAESKeys")
+    fun cleanLogout()
+
 }
