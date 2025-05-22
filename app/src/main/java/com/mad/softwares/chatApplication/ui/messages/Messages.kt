@@ -32,6 +32,7 @@ import androidx.compose.foundation.clickable
 import androidx.compose.foundation.combinedClickable
 import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.IntrinsicSize
 import androidx.compose.foundation.layout.Row
@@ -108,6 +109,7 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextDecoration
 import androidx.compose.ui.text.withStyle
 import androidx.compose.ui.tooling.preview.Preview
+import androidx.compose.ui.tooling.preview.Wallpapers
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.lifecycle.viewmodel.compose.viewModel
@@ -375,7 +377,7 @@ fun MessagesBodySuccess(
     ) { padding ->
 
 
-        if (uiState.messages.isNotEmpty()) {
+        if (uiState.messages.isNotEmpty() && uiState.messageScreen == MessageScreen.Success) {
             val groupedMessages = uiState.messages.sortedBy { message ->
                 message.timeStamp
             }.reversed().groupBy { message ->
@@ -393,6 +395,7 @@ fun MessagesBodySuccess(
             LazyColumn(
                 modifier = modifier
                     .padding(padding)
+                    .background(Color.Transparent)
                     .fillMaxSize(),
                 //                    .background(MaterialTheme.colorScheme.background),
                 reverseLayout = true,
@@ -622,6 +625,7 @@ fun MessagesBodySuccess(
             Column(
                 modifier = Modifier
                     .padding(padding)
+                    .background(MaterialTheme.colorScheme.background)
                     .fillMaxSize(),
 //                    .background(MaterialTheme.colorScheme.background),
                 verticalArrangement = Arrangement.Center
@@ -639,8 +643,8 @@ fun MessagesBodySuccess(
             Column(
                 modifier = Modifier
                     .padding(padding)
-                    .fillMaxSize(),
-//                    .background(MaterialTheme.colorScheme.background),
+                    .fillMaxSize()
+                    .background(MaterialTheme.colorScheme.background),
                 verticalArrangement = Arrangement.Center
             ) {
                 Text(
@@ -1840,155 +1844,157 @@ fun BottomMessageSend(
     val scope = rememberCoroutineScope()
     val haptic = LocalHapticFeedback.current
     val visualTransformation = remember { StyledTextVisualTransformation(styleMap) }
-    ElevatedCard(
-        modifier = modifier
-//            .navigationBarsPadding()
-//            .animateContentSize(
-//
-//                animationSpec = spring(
-//                    dampingRatio = Spring.DampingRatioNoBouncy,
-//                    stiffness = Spring.StiffnessLow,
-//                )
+    Box {
+        ElevatedCard(
+            modifier = modifier
+                //            .navigationBarsPadding()
+                //            .animateContentSize(
+                //
+                //                animationSpec = spring(
+                //                    dampingRatio = Spring.DampingRatioNoBouncy,
+                //                    stiffness = Spring.StiffnessLow,
+                //                )
 
-//            )
+                //            )
 
-            .fillMaxWidth()
-            .padding(8.dp)
-            .background(MaterialTheme.colorScheme.background),
-        colors = CardDefaults.elevatedCardColors(
-            containerColor = MaterialTheme.colorScheme.secondaryContainer,
-
-            ),
-        shape = RoundedCornerShape(30.dp),
-        elevation = CardDefaults.cardElevation(35.dp)
-    ) {
-        Column(
-            modifier = Modifier
                 .fillMaxWidth()
-//                .padding(vertical = 16.dp, horizontal = 16.dp)
-        )
-        {
-//            Text("Chat is secure with aes key : ${appUistate.currChat.secureAESKey}")
-            Row(
+                .padding(8.dp)
+                .background(Color.Transparent),
+            colors = CardDefaults.elevatedCardColors(
+                containerColor = MaterialTheme.colorScheme.secondaryContainer,
+
+                ),
+            shape = RoundedCornerShape(30.dp),
+//            elevation = CardDefaults.cardElevation(35.dp)
+        ) {
+            Column(
                 modifier = Modifier
-                    .fillMaxWidth(),
-//                .height(height)
-                verticalAlignment = Alignment.Bottom,
-
-                ) {
-                val text = appUistate.messageToSend
-
-
-//                val annotatedText = buildAnnotatedString {
-//                    val codeRegex = Regex("<.(.*?).>")
-//                    var currentIndex= 0
-//                    codeRegex.findAll(text).forEach { match ->
-//                        append(text.substring(currentIndex, match.range.first))
-//                        withStyle(style = SpanStyle(color = Color.Blue, fontWeight = FontWeight.Bold)) {
-//                            append(match.value)
-//                            Log.d("messages",match.value)
-//                        }
-//                        currentIndex = match.range.last + 1
-//                    }
-//                    append(text.substring(currentIndex, text.length))
-//                }
-
-                OutlinedTextField(
+                    .fillMaxWidth()
+                //                .padding(vertical = 16.dp, horizontal = 16.dp)
+            )
+            {
+                //            Text("Chat is secure with aes key : ${appUistate.currChat.secureAESKey}")
+                Row(
                     modifier = Modifier
-                        .weight(1f)
-//                    .padding(end=40.dp)
-                        .fillMaxWidth()
-                        .padding(4.dp)
-                        .animateContentSize(
-                            animationSpec = spring(
-                                dampingRatio = Spring.DampingRatioNoBouncy,
-                                stiffness = Spring.StiffnessLow,
-                            )
-                        ),
+                        .fillMaxWidth(),
+                    //                .height(height)
+                    verticalAlignment = Alignment.Bottom,
 
-//                    .padding(end = 80.dp),
-                    value = appUistate.messageToSend,
-//                    value = appUistate.messageToSend,
-//                    onValueChange = { updateMessage(it) },
-//                    value = "",
-                    onValueChange = { updateMessage(it) },
-                    textStyle = TextStyle.Default.copy(
-                        fontSize = 20.sp,
-
-                        ),
-                    maxLines = 4,
-                    placeholder = { Text(text = stringResource(R.string.send_text)) },
-//                    placeholder = {"message..."},
-                    colors = OutlinedTextFieldDefaults.colors(
-                        focusedBorderColor = Color(0, 0, 0, alpha = 0),
-                        unfocusedBorderColor = Color(0, 0, 0, alpha = 0),
-                        disabledBorderColor = Color(0, 0, 0, alpha = 0),
-//                        focusedTextColor = MaterialTheme.colorScheme.onSecondaryContainer
-                    ),
-                    visualTransformation = visualTransformation
-                    //                trailingIcon =
-//                {
-//
-//                }
-
-                )
-//
-
-                if (!isLoading){
-                    IconButton(
-                        onClick = {
-                            if (appUistate.messageToSend.isNotEmpty()) {
-                                haptic.performHapticFeedback(HapticFeedbackType.TextHandleMove)
-                                sendMessage()
-                            } else {
-                                haptic.performHapticFeedback(HapticFeedbackType.TextHandleMove)
-                                sendAttatchment()
-                            }
-                        },
-
-                        modifier = Modifier
-//                        .fillMaxWidth()
-                            .padding(bottom = 10.dp, end = 10.dp)
-                            .size(45.dp),
-                        colors = IconButtonDefaults.iconButtonColors(
-                            containerColor = MaterialTheme.colorScheme.primary
-
-                        )
                     ) {
-                        AnimatedVisibility(
-                            visible = appUistate.messageToSend.isNotEmpty(),
-                            enter = scaleIn(),
-                            exit = scaleOut()
-                        ) {
-                            Icon(
-                                imageVector = Icons.AutoMirrored.Filled.Send,
-                                modifier = Modifier
-                                    .fillMaxHeight()
-                                    .padding(10.dp)
-                                    .size(80.dp),
-                                tint = MaterialTheme.colorScheme.onPrimary,
-                                contentDescription = "send"
-                            )
-                        }
-                        AnimatedVisibility(
-                            visible = appUistate.messageToSend.isEmpty(),
-                            enter = scaleIn(),
-                            exit = scaleOut()
-                        ) {
-                            Icon(
-                                imageVector = Icons.Default.Attachment,
-                                modifier = Modifier
-                                    .fillMaxHeight()
-                                    .padding(10.dp)
-                                    .size(80.dp),
-                                tint = MaterialTheme.colorScheme.onPrimary,
-                                contentDescription = "send"
-                            )
-                        }
+                    val text = appUistate.messageToSend
 
+
+                    //                val annotatedText = buildAnnotatedString {
+                    //                    val codeRegex = Regex("<.(.*?).>")
+                    //                    var currentIndex= 0
+                    //                    codeRegex.findAll(text).forEach { match ->
+                    //                        append(text.substring(currentIndex, match.range.first))
+                    //                        withStyle(style = SpanStyle(color = Color.Blue, fontWeight = FontWeight.Bold)) {
+                    //                            append(match.value)
+                    //                            Log.d("messages",match.value)
+                    //                        }
+                    //                        currentIndex = match.range.last + 1
+                    //                    }
+                    //                    append(text.substring(currentIndex, text.length))
+                    //                }
+
+                    OutlinedTextField(
+                        modifier = Modifier
+                            .weight(1f)
+                            //                    .padding(end=40.dp)
+                            .fillMaxWidth()
+                            .padding(4.dp)
+                            .animateContentSize(
+                                animationSpec = spring(
+                                    dampingRatio = Spring.DampingRatioNoBouncy,
+                                    stiffness = Spring.StiffnessLow,
+                                )
+                            ),
+
+                        //                    .padding(end = 80.dp),
+                        value = appUistate.messageToSend,
+                        //                    value = appUistate.messageToSend,
+                        //                    onValueChange = { updateMessage(it) },
+                        //                    value = "",
+                        onValueChange = { updateMessage(it) },
+                        textStyle = TextStyle.Default.copy(
+                            fontSize = 20.sp,
+
+                            ),
+                        maxLines = 4,
+                        placeholder = { Text(text = stringResource(R.string.send_text)) },
+                        //                    placeholder = {"message..."},
+                        colors = OutlinedTextFieldDefaults.colors(
+                            focusedBorderColor = Color(0, 0, 0, alpha = 0),
+                            unfocusedBorderColor = Color(0, 0, 0, alpha = 0),
+                            disabledBorderColor = Color(0, 0, 0, alpha = 0),
+                            //                        focusedTextColor = MaterialTheme.colorScheme.onSecondaryContainer
+                        ),
+                        visualTransformation = visualTransformation
+                        //                trailingIcon =
+                        //                {
+                        //
+                        //                }
+
+                    )
+                    //
+
+                    if (!isLoading) {
+                        IconButton(
+                            onClick = {
+                                if (appUistate.messageToSend.isNotEmpty()) {
+                                    haptic.performHapticFeedback(HapticFeedbackType.TextHandleMove)
+                                    sendMessage()
+                                } else {
+                                    haptic.performHapticFeedback(HapticFeedbackType.TextHandleMove)
+                                    sendAttatchment()
+                                }
+                            },
+
+                            modifier = Modifier
+                                //                        .fillMaxWidth()
+                                .padding(bottom = 10.dp, end = 10.dp)
+                                .size(45.dp),
+                            colors = IconButtonDefaults.iconButtonColors(
+                                containerColor = MaterialTheme.colorScheme.primary
+
+                            )
+                        ) {
+                            AnimatedVisibility(
+                                visible = appUistate.messageToSend.isNotEmpty(),
+                                enter = scaleIn(),
+                                exit = scaleOut()
+                            ) {
+                                Icon(
+                                    imageVector = Icons.AutoMirrored.Filled.Send,
+                                    modifier = Modifier
+                                        .fillMaxHeight()
+                                        .padding(10.dp)
+                                        .size(80.dp),
+                                    tint = MaterialTheme.colorScheme.onPrimary,
+                                    contentDescription = "send"
+                                )
+                            }
+                            AnimatedVisibility(
+                                visible = appUistate.messageToSend.isEmpty(),
+                                enter = scaleIn(),
+                                exit = scaleOut()
+                            ) {
+                                Icon(
+                                    imageVector = Icons.Default.Attachment,
+                                    modifier = Modifier
+                                        .fillMaxHeight()
+                                        .padding(10.dp)
+                                        .size(80.dp),
+                                    tint = MaterialTheme.colorScheme.onPrimary,
+                                    contentDescription = "send"
+                                )
+                            }
+
+                        }
                     }
-                }
 
+                }
             }
         }
     }
@@ -2028,7 +2034,10 @@ fun SecureMessageTag(
 //    }
 //}
 
-@Preview(device = "id:pixel_9_pro", showSystemUi = true, showBackground = true)
+@Preview(
+    device = "id:pixel_9_pro", showSystemUi = true, showBackground = false,
+    wallpaper = Wallpapers.GREEN_DOMINATED_EXAMPLE, backgroundColor = 0xFFA42626
+)
 @Composable
 fun PreviewMessagebodySuccess() {
     ChitChatTheme(
@@ -2037,6 +2046,7 @@ fun PreviewMessagebodySuccess() {
     ) {
         MessagesBodySuccess(
             uiState = MessagesUiState(
+                messageScreen = MessageScreen.Loading,
                 chatName = "ThereSelf",
                 currChat = ChatOrGroup(
                     isGroup = false,
