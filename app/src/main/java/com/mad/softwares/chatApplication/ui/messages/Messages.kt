@@ -165,9 +165,11 @@ fun CheckInternetAndRun(onConnected: () -> Unit) {
 }
 
 suspend fun checkInternet(context: Context): Boolean = withContext(Dispatchers.IO) {
-    val connectivityManager = context.getSystemService(Context.CONNECTIVITY_SERVICE) as ConnectivityManager
+    val connectivityManager =
+        context.getSystemService(Context.CONNECTIVITY_SERVICE) as ConnectivityManager
     val network = connectivityManager.activeNetwork ?: return@withContext false
-    val capabilities = connectivityManager.getNetworkCapabilities(network) ?: return@withContext false
+    val capabilities =
+        connectivityManager.getNetworkCapabilities(network) ?: return@withContext false
     return@withContext capabilities.hasCapability(NetworkCapabilities.NET_CAPABILITY_INTERNET)
 }
 
@@ -232,7 +234,7 @@ fun MessagesBodySuccess(
     navigateUp: () -> Unit,
     toggleMessageSelection: (MessageReceived, Boolean, Boolean) -> Unit = { _, _, _ -> },
     selectionBoth: () -> Unit = {},
-    deleteMessages:()-> Unit,
+    deleteMessages: () -> Unit,
     modifier: Modifier = Modifier
 ) {
     val scope = rememberCoroutineScope()
@@ -264,31 +266,34 @@ fun MessagesBodySuccess(
                 navigateUp = navigateUp,
                 title = {
                     AnimatedContent(
-                        modifier =Modifier.fillMaxWidth(),
+                        modifier = Modifier.fillMaxWidth(),
                         targetState = uiState.messageScreen,
                         label = "Top title Animation",
                         transitionSpec = {
                             slideInVertically(
-                                initialOffsetY = {it/2}
-                            )+fadeIn() togetherWith
+                                initialOffsetY = { it / 2 }
+                            ) + fadeIn() togetherWith
                                     slideOutVertically() + fadeOut()
                         }
                     ) { targetState ->
                         when (targetState) {
                             MessageScreen.Success -> Text(
                                 text = uiState.currChat.chatName,
-                                        color = MaterialTheme.colorScheme.onPrimary
+                                color = MaterialTheme.colorScheme.onPrimary
                             )
+
                             MessageScreen.Loading -> Text(
                                 "Loading...",
-                                color = MaterialTheme.colorScheme.onPrimary)
+                                color = MaterialTheme.colorScheme.onPrimary
+                            )
+
                             MessageScreen.Error -> Text(
                                 "Error",
-                                color = MaterialTheme.colorScheme.onPrimary)
+                                color = MaterialTheme.colorScheme.onPrimary
+                            )
                         }
                     }
-                }
-                ,
+                },
                 action = {
                     if (uiState.selectedReceivedMessages.isEmpty() && uiState.selectedSentMessages.isEmpty()) {
                         IconButton(onClick = {
@@ -310,17 +315,16 @@ fun MessagesBodySuccess(
 
                         }
                     } else {
-                        if (uiState.selectedReceivedMessages.isEmpty()){
+                        if (uiState.selectedReceivedMessages.isEmpty()) {
                             IconButton(onClick = {
                                 coroutineScope.launch {
-                                    val isConnected = withTimeoutOrNull (2000L){
+                                    val isConnected = withTimeoutOrNull(2000L) {
                                         checkInternet(context)
-                                    }?:false
+                                    } ?: false
 
-                                    if(isConnected){
+                                    if (isConnected) {
                                         deleteMessages()
-                                    }
-                                    else{
+                                    } else {
                                         snackbarHostState.currentSnackbarData?.dismiss()
                                         scope.launch {
                                             snackbarHostState.showSnackbar(
@@ -453,7 +457,8 @@ fun MessagesBodySuccess(
 
                         if (message.senderId != uiState.currentUser) {
                             if (uiState.currChat.isGroup == false) {
-                                ReceiverChat(message = message,
+                                ReceiverChat(
+                                    message = message,
                                     msgPosition = msgPosition,
                                     modifier = if (uiState.selectedReceivedMessages.isEmpty()) {
                                         Modifier
@@ -492,7 +497,8 @@ fun MessagesBodySuccess(
                                     )
                                 )
                             } else {
-                                ReceiverGroupChat(message = message,
+                                ReceiverGroupChat(
+                                    message = message,
                                     msgPosition = msgPosition,
                                     modifier = if (uiState.selectedReceivedMessages.isEmpty()) {
                                         Modifier
@@ -533,7 +539,7 @@ fun MessagesBodySuccess(
                             }
                         } else {
                             SenderChat(
-                                modifier = if(uiState.selectedSentMessages.isEmpty()){
+                                modifier = if (uiState.selectedSentMessages.isEmpty()) {
                                     Modifier
                                         .combinedClickable(
                                             interactionSource = null,
@@ -620,8 +626,7 @@ fun MessagesBodySuccess(
 
                 }
             }
-        }
-        else if(uiState.messageScreen == MessageScreen.Loading){
+        } else if (uiState.messageScreen == MessageScreen.Loading) {
             Column(
                 modifier = Modifier
                     .padding(padding)
@@ -638,8 +643,7 @@ fun MessagesBodySuccess(
                     textAlign = TextAlign.Center
                 )
             }
-        }
-        else {
+        } else {
             Column(
                 modifier = Modifier
                     .padding(padding)
@@ -1151,6 +1155,7 @@ fun SenderChat(
     val bottomShape = RoundedCornerShape(20.dp, 5.dp, 20.dp, 20.dp)
 
 
+
     //    val inlineContentMap = codeRegex.findAll(msg).associate { match->
     //        "card_${match.value}" to InlineTextContent(
     //            placeholder = Placeholder(
@@ -1274,7 +1279,7 @@ fun SenderChat(
                                 //                                )
                                 //                            }GetCodeMessage(msg = msg)
 
-                                when (message.contentType){
+                                when (message.contentType) {
                                     ContentType.text -> GetCodeMessage(msg)
                                     ContentType.image -> GetCodeMessage(msg)
                                     ContentType.document -> GetCodeMessage(msg)
@@ -1363,7 +1368,8 @@ fun SenderChat(
                     AnimatedVisibility(
                         label = "message Status not send ${message.content}",
                         visible = message.status != messageStatus.Send,
-                        enter = fadeIn(tween(0)),
+                        enter = fadeIn(tween(0)) ,
+//                        enter = expandHorizontally(),
                         exit = shrinkHorizontally(
                             animationSpec = tween(durationMillis = 1300, delayMillis = 800)
                         ) + slideOutHorizontally(
@@ -1407,26 +1413,78 @@ fun SenderChat(
                             },
                             targetState = message.status
                         ) { targetStatue ->
-                            if (targetStatue == messageStatus.Send) {
-
-                                Card(
-                                    modifier = Modifier
-                                        .padding(top = 10.dp),
-                                    shape = RoundedCornerShape(50)
-                                ) {
-                                    Icon(
-                                        imageVector = Icons.AutoMirrored.Default.ArrowForward,
-                                        contentDescription = null,
+//                            if (targetStatue == messageStatus.Send) {
+//
+//                                Card(
+//                                    modifier = Modifier
+//                                        .padding(top = 10.dp),
+//                                    shape = RoundedCornerShape(50)
+//                                ) {
+//                                    Icon(
+//                                        imageVector = Icons.AutoMirrored.Default.ArrowForward,
+//                                        contentDescription = null,
+//                                        modifier = Modifier
+//                                            .background(color = MaterialTheme.colorScheme.primaryContainer)
+//                                            .padding(1.dp)
+//                                        //                                .clip(shape = RoundedCornerShape(50.dp))
+//                                    )
+//                                }
+//
+//                            } else
+//                                if (targetStatue == messageStatus.Sending) {
+//
+//                                    Card(
+//                                        modifier = Modifier
+//                                            .padding(top = 10.dp),
+//                                        shape = RoundedCornerShape(50)
+//                                    ) {
+//                                        Icon(
+//                                            imageVector = Icons.Default.CloudQueue,
+//                                            contentDescription = null,
+//                                            modifier = Modifier
+//                                                .background(color = MaterialTheme.colorScheme.primaryContainer)
+//                                                .padding(1.dp)
+//                                            //                                .clip(shape = RoundedCornerShape(50.dp))
+//                                        )
+//                                    }
+//
+//                                } else if (targetStatue == messageStatus.Error) {
+//                                    Card(
+//                                        modifier = Modifier
+//                                            .padding(top = 10.dp),
+//                                        shape = RoundedCornerShape(50)
+//                                    ) {
+//                                        Icon(
+//                                            imageVector = Icons.Default.Error,
+//                                            contentDescription = null,
+//                                            modifier = Modifier
+//                                                .background(color = MaterialTheme.colorScheme.primaryContainer)
+//                                                .padding(1.dp)
+//                                            //                                .clip(shape = RoundedCornerShape(50.dp))
+//                                        )
+//                                    }
+//                                }
+                            when (targetStatue) {
+                                messageStatus.Send -> {
+                                    Card(
                                         modifier = Modifier
-                                            .background(color = MaterialTheme.colorScheme.primaryContainer)
-                                            .padding(1.dp)
-                                        //                                .clip(shape = RoundedCornerShape(50.dp))
-                                    )
+                                            .padding(top = 10.dp),
+                                        shape = RoundedCornerShape(50)
+                                    ) {
+                                        Icon(
+                                            imageVector = Icons.AutoMirrored.Default.ArrowForward,
+                                            contentDescription = null,
+                                            modifier = Modifier
+                                                .background(color = MaterialTheme.colorScheme.primaryContainer)
+                                                .padding(1.dp)
+                                            //                                .clip(shape = RoundedCornerShape(50.dp))
+                                        )
+                                    }
                                 }
 
-                            } else
-                                if (targetStatue == messageStatus.Sending) {
+                                messageStatus.Sending -> {
 
+//
                                     Card(
                                         modifier = Modifier
                                             .padding(top = 10.dp),
@@ -1440,9 +1498,13 @@ fun SenderChat(
                                                 .padding(1.dp)
                                             //                                .clip(shape = RoundedCornerShape(50.dp))
                                         )
+//
                                     }
+                                }
 
-                                } else if (targetStatue == messageStatus.Error) {
+                                messageStatus.Delivered -> TODO()
+                                messageStatus.Read -> TODO()
+                                messageStatus.Error ->
                                     Card(
                                         modifier = Modifier
                                             .padding(top = 10.dp),
@@ -1457,9 +1519,26 @@ fun SenderChat(
                                             //                                .clip(shape = RoundedCornerShape(50.dp))
                                         )
                                     }
+
+                                messageStatus.Deleting ->
+                                    Card(
+                                    modifier = Modifier
+                                        .padding(top = 10.dp),
+                                    shape = RoundedCornerShape(50)
+                                ) {
+                                    Icon(
+                                        imageVector = Icons.Default.Delete,
+                                        contentDescription = null,
+                                        modifier = Modifier
+                                            .background(color = MaterialTheme.colorScheme.primaryContainer)
+                                            .padding(1.dp)
+                                        //                                .clip(shape = RoundedCornerShape(50.dp))
+                                    )
                                 }
+                            }
                         }
                     }
+
 
                 }
                 AnimatedVisibility(
@@ -2046,7 +2125,7 @@ fun PreviewMessagebodySuccess() {
     ) {
         MessagesBodySuccess(
             uiState = MessagesUiState(
-                messageScreen = MessageScreen.Loading,
+                messageScreen = MessageScreen.Success,
                 chatName = "ThereSelf",
                 currChat = ChatOrGroup(
                     isGroup = false,
@@ -2068,27 +2147,27 @@ fun PreviewMessagebodySuccess() {
                         senderId = "ThereSelf",
                         status = messageStatus.Send
                     ),
-                    MessageReceived(
-                        messageId = "3",
-                        content = "Hello Friend its nice to see you",
-                        timeStamp = Timestamp(Date(2024 - 1900, 1, 25, 20, 19)),
-                        senderId = "nys",
-                        status = messageStatus.Send
-                    ),
-                    MessageReceived(
-                        messageId = "4",
-                        content = "Hello Friend good day",
-                        timeStamp = Timestamp(Date(2024 - 1900, 1, 25, 20, 20)),
-                        senderId = "nys",
-                        status = messageStatus.Send
-                    ),
-                    MessageReceived(
-                        messageId = "5",
-                        content = "Hello Friend good day",
-                        timeStamp = Timestamp(Date(2024 - 1900, 2, 25, 20, 18)),
-                        senderId = "nys",
-                        status = messageStatus.Send
-                    ),
+//                    MessageReceived(
+//                        messageId = "3",
+//                        content = "Hello Friend its nice to see you",
+//                        timeStamp = Timestamp(Date(2024 - 1900, 1, 25, 20, 19)),
+//                        senderId = "nys",
+//                        status = messageStatus.Send
+//                    ),
+//                    MessageReceived(
+//                        messageId = "4",
+//                        content = "Hello Friend good day",
+//                        timeStamp = Timestamp(Date(2024 - 1900, 1, 25, 20, 20)),
+//                        senderId = "nys",
+//                        status = messageStatus.Send
+//                    ),
+//                    MessageReceived(
+//                        messageId = "5",
+//                        content = "Hello Friend good day",
+//                        timeStamp = Timestamp(Date(2024 - 1900, 2, 25, 20, 18)),
+//                        senderId = "nys",
+//                        status = messageStatus.Send
+//                    ),
                 ),
                 messageToSend = "",
                 selectedSentMessages = listOf(
