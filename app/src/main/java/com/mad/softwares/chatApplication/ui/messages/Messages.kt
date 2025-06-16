@@ -32,6 +32,7 @@ import androidx.compose.foundation.clickable
 import androidx.compose.foundation.combinedClickable
 import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.IntrinsicSize
 import androidx.compose.foundation.layout.Row
@@ -56,6 +57,7 @@ import androidx.compose.material.icons.automirrored.filled.ArrowForward
 import androidx.compose.material.icons.automirrored.filled.Send
 import androidx.compose.material.icons.filled.Attachment
 import androidx.compose.material.icons.filled.CloudQueue
+import androidx.compose.material.icons.filled.ContentCopy
 import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material.icons.filled.Deselect
 import androidx.compose.material.icons.filled.Error
@@ -93,6 +95,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.hapticfeedback.HapticFeedbackType
+import androidx.compose.ui.platform.LocalClipboardManager
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalHapticFeedback
 import androidx.compose.ui.platform.LocalUriHandler
@@ -108,6 +111,7 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextDecoration
 import androidx.compose.ui.text.withStyle
 import androidx.compose.ui.tooling.preview.Preview
+import androidx.compose.ui.tooling.preview.Wallpapers
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.lifecycle.viewmodel.compose.viewModel
@@ -163,12 +167,20 @@ fun CheckInternetAndRun(onConnected: () -> Unit) {
 }
 
 suspend fun checkInternet(context: Context): Boolean = withContext(Dispatchers.IO) {
-    val connectivityManager = context.getSystemService(Context.CONNECTIVITY_SERVICE) as ConnectivityManager
+    val connectivityManager =
+        context.getSystemService(Context.CONNECTIVITY_SERVICE) as ConnectivityManager
     val network = connectivityManager.activeNetwork ?: return@withContext false
-    val capabilities = connectivityManager.getNetworkCapabilities(network) ?: return@withContext false
+    val capabilities =
+        connectivityManager.getNetworkCapabilities(network) ?: return@withContext false
     return@withContext capabilities.hasCapability(NetworkCapabilities.NET_CAPABILITY_INTERNET)
 }
 
+
+
+fun copyToClipboardTextConversion(Messages: List<MessageReceived>):String{
+    val clipboardText:String = Messages.joinToString(separator = "\n" ){"${it.senderId}: ${it.content}"}
+    return clipboardText
+}
 
 @Composable
 fun Messages(
@@ -230,7 +242,7 @@ fun MessagesBodySuccess(
     navigateUp: () -> Unit,
     toggleMessageSelection: (MessageReceived, Boolean, Boolean) -> Unit = { _, _, _ -> },
     selectionBoth: () -> Unit = {},
-    deleteMessages:()-> Unit,
+    deleteMessages: () -> Unit,
     modifier: Modifier = Modifier
 ) {
     val scope = rememberCoroutineScope()
@@ -255,6 +267,7 @@ fun MessagesBodySuccess(
     val haptic = LocalHapticFeedback.current
 
     val context = LocalContext.current
+    val clipboardManager = LocalClipboardManager.current
     Scaffold(
         topBar = {
             ApptopBar(
@@ -262,31 +275,34 @@ fun MessagesBodySuccess(
                 navigateUp = navigateUp,
                 title = {
                     AnimatedContent(
-                        modifier =Modifier.fillMaxWidth(),
+                        modifier = Modifier.fillMaxWidth(),
                         targetState = uiState.messageScreen,
                         label = "Top title Animation",
                         transitionSpec = {
                             slideInVertically(
-                                initialOffsetY = {it/2}
-                            )+fadeIn() togetherWith
+                                initialOffsetY = { it / 2 }
+                            ) + fadeIn() togetherWith
                                     slideOutVertically() + fadeOut()
                         }
                     ) { targetState ->
                         when (targetState) {
                             MessageScreen.Success -> Text(
                                 text = uiState.currChat.chatName,
-                                        color = MaterialTheme.colorScheme.onPrimary
+                                color = MaterialTheme.colorScheme.onPrimary
                             )
+
                             MessageScreen.Loading -> Text(
                                 "Loading...",
-                                color = MaterialTheme.colorScheme.onPrimary)
+                                color = MaterialTheme.colorScheme.onPrimary
+                            )
+
                             MessageScreen.Error -> Text(
                                 "Error",
-                                color = MaterialTheme.colorScheme.onPrimary)
+                                color = MaterialTheme.colorScheme.onPrimary
+                            )
                         }
                     }
-                }
-                ,
+                },
                 action = {
                     if (uiState.selectedReceivedMessages.isEmpty() && uiState.selectedSentMessages.isEmpty()) {
                         IconButton(onClick = {
@@ -308,17 +324,16 @@ fun MessagesBodySuccess(
 
                         }
                     } else {
-                        if (uiState.selectedReceivedMessages.isEmpty()){
+                        if (uiState.selectedReceivedMessages.isEmpty()) {
                             IconButton(onClick = {
                                 coroutineScope.launch {
-                                    val isConnected = withTimeoutOrNull (2000L){
+                                    val isConnected = withTimeoutOrNull(2000L) {
                                         checkInternet(context)
-                                    }?:false
+                                    } ?: false
 
-                                    if(isConnected){
+                                    if (isConnected) {
                                         deleteMessages()
-                                    }
-                                    else{
+                                    } else {
                                         snackbarHostState.currentSnackbarData?.dismiss()
                                         scope.launch {
                                             snackbarHostState.showSnackbar(
@@ -334,6 +349,16 @@ fun MessagesBodySuccess(
                                     contentDescription = "delete Message"
                                 )
                             }
+                        }
+                        IconButton(onClick = {
+                            val clipboardText = copyToClipboardTextConversion(uiState.selectedReceivedMessages + uiState.selectedSentMessages)
+
+                            clipboardManager.setText(AnnotatedString(clipboardText))
+                        }){
+                            Icon(
+                                imageVector = Icons.Default.ContentCopy,
+                                contentDescription = "Copy message"
+                            )
                         }
                         IconButton(onClick = {
                             deselectAll()
@@ -375,7 +400,7 @@ fun MessagesBodySuccess(
     ) { padding ->
 
 
-        if (uiState.messages.isNotEmpty()) {
+        if (uiState.messages.isNotEmpty() && uiState.messageScreen == MessageScreen.Success) {
             val groupedMessages = uiState.messages.sortedBy { message ->
                 message.timeStamp
             }.reversed().groupBy { message ->
@@ -393,6 +418,7 @@ fun MessagesBodySuccess(
             LazyColumn(
                 modifier = modifier
                     .padding(padding)
+                    .background(Color.Transparent)
                     .fillMaxSize(),
                 //                    .background(MaterialTheme.colorScheme.background),
                 reverseLayout = true,
@@ -450,7 +476,8 @@ fun MessagesBodySuccess(
 
                         if (message.senderId != uiState.currentUser) {
                             if (uiState.currChat.isGroup == false) {
-                                ReceiverChat(message = message,
+                                ReceiverChat(
+                                    message = message,
                                     msgPosition = msgPosition,
                                     modifier = if (uiState.selectedReceivedMessages.isEmpty()) {
                                         Modifier
@@ -489,7 +516,8 @@ fun MessagesBodySuccess(
                                     )
                                 )
                             } else {
-                                ReceiverGroupChat(message = message,
+                                ReceiverGroupChat(
+                                    message = message,
                                     msgPosition = msgPosition,
                                     modifier = if (uiState.selectedReceivedMessages.isEmpty()) {
                                         Modifier
@@ -530,7 +558,7 @@ fun MessagesBodySuccess(
                             }
                         } else {
                             SenderChat(
-                                modifier = if(uiState.selectedSentMessages.isEmpty()){
+                                modifier = if (uiState.selectedSentMessages.isEmpty()) {
                                     Modifier
                                         .combinedClickable(
                                             interactionSource = null,
@@ -617,11 +645,11 @@ fun MessagesBodySuccess(
 
                 }
             }
-        }
-        else if(uiState.messageScreen == MessageScreen.Loading){
+        } else if (uiState.messageScreen == MessageScreen.Loading) {
             Column(
                 modifier = Modifier
                     .padding(padding)
+                    .background(MaterialTheme.colorScheme.background)
                     .fillMaxSize(),
 //                    .background(MaterialTheme.colorScheme.background),
                 verticalArrangement = Arrangement.Center
@@ -634,13 +662,12 @@ fun MessagesBodySuccess(
                     textAlign = TextAlign.Center
                 )
             }
-        }
-        else {
+        } else {
             Column(
                 modifier = Modifier
                     .padding(padding)
-                    .fillMaxSize(),
-//                    .background(MaterialTheme.colorScheme.background),
+                    .fillMaxSize()
+                    .background(MaterialTheme.colorScheme.background),
                 verticalArrangement = Arrangement.Center
             ) {
                 Text(
@@ -1147,6 +1174,7 @@ fun SenderChat(
     val bottomShape = RoundedCornerShape(20.dp, 5.dp, 20.dp, 20.dp)
 
 
+
     //    val inlineContentMap = codeRegex.findAll(msg).associate { match->
     //        "card_${match.value}" to InlineTextContent(
     //            placeholder = Placeholder(
@@ -1270,7 +1298,7 @@ fun SenderChat(
                                 //                                )
                                 //                            }GetCodeMessage(msg = msg)
 
-                                when (message.contentType){
+                                when (message.contentType) {
                                     ContentType.text -> GetCodeMessage(msg)
                                     ContentType.image -> GetCodeMessage(msg)
                                     ContentType.document -> GetCodeMessage(msg)
@@ -1359,7 +1387,8 @@ fun SenderChat(
                     AnimatedVisibility(
                         label = "message Status not send ${message.content}",
                         visible = message.status != messageStatus.Send,
-                        enter = fadeIn(tween(0)),
+                        enter = fadeIn(tween(0)) ,
+//                        enter = expandHorizontally(),
                         exit = shrinkHorizontally(
                             animationSpec = tween(durationMillis = 1300, delayMillis = 800)
                         ) + slideOutHorizontally(
@@ -1403,26 +1432,78 @@ fun SenderChat(
                             },
                             targetState = message.status
                         ) { targetStatue ->
-                            if (targetStatue == messageStatus.Send) {
-
-                                Card(
-                                    modifier = Modifier
-                                        .padding(top = 10.dp),
-                                    shape = RoundedCornerShape(50)
-                                ) {
-                                    Icon(
-                                        imageVector = Icons.AutoMirrored.Default.ArrowForward,
-                                        contentDescription = null,
+//                            if (targetStatue == messageStatus.Send) {
+//
+//                                Card(
+//                                    modifier = Modifier
+//                                        .padding(top = 10.dp),
+//                                    shape = RoundedCornerShape(50)
+//                                ) {
+//                                    Icon(
+//                                        imageVector = Icons.AutoMirrored.Default.ArrowForward,
+//                                        contentDescription = null,
+//                                        modifier = Modifier
+//                                            .background(color = MaterialTheme.colorScheme.primaryContainer)
+//                                            .padding(1.dp)
+//                                        //                                .clip(shape = RoundedCornerShape(50.dp))
+//                                    )
+//                                }
+//
+//                            } else
+//                                if (targetStatue == messageStatus.Sending) {
+//
+//                                    Card(
+//                                        modifier = Modifier
+//                                            .padding(top = 10.dp),
+//                                        shape = RoundedCornerShape(50)
+//                                    ) {
+//                                        Icon(
+//                                            imageVector = Icons.Default.CloudQueue,
+//                                            contentDescription = null,
+//                                            modifier = Modifier
+//                                                .background(color = MaterialTheme.colorScheme.primaryContainer)
+//                                                .padding(1.dp)
+//                                            //                                .clip(shape = RoundedCornerShape(50.dp))
+//                                        )
+//                                    }
+//
+//                                } else if (targetStatue == messageStatus.Error) {
+//                                    Card(
+//                                        modifier = Modifier
+//                                            .padding(top = 10.dp),
+//                                        shape = RoundedCornerShape(50)
+//                                    ) {
+//                                        Icon(
+//                                            imageVector = Icons.Default.Error,
+//                                            contentDescription = null,
+//                                            modifier = Modifier
+//                                                .background(color = MaterialTheme.colorScheme.primaryContainer)
+//                                                .padding(1.dp)
+//                                            //                                .clip(shape = RoundedCornerShape(50.dp))
+//                                        )
+//                                    }
+//                                }
+                            when (targetStatue) {
+                                messageStatus.Send -> {
+                                    Card(
                                         modifier = Modifier
-                                            .background(color = MaterialTheme.colorScheme.primaryContainer)
-                                            .padding(1.dp)
-                                        //                                .clip(shape = RoundedCornerShape(50.dp))
-                                    )
+                                            .padding(top = 10.dp),
+                                        shape = RoundedCornerShape(50)
+                                    ) {
+                                        Icon(
+                                            imageVector = Icons.AutoMirrored.Default.ArrowForward,
+                                            contentDescription = null,
+                                            modifier = Modifier
+                                                .background(color = MaterialTheme.colorScheme.primaryContainer)
+                                                .padding(1.dp)
+                                            //                                .clip(shape = RoundedCornerShape(50.dp))
+                                        )
+                                    }
                                 }
 
-                            } else
-                                if (targetStatue == messageStatus.Sending) {
+                                messageStatus.Sending -> {
 
+//
                                     Card(
                                         modifier = Modifier
                                             .padding(top = 10.dp),
@@ -1436,9 +1517,13 @@ fun SenderChat(
                                                 .padding(1.dp)
                                             //                                .clip(shape = RoundedCornerShape(50.dp))
                                         )
+//
                                     }
+                                }
 
-                                } else if (targetStatue == messageStatus.Error) {
+                                messageStatus.Delivered -> TODO()
+                                messageStatus.Read -> TODO()
+                                messageStatus.Error ->
                                     Card(
                                         modifier = Modifier
                                             .padding(top = 10.dp),
@@ -1453,9 +1538,26 @@ fun SenderChat(
                                             //                                .clip(shape = RoundedCornerShape(50.dp))
                                         )
                                     }
+
+                                messageStatus.Deleting ->
+                                    Card(
+                                    modifier = Modifier
+                                        .padding(top = 10.dp),
+                                    shape = RoundedCornerShape(50)
+                                ) {
+                                    Icon(
+                                        imageVector = Icons.Default.Delete,
+                                        contentDescription = null,
+                                        modifier = Modifier
+                                            .background(color = MaterialTheme.colorScheme.primaryContainer)
+                                            .padding(1.dp)
+                                        //                                .clip(shape = RoundedCornerShape(50.dp))
+                                    )
                                 }
+                            }
                         }
                     }
+
 
                 }
                 AnimatedVisibility(
@@ -1840,155 +1942,157 @@ fun BottomMessageSend(
     val scope = rememberCoroutineScope()
     val haptic = LocalHapticFeedback.current
     val visualTransformation = remember { StyledTextVisualTransformation(styleMap) }
-    ElevatedCard(
-        modifier = modifier
-//            .navigationBarsPadding()
-//            .animateContentSize(
-//
-//                animationSpec = spring(
-//                    dampingRatio = Spring.DampingRatioNoBouncy,
-//                    stiffness = Spring.StiffnessLow,
-//                )
+    Box {
+        ElevatedCard(
+            modifier = modifier
+                //            .navigationBarsPadding()
+                //            .animateContentSize(
+                //
+                //                animationSpec = spring(
+                //                    dampingRatio = Spring.DampingRatioNoBouncy,
+                //                    stiffness = Spring.StiffnessLow,
+                //                )
 
-//            )
+                //            )
 
-            .fillMaxWidth()
-            .padding(8.dp)
-            .background(MaterialTheme.colorScheme.background),
-        colors = CardDefaults.elevatedCardColors(
-            containerColor = MaterialTheme.colorScheme.secondaryContainer,
-
-            ),
-        shape = RoundedCornerShape(30.dp),
-        elevation = CardDefaults.cardElevation(35.dp)
-    ) {
-        Column(
-            modifier = Modifier
                 .fillMaxWidth()
-//                .padding(vertical = 16.dp, horizontal = 16.dp)
-        )
-        {
-//            Text("Chat is secure with aes key : ${appUistate.currChat.secureAESKey}")
-            Row(
+                .padding(8.dp)
+                .background(Color.Transparent),
+            colors = CardDefaults.elevatedCardColors(
+                containerColor = MaterialTheme.colorScheme.secondaryContainer,
+
+                ),
+            shape = RoundedCornerShape(30.dp),
+//            elevation = CardDefaults.cardElevation(35.dp)
+        ) {
+            Column(
                 modifier = Modifier
-                    .fillMaxWidth(),
-//                .height(height)
-                verticalAlignment = Alignment.Bottom,
-
-                ) {
-                val text = appUistate.messageToSend
-
-
-//                val annotatedText = buildAnnotatedString {
-//                    val codeRegex = Regex("<.(.*?).>")
-//                    var currentIndex= 0
-//                    codeRegex.findAll(text).forEach { match ->
-//                        append(text.substring(currentIndex, match.range.first))
-//                        withStyle(style = SpanStyle(color = Color.Blue, fontWeight = FontWeight.Bold)) {
-//                            append(match.value)
-//                            Log.d("messages",match.value)
-//                        }
-//                        currentIndex = match.range.last + 1
-//                    }
-//                    append(text.substring(currentIndex, text.length))
-//                }
-
-                OutlinedTextField(
+                    .fillMaxWidth()
+                //                .padding(vertical = 16.dp, horizontal = 16.dp)
+            )
+            {
+                //            Text("Chat is secure with aes key : ${appUistate.currChat.secureAESKey}")
+                Row(
                     modifier = Modifier
-                        .weight(1f)
-//                    .padding(end=40.dp)
-                        .fillMaxWidth()
-                        .padding(4.dp)
-                        .animateContentSize(
-                            animationSpec = spring(
-                                dampingRatio = Spring.DampingRatioNoBouncy,
-                                stiffness = Spring.StiffnessLow,
-                            )
-                        ),
+                        .fillMaxWidth(),
+                    //                .height(height)
+                    verticalAlignment = Alignment.Bottom,
 
-//                    .padding(end = 80.dp),
-                    value = appUistate.messageToSend,
-//                    value = appUistate.messageToSend,
-//                    onValueChange = { updateMessage(it) },
-//                    value = "",
-                    onValueChange = { updateMessage(it) },
-                    textStyle = TextStyle.Default.copy(
-                        fontSize = 20.sp,
-
-                        ),
-                    maxLines = 4,
-                    placeholder = { Text(text = stringResource(R.string.send_text)) },
-//                    placeholder = {"message..."},
-                    colors = OutlinedTextFieldDefaults.colors(
-                        focusedBorderColor = Color(0, 0, 0, alpha = 0),
-                        unfocusedBorderColor = Color(0, 0, 0, alpha = 0),
-                        disabledBorderColor = Color(0, 0, 0, alpha = 0),
-//                        focusedTextColor = MaterialTheme.colorScheme.onSecondaryContainer
-                    ),
-                    visualTransformation = visualTransformation
-                    //                trailingIcon =
-//                {
-//
-//                }
-
-                )
-//
-
-                if (!isLoading){
-                    IconButton(
-                        onClick = {
-                            if (appUistate.messageToSend.isNotEmpty()) {
-                                haptic.performHapticFeedback(HapticFeedbackType.TextHandleMove)
-                                sendMessage()
-                            } else {
-                                haptic.performHapticFeedback(HapticFeedbackType.TextHandleMove)
-                                sendAttatchment()
-                            }
-                        },
-
-                        modifier = Modifier
-//                        .fillMaxWidth()
-                            .padding(bottom = 10.dp, end = 10.dp)
-                            .size(45.dp),
-                        colors = IconButtonDefaults.iconButtonColors(
-                            containerColor = MaterialTheme.colorScheme.primary
-
-                        )
                     ) {
-                        AnimatedVisibility(
-                            visible = appUistate.messageToSend.isNotEmpty(),
-                            enter = scaleIn(),
-                            exit = scaleOut()
-                        ) {
-                            Icon(
-                                imageVector = Icons.AutoMirrored.Filled.Send,
-                                modifier = Modifier
-                                    .fillMaxHeight()
-                                    .padding(10.dp)
-                                    .size(80.dp),
-                                tint = MaterialTheme.colorScheme.onPrimary,
-                                contentDescription = "send"
-                            )
-                        }
-                        AnimatedVisibility(
-                            visible = appUistate.messageToSend.isEmpty(),
-                            enter = scaleIn(),
-                            exit = scaleOut()
-                        ) {
-                            Icon(
-                                imageVector = Icons.Default.Attachment,
-                                modifier = Modifier
-                                    .fillMaxHeight()
-                                    .padding(10.dp)
-                                    .size(80.dp),
-                                tint = MaterialTheme.colorScheme.onPrimary,
-                                contentDescription = "send"
-                            )
-                        }
+                    val text = appUistate.messageToSend
 
+
+                    //                val annotatedText = buildAnnotatedString {
+                    //                    val codeRegex = Regex("<.(.*?).>")
+                    //                    var currentIndex= 0
+                    //                    codeRegex.findAll(text).forEach { match ->
+                    //                        append(text.substring(currentIndex, match.range.first))
+                    //                        withStyle(style = SpanStyle(color = Color.Blue, fontWeight = FontWeight.Bold)) {
+                    //                            append(match.value)
+                    //                            Log.d("messages",match.value)
+                    //                        }
+                    //                        currentIndex = match.range.last + 1
+                    //                    }
+                    //                    append(text.substring(currentIndex, text.length))
+                    //                }
+
+                    OutlinedTextField(
+                        modifier = Modifier
+                            .weight(1f)
+                            //                    .padding(end=40.dp)
+                            .fillMaxWidth()
+                            .padding(4.dp)
+                            .animateContentSize(
+                                animationSpec = spring(
+                                    dampingRatio = Spring.DampingRatioNoBouncy,
+                                    stiffness = Spring.StiffnessLow,
+                                )
+                            ),
+
+                        //                    .padding(end = 80.dp),
+                        value = appUistate.messageToSend,
+                        //                    value = appUistate.messageToSend,
+                        //                    onValueChange = { updateMessage(it) },
+                        //                    value = "",
+                        onValueChange = { updateMessage(it) },
+                        textStyle = TextStyle.Default.copy(
+                            fontSize = 20.sp,
+
+                            ),
+                        maxLines = 4,
+                        placeholder = { Text(text = stringResource(R.string.send_text)) },
+                        //                    placeholder = {"message..."},
+                        colors = OutlinedTextFieldDefaults.colors(
+                            focusedBorderColor = Color(0, 0, 0, alpha = 0),
+                            unfocusedBorderColor = Color(0, 0, 0, alpha = 0),
+                            disabledBorderColor = Color(0, 0, 0, alpha = 0),
+                            //                        focusedTextColor = MaterialTheme.colorScheme.onSecondaryContainer
+                        ),
+                        visualTransformation = visualTransformation
+                        //                trailingIcon =
+                        //                {
+                        //
+                        //                }
+
+                    )
+                    //
+
+                    if (!isLoading) {
+                        IconButton(
+                            onClick = {
+                                if (appUistate.messageToSend.isNotEmpty()) {
+                                    haptic.performHapticFeedback(HapticFeedbackType.TextHandleMove)
+                                    sendMessage()
+                                } else {
+                                    haptic.performHapticFeedback(HapticFeedbackType.TextHandleMove)
+                                    sendAttatchment()
+                                }
+                            },
+
+                            modifier = Modifier
+                                //                        .fillMaxWidth()
+                                .padding(bottom = 10.dp, end = 10.dp)
+                                .size(45.dp),
+                            colors = IconButtonDefaults.iconButtonColors(
+                                containerColor = MaterialTheme.colorScheme.primary
+
+                            )
+                        ) {
+                            AnimatedVisibility(
+                                visible = appUistate.messageToSend.isNotEmpty(),
+                                enter = scaleIn(),
+                                exit = scaleOut()
+                            ) {
+                                Icon(
+                                    imageVector = Icons.AutoMirrored.Filled.Send,
+                                    modifier = Modifier
+                                        .fillMaxHeight()
+                                        .padding(10.dp)
+                                        .size(80.dp),
+                                    tint = MaterialTheme.colorScheme.onPrimary,
+                                    contentDescription = "send"
+                                )
+                            }
+                            AnimatedVisibility(
+                                visible = appUistate.messageToSend.isEmpty(),
+                                enter = scaleIn(),
+                                exit = scaleOut()
+                            ) {
+                                Icon(
+                                    imageVector = Icons.Default.Attachment,
+                                    modifier = Modifier
+                                        .fillMaxHeight()
+                                        .padding(10.dp)
+                                        .size(80.dp),
+                                    tint = MaterialTheme.colorScheme.onPrimary,
+                                    contentDescription = "send"
+                                )
+                            }
+
+                        }
                     }
-                }
 
+                }
             }
         }
     }
@@ -2028,7 +2132,10 @@ fun SecureMessageTag(
 //    }
 //}
 
-@Preview(device = "id:pixel_9_pro", showSystemUi = true, showBackground = true)
+@Preview(
+    device = "id:pixel_9_pro", showSystemUi = true, showBackground = false,
+    wallpaper = Wallpapers.GREEN_DOMINATED_EXAMPLE, backgroundColor = 0xFFA42626
+)
 @Composable
 fun PreviewMessagebodySuccess() {
     ChitChatTheme(
@@ -2037,6 +2144,7 @@ fun PreviewMessagebodySuccess() {
     ) {
         MessagesBodySuccess(
             uiState = MessagesUiState(
+                messageScreen = MessageScreen.Success,
                 chatName = "ThereSelf",
                 currChat = ChatOrGroup(
                     isGroup = false,
@@ -2058,27 +2166,27 @@ fun PreviewMessagebodySuccess() {
                         senderId = "ThereSelf",
                         status = messageStatus.Send
                     ),
-                    MessageReceived(
-                        messageId = "3",
-                        content = "Hello Friend its nice to see you",
-                        timeStamp = Timestamp(Date(2024 - 1900, 1, 25, 20, 19)),
-                        senderId = "nys",
-                        status = messageStatus.Send
-                    ),
-                    MessageReceived(
-                        messageId = "4",
-                        content = "Hello Friend good day",
-                        timeStamp = Timestamp(Date(2024 - 1900, 1, 25, 20, 20)),
-                        senderId = "nys",
-                        status = messageStatus.Send
-                    ),
-                    MessageReceived(
-                        messageId = "5",
-                        content = "Hello Friend good day",
-                        timeStamp = Timestamp(Date(2024 - 1900, 2, 25, 20, 18)),
-                        senderId = "nys",
-                        status = messageStatus.Send
-                    ),
+//                    MessageReceived(
+//                        messageId = "3",
+//                        content = "Hello Friend its nice to see you",
+//                        timeStamp = Timestamp(Date(2024 - 1900, 1, 25, 20, 19)),
+//                        senderId = "nys",
+//                        status = messageStatus.Send
+//                    ),
+//                    MessageReceived(
+//                        messageId = "4",
+//                        content = "Hello Friend good day",
+//                        timeStamp = Timestamp(Date(2024 - 1900, 1, 25, 20, 20)),
+//                        senderId = "nys",
+//                        status = messageStatus.Send
+//                    ),
+//                    MessageReceived(
+//                        messageId = "5",
+//                        content = "Hello Friend good day",
+//                        timeStamp = Timestamp(Date(2024 - 1900, 2, 25, 20, 18)),
+//                        senderId = "nys",
+//                        status = messageStatus.Send
+//                    ),
                 ),
                 messageToSend = "",
                 selectedSentMessages = listOf(

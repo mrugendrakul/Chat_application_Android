@@ -18,7 +18,8 @@ enum class messageStatus(){
     Send,
     Delivered,
     Read,
-    Error
+    Error,
+    Deleting
 }
 
 data class MessageReceived(

@@ -16,6 +16,7 @@ import kotlinx.coroutines.Deferred
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.async
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
@@ -377,9 +378,31 @@ class MessagesViewModel(
 
     fun deleteMessages() {
         val chatId = messagesUiState.value.chatID
+        messagesUiState.value.selectedSentMessages.forEach { message ->
+            Log.d(TAGmess,"Deleting message ${message.content}")
+            messagesUiState.update {
+                it.copy(
+                    messages = updateElement(
+                        it.messages,
+                        index = it.messages.indexOf(message),
+                        newElement = message.copy(
+
+                            status = messageStatus.Deleting
+                        )
+                    )
+                )
+            }
+        }
         viewModelScope.launch {
+//            delay(5000)
             try {
                 messagesUiState.value.selectedSentMessages.forEach { message ->
+//                    messagesUiState.update { it.copy(
+//                        messages = updateMessageList(
+//                            messages = it.messages.toMutableList(),
+//                            newMessage = message.copy(status = messageStatus.Deleting)
+//                        )
+//                    ) }
                     dataRepository.deleteAMessage(
                         chatId = chatId,
                         messageId = message.messageId,
@@ -392,7 +415,7 @@ class MessagesViewModel(
                         )
                     messagesUiState.update {
                         it.copy(
-                            messages = it.messages - message
+                            messages = it.messages - message.copy( status = messageStatus.Deleting)
                             ,
                             selectedSentMessages = it.selectedSentMessages - message,
 
