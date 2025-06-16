@@ -57,6 +57,7 @@ import androidx.compose.material.icons.automirrored.filled.ArrowForward
 import androidx.compose.material.icons.automirrored.filled.Send
 import androidx.compose.material.icons.filled.Attachment
 import androidx.compose.material.icons.filled.CloudQueue
+import androidx.compose.material.icons.filled.ContentCopy
 import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material.icons.filled.Deselect
 import androidx.compose.material.icons.filled.Error
@@ -94,6 +95,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.hapticfeedback.HapticFeedbackType
+import androidx.compose.ui.platform.LocalClipboardManager
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalHapticFeedback
 import androidx.compose.ui.platform.LocalUriHandler
@@ -173,6 +175,12 @@ suspend fun checkInternet(context: Context): Boolean = withContext(Dispatchers.I
     return@withContext capabilities.hasCapability(NetworkCapabilities.NET_CAPABILITY_INTERNET)
 }
 
+
+
+fun copyToClipboardTextConversion(Messages: List<MessageReceived>):String{
+    val clipboardText:String = Messages.joinToString(separator = "\n" ){"${it.senderId}: ${it.content}"}
+    return clipboardText
+}
 
 @Composable
 fun Messages(
@@ -259,6 +267,7 @@ fun MessagesBodySuccess(
     val haptic = LocalHapticFeedback.current
 
     val context = LocalContext.current
+    val clipboardManager = LocalClipboardManager.current
     Scaffold(
         topBar = {
             ApptopBar(
@@ -340,6 +349,16 @@ fun MessagesBodySuccess(
                                     contentDescription = "delete Message"
                                 )
                             }
+                        }
+                        IconButton(onClick = {
+                            val clipboardText = copyToClipboardTextConversion(uiState.selectedReceivedMessages + uiState.selectedSentMessages)
+
+                            clipboardManager.setText(AnnotatedString(clipboardText))
+                        }){
+                            Icon(
+                                imageVector = Icons.Default.ContentCopy,
+                                contentDescription = "Copy message"
+                            )
                         }
                         IconButton(onClick = {
                             deselectAll()
