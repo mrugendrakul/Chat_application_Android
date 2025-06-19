@@ -17,7 +17,6 @@ import com.mad.softwares.chatApplication.network.FirebaseAuthenticationApi
 import com.mad.softwares.chatApplication.network.NetworkFirebaseApi
 import com.mad.softwares.chatApplication.notification.BodyDecryptionImplementation
 import com.mad.softwares.chatApplication.notification.NotificationAddon
-import com.mad.softwares.chatApplication.notification.NotificationService
 
 interface AppContainer {
     val dataRepository:DataRepository
@@ -34,6 +33,7 @@ class DefaultAppContainer(private val context : Context) : AppContainer{
     private val userCollection = db.collection("Users")
     private val chatsCollection = db.collection("Chats")
     private val messagesCollection = db.collection("Messages")
+    private val keyCollection = db.collection("KeyStore")
 
     override val localKeyStorge: LocalKeysStorage by lazy {
         OfflineLocalKeysStorage(InventoryKeysDatabase.getDatabase(context = context).keyDao())
@@ -48,8 +48,9 @@ class DefaultAppContainer(private val context : Context) : AppContainer{
         db,
         userCollection,
         chatsCollection,
-        messagesCollection
-        )
+        messagesCollection,
+        keyCollection
+    )
 
 
     override val auth: FirebaseAuth = Firebase.auth

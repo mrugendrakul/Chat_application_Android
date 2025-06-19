@@ -6,9 +6,6 @@ import androidx.test.ext.junit.runners.AndroidJUnit4
 import com.google.firebase.auth.FirebaseAuth
 import com.google.firebase.auth.FirebaseUser
 import com.google.firebase.firestore.firestore
-import com.mad.softwares.chatApplication.data.ChatOrGroup
-import com.mad.softwares.chatApplication.data.ContentType
-import com.mad.softwares.chatApplication.data.MessageReceived
 import com.mad.softwares.chatApplication.data.NetworkDataRepository
 import com.mad.softwares.chatApplication.data.User
 import com.mad.softwares.chatApplication.network.AuthenticationApi
@@ -18,7 +15,6 @@ import com.mad.softwares.chatApplication.network.NetworkFirebaseApi
 import kotlinx.coroutines.CompletableDeferred
 import kotlinx.coroutines.Deferred
 import kotlinx.coroutines.async
-import kotlinx.coroutines.delay
 import kotlinx.coroutines.runBlocking
 import kotlinx.coroutines.test.runTest
 import org.junit.After
@@ -57,7 +53,7 @@ class ExampleInstrumentedTest {
             com.google.firebase.Firebase.firestore,
             db.collection("Users"),
             db.collection("Chats"),
-            db.collection("Messages"),
+            db.collection("Messages"),,
 
             )
 //        Firebase.auth.useEmulator("10.0.2.2", 9099)

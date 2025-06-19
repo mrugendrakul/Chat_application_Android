@@ -48,4 +48,6 @@
     <string name="loading_messages">Loading Messages....</string>
     <string name="this_function_is_not_implemented_yet">This function is not implemented yet</string>
     <string name="please_connect_to_internet_and_try_again">Please connect to internet and try again</string>
+    <string name="migration">Migration</string>
+    <string name="your_migration_was_a_success_dismiss_this_dialog_to_enjoy_using_the_app">Your migration was a success, Dismiss this dialog to enjoy using the app!</string>
 </resources>

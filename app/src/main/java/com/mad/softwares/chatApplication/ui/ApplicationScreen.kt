@@ -1,5 +1,6 @@
 package com.mad.softwares.chatApplication.ui
 
+import android.annotation.SuppressLint
 import android.os.Build
 import android.util.Log
 import androidx.activity.compose.BackHandler
@@ -46,9 +47,12 @@ import com.mad.softwares.chatApplication.ui.welcome.signupScreenDestination
 import com.mad.softwares.chatApplication.ui.welcome.welcomeDestination
 import com.mad.softwares.chatApplication.ui.welcome.WelcomeScreen
 import com.mad.softwares.chatApplication.ui.messages.messagesdestinationData
+import com.mad.softwares.chatApplication.ui.migration.MigrationScreen
+import com.mad.softwares.chatApplication.ui.migration.migrationScreenDestination
 
 val TAGnav = "navLog"
 
+@SuppressLint("UnrememberedGetBackStackEntry")
 @RequiresApi(Build.VERSION_CODES.TIRAMISU)
 @Composable
 fun ApplicationScreen(
@@ -132,6 +136,9 @@ fun ApplicationScreen(
                     Log.d(TAGnav, addGroupDestination.routeWithArgs(it))
 //                    navController.navigate(addGroupDestination.routeWithArgs(it))
                     navController.navigate("${addGroupDestination.route}/${it}")
+                },
+                navigateToMigration = {
+                    navController.navigate(migrationScreenDestination.route)
                 }
             )
         }
@@ -240,6 +247,15 @@ fun ApplicationScreen(
         ) {
             Messages(
                 navigateUp = { navController.navigateUp() }
+            )
+        }
+
+        composable(
+            route = migrationScreenDestination.route,
+
+        ) {
+            MigrationScreen(
+                 getBack = { navController.navigateUp() }
             )
         }
     }

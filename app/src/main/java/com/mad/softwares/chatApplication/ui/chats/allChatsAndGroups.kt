@@ -3,7 +3,6 @@
 package com.mad.softwares.chatApplication.ui.chats
 
 import android.Manifest
-import android.graphics.drawable.Icon
 import android.os.Build
 import androidx.annotation.RequiresApi
 import androidx.compose.foundation.ExperimentalFoundationApi
@@ -37,12 +36,10 @@ import androidx.compose.material.icons.filled.ArrowUpward
 import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material.icons.filled.Deselect
 import androidx.compose.material.icons.filled.Group
-import androidx.compose.material.icons.filled.Groups
 import androidx.compose.material.icons.filled.MoreVert
 import androidx.compose.material.icons.filled.Person
 import androidx.compose.material.icons.filled.SelectAll
 import androidx.compose.material.icons.outlined.Group
-import androidx.compose.material.icons.outlined.Groups
 import androidx.compose.material.icons.outlined.Person
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
@@ -87,7 +84,6 @@ import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.lifecycle.viewmodel.compose.viewModel
-import androidx.room.util.TableInfo
 import com.google.accompanist.permissions.ExperimentalPermissionsApi
 import com.google.accompanist.permissions.PermissionState
 import com.google.accompanist.permissions.isGranted
@@ -121,7 +117,8 @@ fun AllChatsAndGroups(
     navitageToAddChats: (List<String>) -> Unit,
     navigateToAddGroup: (String) -> Unit,
     navigateToWelcome: () -> Unit,
-    navigateToCurrentChat: (String) -> Unit
+    navigateToCurrentChat: (String) -> Unit,
+    navigateToMigration :()->Unit
 ) {
 
 
@@ -142,7 +139,9 @@ fun AllChatsAndGroups(
                 unSetSelect = viewModel::unSelect,
                 selectAll = viewModel::selectAll,
                 deSelectAll = viewModel::deSelectAll,
-                deleteChats = viewModel::deleteChats
+                deleteChats = viewModel::deleteChats,
+                navigateToMigration = viewModel::startMigration,
+                removeMigrationStatus = viewModel::removeStatusMigration
             )
         }
 
@@ -196,7 +195,9 @@ fun UserChatsBody(
     unSetSelect: () -> Unit,
     selectAll: () -> Unit,
     deSelectAll: () -> Unit,
-    deleteChats: () -> Unit
+    deleteChats: () -> Unit,
+    navigateToMigration: () -> Unit,
+    removeMigrationStatus: () -> Unit
 ) {
     val scrollBehavior = TopAppBarDefaults.enterAlwaysScrollBehavior()
     val listState = rememberLazyListState()
@@ -224,6 +225,7 @@ fun UserChatsBody(
     var dialogState by remember {
         mutableStateOf(false)
     }
+
     val snackbarHostState = remember { SnackbarHostState() }
     Scaffold(
         modifier = Modifier.nestedScroll(scrollBehavior.nestedScrollConnection),
@@ -312,12 +314,42 @@ fun UserChatsBody(
                             colors = CardDefaults.cardColors(
                                 containerColor = MaterialTheme.colorScheme.errorContainer
                             )
+
                         ) {
 
                             Text(
                                 modifier = Modifier
                                     .padding(10.dp),
                                 text = "Notification disabled, enable them from setting",
+                                fontSize = 20.sp,
+                                lineHeight = 20.sp,
+                                textAlign = TextAlign.Center
+                            )
+
+                        }
+                    }
+                }
+                if (chatsUiState.migrationRequired) {
+//
+                    Row(modifier = Modifier
+                        .fillMaxWidth(),
+                        horizontalArrangement = Arrangement.Center
+                    ){
+                        Card(
+                            modifier = Modifier
+                                .padding(20.dp),
+                            colors = CardDefaults.cardColors(
+                                containerColor = MaterialTheme.colorScheme.errorContainer
+                            ),
+                            onClick = {
+                                navigateToMigration()
+                            }
+                        ) {
+
+                            Text(
+                                modifier = Modifier
+                                    .padding(10.dp),
+                                text = "We have done some changes to our backend, for that we require your password. Click here to do the migration.",
                                 fontSize = 20.sp,
                                 lineHeight = 20.sp,
                                 textAlign = TextAlign.Center
@@ -386,6 +418,25 @@ fun UserChatsBody(
                 dismissButton = {
                     TextButton(onClick = { dialogState = false }) { Text(text = "Cancel") }
                 },
+            )
+        }
+        if (chatsUiState.migrationSuccess){
+            AlertDialog(
+                onDismissRequest = { removeMigrationStatus() },
+                confirmButton = {
+                    Button(onClick = {
+                        removeMigrationStatus()
+                    }) {
+                        Text(text = "Ok")
+                    }
+                },
+                title = {
+                    Text(text = "Migration was Success")
+                },
+                text = { Text(text = stringResource(R.string.your_migration_was_a_success_dismiss_this_dialog_to_enjoy_using_the_app)) },
+//                dismissButton = {
+//                    TextButton(onClick = { dialogState = false }) { Text(text = "Cancel") }
+//                },
             )
         }
         HorizontalPager(state = pagerState) { page ->
@@ -918,6 +969,7 @@ fun UserChatsPreview() {
     ) {
         UserChatsBody(
             chatsUiState = ChatsUiState(
+                migrationRequired = true,
                 selectStatus = true,
                 currentUser = User(username = "mrg@123.com"),
                 chats = listOf(
@@ -1077,7 +1129,9 @@ fun UserChatsPreview() {
             unSetSelect = {},
             selectAll = {},
             deSelectAll = { },
-            deleteChats = {}
+            deleteChats = {},
+            navigateToMigration = {  },
+            removeMigrationStatus = {}
         )
     }
 
