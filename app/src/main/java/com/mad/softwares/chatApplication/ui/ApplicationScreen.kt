@@ -300,7 +300,18 @@ fun ApptopBar(
         ),
         navigationIcon =
         {
-            if (destinationData.canBack) {
+            if(canGoBack){
+                BackHandler (enabled = canGoBack){
+                    goBack()
+                }
+                IconButton(onClick = goBack) {
+                    Icon(
+                        imageVector = Icons.AutoMirrored.Filled.ArrowBack,
+                        contentDescription = "back",
+                        tint = MaterialTheme.colorScheme.onPrimary)
+                }
+            }
+            else if (destinationData.canBack) {
 
                 IconButton(onClick = { navigateUp() }) {
                     Icon(
@@ -311,17 +322,7 @@ fun ApptopBar(
                 }
 
             }
-            else if(canGoBack){
-                BackHandler (enabled = canGoBack){
-                    goBack()
-                }
-                IconButton(onClick = goBack) {
-                    Icon(
-                        imageVector = Icons.AutoMirrored.Filled.ArrowBack,
-                        contentDescription = "back",
-                        tint = MaterialTheme.colorScheme.onPrimary)
-            }
-            }
+
 
         },
         actions = action,

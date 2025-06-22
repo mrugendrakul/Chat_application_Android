@@ -109,6 +109,7 @@ import androidx.compose.ui.text.font.FontStyle
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextDecoration
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.text.withStyle
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.tooling.preview.Wallpapers
@@ -273,6 +274,15 @@ fun MessagesBodySuccess(
             ApptopBar(
                 destinationData = messagesdestinationData,
                 navigateUp = navigateUp,
+                goBack = {
+                    if (uiState.selectedReceivedMessages.isNotEmpty() || uiState.selectedSentMessages.isNotEmpty()){
+                        deselectAll()
+                    }
+                    else{
+                        navigateUp()
+                    }
+                },
+                canGoBack = uiState.selectedReceivedMessages.isNotEmpty() || uiState.selectedSentMessages.isNotEmpty(),
                 title = {
                     AnimatedContent(
                         modifier = Modifier.fillMaxWidth(),
@@ -288,7 +298,9 @@ fun MessagesBodySuccess(
                         when (targetState) {
                             MessageScreen.Success -> Text(
                                 text = uiState.currChat.chatName,
-                                color = MaterialTheme.colorScheme.onPrimary
+                                color = MaterialTheme.colorScheme.onPrimary,
+                                maxLines = 1,
+                                overflow = TextOverflow.Ellipsis
                             )
 
                             MessageScreen.Loading -> Text(
@@ -354,6 +366,7 @@ fun MessagesBodySuccess(
                             val clipboardText = copyToClipboardTextConversion(uiState.selectedReceivedMessages + uiState.selectedSentMessages)
 
                             clipboardManager.setText(AnnotatedString(clipboardText))
+                            deselectAll()
                         }){
                             Icon(
                                 imageVector = Icons.Default.ContentCopy,
