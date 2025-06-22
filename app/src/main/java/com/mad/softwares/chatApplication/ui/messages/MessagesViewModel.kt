@@ -363,10 +363,16 @@ class MessagesViewModel(
                         it.copy(
                             messages =
                                 if (it.messages.contains(message)) {
-                                    Log.d(TAGmess, "Message already exists delete : ${message.messageId}")
+                                    Log.d(
+                                        TAGmess,
+                                        "Message already exists delete : ${message.messageId}"
+                                    )
                                     (it.messages - message).sortedBy { it.timeStamp }
                                 } else {
-                                    Log.d(TAGmess, "Message does not exists delete : ${message.messageId}")
+                                    Log.d(
+                                        TAGmess,
+                                        "Message does not exists delete : ${message.messageId}"
+                                    )
                                     (it.messages - message).sortedBy { it.timeStamp }
                                 }
                         )
@@ -379,7 +385,7 @@ class MessagesViewModel(
     fun deleteMessages() {
         val chatId = messagesUiState.value.chatID
         messagesUiState.value.selectedSentMessages.forEach { message ->
-            Log.d(TAGmess,"Deleting message ${message.content}")
+            Log.d(TAGmess, "Deleting message ${message.content}")
             messagesUiState.update {
                 it.copy(
                     messages = updateElement(
@@ -412,14 +418,13 @@ class MessagesViewModel(
                         },
                         secureAESKey = messagesUiState.value.currChat.secureAESKey
 
-                        )
+                    )
                     messagesUiState.update {
                         it.copy(
-                            messages = it.messages - message.copy( status = messageStatus.Deleting)
-                            ,
+                            messages = it.messages - message.copy(status = messageStatus.Deleting),
                             selectedSentMessages = it.selectedSentMessages - message,
 
-                        )
+                            )
                     }
                 }
             } catch (e: Exception) {
@@ -438,7 +443,8 @@ class MessagesViewModel(
                 messagesUiState.update {
                     it.copy(
                         selectedReceivedMessages = it.selectedReceivedMessages + message,
-                        isSenderOnlySelected = false
+                        isSenderOnlySelected = false,
+                        messageScreen = MessageScreen.SelectionMode
                     )
                 }
             } else {
@@ -446,45 +452,53 @@ class MessagesViewModel(
                     messagesUiState.update {
                         it.copy(
                             selectedReceivedMessages = it.selectedReceivedMessages - message,
-                            isSenderOnlySelected = false
+                            isSenderOnlySelected = false,
+                            messageScreen = MessageScreen.SelectionMode
                         )
                     }
                 } else {
                     messagesUiState.update {
                         it.copy(
                             selectedReceivedMessages = listOf(),
-                            isSenderOnlySelected = true
+                            isSenderOnlySelected = true,
+                            messageScreen = if (it.selectedSentMessages.isEmpty() ) MessageScreen.Success else MessageScreen.SelectionMode
                         )
                     }
                 }
             }
         } else {
-            if (statue && messagesUiState.value.selectedReceivedMessages.isEmpty()) {
+            if (statue) {
                 messagesUiState.update {
                     it.copy(
                         selectedSentMessages = it.selectedSentMessages + message,
-                        isSenderOnlySelected = true
+                        isSenderOnlySelected = true,
+                        messageScreen = MessageScreen.SelectionMode
                     )
                 }
 
 
-            } else if (statue && messagesUiState.value.selectedReceivedMessages.isNotEmpty()) {
-                messagesUiState.update {
-                    it.copy(
-                        selectedSentMessages = it.selectedSentMessages + message,
-                        isSenderOnlySelected = false
-                    )
-                }
             } else {
-                messagesUiState.update {
-                    it.copy(
-                        selectedSentMessages = it.selectedSentMessages - message,
-                        isSenderOnlySelected = false
-                    )
+                if (messagesUiState.value.selectedSentMessages.size != 1) {
+                    messagesUiState.update {
+                        it.copy(
+                            selectedSentMessages = it.selectedSentMessages - message,
+                            isSenderOnlySelected = false,
+                            messageScreen = MessageScreen.SelectionMode
+                        )
+                    }
+                } else {
+                    messagesUiState.update {
+                        it.copy(
+                            selectedSentMessages = listOf(),
+                            isSenderOnlySelected = false,
+                            messageScreen = if (it.selectedReceivedMessages.isEmpty()) MessageScreen.Success else MessageScreen.SelectionMode
+                        )
+                    }
                 }
             }
-        }
 
+
+        }
     }
 
     fun deSelectAll(
@@ -493,7 +507,8 @@ class MessagesViewModel(
             it.copy(
                 selectedReceivedMessages = listOf(),
                 selectedSentMessages = listOf(),
-                isSenderOnlySelected = false
+                isSenderOnlySelected = false,
+                messageScreen = MessageScreen.Success
             )
         }
     }
@@ -501,10 +516,11 @@ class MessagesViewModel(
     fun startSelectionMode() {
         messagesUiState.update {
             it.copy(
-                selectionMode = true
+                messageScreen = MessageScreen.SelectionMode
             )
         }
     }
+
 }
 
 
@@ -528,5 +544,6 @@ data class MessagesUiState(
 enum class MessageScreen() {
     Loading,
     Error,
-    Success
+    Success,
+    SelectionMode
 }

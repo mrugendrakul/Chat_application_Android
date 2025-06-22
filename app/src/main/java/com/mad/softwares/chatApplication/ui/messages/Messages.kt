@@ -109,6 +109,7 @@ import androidx.compose.ui.text.font.FontStyle
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextDecoration
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.text.withStyle
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.tooling.preview.Wallpapers
@@ -224,7 +225,7 @@ fun Messages(
         },
         sendMessage = { viewModel.sendTextMessage() },
         toggleMessageSelection = viewModel::toggleMessageSelection,
-
+        selectionBoth = viewModel::startSelectionMode,
         navigateUp = navigateUp,
         deselectAll = viewModel::deSelectAll,
         deleteMessages = viewModel::deleteMessages
@@ -241,7 +242,7 @@ fun MessagesBodySuccess(
     sendMessage: () -> Unit,
     navigateUp: () -> Unit,
     toggleMessageSelection: (MessageReceived, Boolean, Boolean) -> Unit = { _, _, _ -> },
-    selectionBoth: () -> Unit = {},
+    selectionBoth: () -> Unit,
     deleteMessages: () -> Unit,
     modifier: Modifier = Modifier
 ) {
@@ -273,22 +274,38 @@ fun MessagesBodySuccess(
             ApptopBar(
                 destinationData = messagesdestinationData,
                 navigateUp = navigateUp,
+                goBack = {
+                    if (uiState.messageScreen == MessageScreen.SelectionMode){
+                        deselectAll()
+                    }
+                    else{
+                        navigateUp()
+                    }
+                },
+                canGoBack = uiState.messageScreen == MessageScreen.SelectionMode,
                 title = {
                     AnimatedContent(
-                        modifier = Modifier.fillMaxWidth(),
+//                        modifier = Modifier.fillMaxWidth(),
                         targetState = uiState.messageScreen,
                         label = "Top title Animation",
                         transitionSpec = {
-                            slideInVertically(
-                                initialOffsetY = { it / 2 }
-                            ) + fadeIn() togetherWith
-                                    slideOutVertically() + fadeOut()
+
+                           (
+                                slideInVertically(
+                                    initialOffsetY = { it / 2 }
+                                ) + fadeIn() togetherWith
+                                        slideOutVertically() + fadeOut()
+                            ).using(
+                                SizeTransform(clip = false)
+                            )
                         }
-                    ) { targetState ->
-                        when (targetState) {
+                    ) { NameTargetState ->
+                        when (NameTargetState) {
                             MessageScreen.Success -> Text(
                                 text = uiState.currChat.chatName,
-                                color = MaterialTheme.colorScheme.onPrimary
+                                color = MaterialTheme.colorScheme.onPrimary,
+                                maxLines = 1,
+                                overflow = TextOverflow.Ellipsis
                             )
 
                             MessageScreen.Loading -> Text(
@@ -300,6 +317,37 @@ fun MessagesBodySuccess(
                                 "Error",
                                 color = MaterialTheme.colorScheme.onPrimary
                             )
+
+                            MessageScreen.SelectionMode -> {
+                                AnimatedContent(
+                                    targetState = (uiState.selectedSentMessages + uiState.selectedReceivedMessages).size,
+                                    transitionSpec = {
+                                        // Compare the incoming number with the previous number.
+                                        if (targetState > initialState) {
+                                            // If the target number is larger, it slides up and fades in
+                                            // while the initial (smaller) number slides up and fades out.
+                                            slideInVertically { height -> height } + fadeIn() togetherWith
+                                                    slideOutVertically { height -> -height } + fadeOut()
+                                        } else {
+                                            // If the target number is smaller, it slides down and fades in
+                                            // while the initial number slides down and fades out.
+                                            slideInVertically { height -> -height } + fadeIn() togetherWith
+                                                    slideOutVertically { height -> height } + fadeOut()
+                                        }.using(
+                                            // Disable clipping since the faded slide-in/out should
+                                            // be displayed out of bounds.
+                                            SizeTransform(clip = false)
+                                        )
+                                    }, label = "animated content"
+                                ) {targetNumberState->
+                                    Text(
+                                        text = "S: ${uiState.selectedSentMessages.size} R: ${uiState.selectedReceivedMessages.size}",
+                                        color = MaterialTheme.colorScheme.onPrimary,
+                                        maxLines = 1,
+                                        overflow = TextOverflow.Ellipsis
+                                    )
+                                }
+                            }
                         }
                     }
                 },
@@ -354,6 +402,7 @@ fun MessagesBodySuccess(
                             val clipboardText = copyToClipboardTextConversion(uiState.selectedReceivedMessages + uiState.selectedSentMessages)
 
                             clipboardManager.setText(AnnotatedString(clipboardText))
+                            deselectAll()
                         }){
                             Icon(
                                 imageVector = Icons.Default.ContentCopy,
@@ -400,7 +449,7 @@ fun MessagesBodySuccess(
     ) { padding ->
 
 
-        if (uiState.messages.isNotEmpty() && uiState.messageScreen == MessageScreen.Success) {
+        if (uiState.messages.isNotEmpty() && uiState.messageScreen == MessageScreen.Success || uiState.messageScreen == MessageScreen.SelectionMode) {
             val groupedMessages = uiState.messages.sortedBy { message ->
                 message.timeStamp
             }.reversed().groupBy { message ->
@@ -479,7 +528,7 @@ fun MessagesBodySuccess(
                                 ReceiverChat(
                                     message = message,
                                     msgPosition = msgPosition,
-                                    modifier = if (uiState.selectedReceivedMessages.isEmpty()) {
+                                    modifier = if (uiState.selectedReceivedMessages.isEmpty() && uiState.messageScreen != MessageScreen.SelectionMode) {
                                         Modifier
                                             .combinedClickable(
                                                 interactionSource = null,
@@ -519,7 +568,7 @@ fun MessagesBodySuccess(
                                 ReceiverGroupChat(
                                     message = message,
                                     msgPosition = msgPosition,
-                                    modifier = if (uiState.selectedReceivedMessages.isEmpty()) {
+                                    modifier = if (uiState.selectedReceivedMessages.isEmpty() && uiState.messageScreen != MessageScreen.SelectionMode) {
                                         Modifier
                                             .combinedClickable(
                                                 interactionSource = null,
@@ -558,7 +607,7 @@ fun MessagesBodySuccess(
                             }
                         } else {
                             SenderChat(
-                                modifier = if (uiState.selectedSentMessages.isEmpty()) {
+                                modifier = if (uiState.selectedSentMessages.isEmpty() && uiState.messageScreen != MessageScreen.SelectionMode) {
                                     Modifier
                                         .combinedClickable(
                                             interactionSource = null,
@@ -2220,7 +2269,8 @@ fun PreviewMessagebodySuccess() {
             sendMessage = {},
             navigateUp = {},
             deselectAll = {},
-            deleteMessages = {}
+            deleteMessages = {},
+            selectionBoth = {}
         )
     }
 }

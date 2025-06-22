@@ -1,6 +1,5 @@
 package com.mad.softwares.chatApplication.network
 
-import android.os.Message
 import android.util.Log
 import com.google.android.gms.tasks.OnCompleteListener
 import com.google.firebase.Timestamp
@@ -126,6 +125,9 @@ interface FirebaseApi {
 
     suspend fun deleteMessage(messageId: String, chatId: String, error: (e: Exception) -> Unit, newDeletedMessage:String)
 
+    suspend fun migrationProcess(uid:String, privateRSAKey:String)
+
+    suspend fun getMigrationStatus(uid:String): Boolean
 }
 
 class NetworkFirebaseApi(
@@ -133,6 +135,7 @@ class NetworkFirebaseApi(
     val userCollection: CollectionReference,
     val chatsCollection: CollectionReference,
     val messagesCollection: CollectionReference,
+    val keyCollection : CollectionReference
 ) : FirebaseApi {
     override suspend fun getFCMToken(): String {
         return withContext(Dispatchers.IO) {
@@ -239,14 +242,24 @@ class NetworkFirebaseApi(
             Log.d(TAG, "Unable to add te user : $e")
         }
         Log.d(TAG, "Update ended in the api")
+        var privateKey = getSecureKeys.await().getString("privateEncryptedRSAKey")
+            ?: ""
+        if(privateKey == ""){
+            Log.d(TAG, "Private key is empty")
+            val getNewKey = keyCollection.document(docId).get()
+            try {
+                privateKey = getNewKey.await().getString("privateRSAKey") ?: ""
+            } catch (e: Exception) {
+                Log.e(TAG, "Unable to get the keys : $e")
+            }
+        }
         return User(
             fcmToken = currFcmToken,
             profilePic = currUser.profilePic,
             uniqueId = currUser.uniqueId,
             username = currUser.username,
             publicRSAKey = getSecureKeys.await().getString("publicRSAKey") ?: "",
-            privateEncryptedRSAKey = getSecureKeys.await().getString("privateEncryptedRSAKey")
-                ?: "",
+            privateEncryptedRSAKey = privateKey,
             salt = getSecureKeys.await().getString("salt") ?: "",
             docId = currUser.docId
         )
@@ -275,7 +288,7 @@ class NetworkFirebaseApi(
             "uniqueId" to currUser.uniqueId,
             "username" to currUser.username,
             "publicRSAKey" to currUser.publicRSAKey,
-            "privateEncryptedRSAKey" to currUser.privateEncryptedRSAKey,
+//            "privateEncryptedRSAKey" to currUser.privateEncryptedRSAKey,
             "salt" to currUser.salt
         )
 
@@ -293,7 +306,19 @@ class NetworkFirebaseApi(
         try {
             newUserId.await()
         } catch (e: Exception) {
-            Log.d(TAG, "Unable to add the user : $e")
+            Log.e(TAG, "Unable to add the user : $e")
+        }
+
+        val migratedKeys = keyCollection.document(docId).set(
+            hashMapOf(
+                "privateRSAKey" to currUser.privateEncryptedRSAKey,
+            )
+        )
+        try{
+            migratedKeys.await()
+        }
+        catch (e: Exception){
+            Log.e(TAG,"Unable to add encryption the keys : ${e}")
         }
 
         val newUser: User = User(
@@ -303,7 +328,7 @@ class NetworkFirebaseApi(
             currUser.username,
             docId = docId,
             publicRSAKey = currUser.publicRSAKey,
-            privateEncryptedRSAKey = currUser.privateEncryptedRSAKey,
+//            privateEncryptedRSAKey = currUser.privateEncryptedRSAKey,
             salt = currUser.salt
         )
         Log.d(TAG, "User details are : ${newUserId.await().toString()}")
@@ -1130,6 +1155,42 @@ class NetworkFirebaseApi(
         } catch (e: Exception) {
             Log.e(TAG, "Error deleting message: ${e}")
             error(e)
+        }
+    }
+
+    override suspend fun migrationProcess(
+        uid: String,
+        privateRSAKey: String
+    ) {
+        val migratedKeys = keyCollection.document(uid).set(
+            hashMapOf(
+                "privateRSAKey" to privateRSAKey,
+                )
+        )
+        try{
+            migratedKeys.await()
+            userCollection
+                .document(uid)
+                .update("privateEncryptedRSAKey","")
+        }
+        catch (e: Exception){
+            Log.e(TAG,"Unable to migrate the keys : ${e}")
+        }
+    }
+
+    override suspend fun getMigrationStatus(uid: String): Boolean {
+        try{
+            val user = userCollection.document(uid).get()
+            val doc = user.await()
+            val key = doc.getString("privateEncryptedRSAKey")?:""
+            if (key == "" ) {
+                return false
+            } else {
+                return true
+            }
+        }catch (e: Exception){
+            Log.e(TAG,"Unable to get the migration status : ${e}")
+            return false
         }
     }
 }

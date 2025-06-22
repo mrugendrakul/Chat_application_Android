@@ -33,11 +33,64 @@ class ChatsViewModel(
             TAGchat,
             "To Reload chat : ${savedStateHandle.get<Boolean>(chatsScreenDestination.toReloadChats)}"
         )
+
     }
 
     override fun onCleared() {
         super.onCleared()
         viewModelScope.launch { dataRepository.stopLiveChat() }
+    }
+
+    private fun getMigrationStatus(){
+        Log.d(TAGchat,"Migration status called here")
+        viewModelScope.launch {
+           val status : Deferred<Boolean> = async {
+               dataRepository.getMigrationStatus(uid = chatsUiState.value.currentUser.docId)
+           }
+            chatsUiState.update { it.copy(
+                migrationRequired = status.await()
+            ) }
+
+        }
+    }
+
+    fun removeStatusMigration(){
+        chatsUiState.update {
+            it.copy(
+                migrationSuccess = false
+            )
+        }
+    }
+
+    fun startMigration(){
+        Log.d(TAGchat,"Migration Started now +++++")
+        chatsUiState.update {
+            it.copy(
+                isLoading = true,
+                currentChatStatus = CurrentChatStatus.Loading
+            )
+        }
+
+        viewModelScope.launch {
+            try {
+                dataRepository.migrationProcessData(uid = chatsUiState.value.currentUser.docId)
+                getMigrationStatus()
+                val status : Deferred<Boolean> = async {
+                    dataRepository.getMigrationStatus(uid = chatsUiState.value.currentUser.docId)
+                }
+
+                chatsUiState.update {
+                    it.copy(
+                        isLoading = false,
+                        currentChatStatus = CurrentChatStatus.Success,
+                        migrationSuccess = !status.await()
+                    )
+                }
+            }
+            catch (e: Exception){
+                Log.e(TAGchat,"Error in migration : $e")
+            }
+        }
     }
 
 //    private fun getCurrentUserData() {
@@ -337,6 +390,7 @@ class ChatsViewModel(
 //                        currentChatStatus = CurrentChatStatus.Success
                     )
                 }
+                getMigrationStatus()
             }
 
             if (chatsUiState.value.isError){
@@ -493,7 +547,9 @@ data class ChatsUiState(
     val currentChatStatus: CurrentChatStatus = CurrentChatStatus.Loading,
     val selectedChatsOrGroups: List<ChatOrGroup> = listOf(),
     val selectStatus:Boolean = false,
-    val selectedAll:Boolean = false
+    val selectedAll:Boolean = false,
+    val migrationRequired:Boolean = false,
+    val migrationSuccess : Boolean =false
 //    val logoutSuccess: Boolean = false
 )
 

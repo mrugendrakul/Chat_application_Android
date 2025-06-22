@@ -108,6 +108,10 @@ interface DataRepository {
     suspend fun getAllDeviceChats(): List<ChatOrGroup>?
 
     suspend fun deleteAMessage(chatId: String,messageId:String,error: (e: Exception) -> Unit, secureAESKey: String)
+
+    suspend fun migrationProcessData(uid:String)
+
+    suspend fun getMigrationStatus( uid: String): Boolean
 }
 
 class NetworkDataRepository(
@@ -162,6 +166,19 @@ class NetworkDataRepository(
                     key = privateKeys(
                         keyId = 1,
                         privateKey = encryptionService.privateKeyToString(keypair.private)
+                    )
+                )
+            } catch (e: Exception) {
+                Log.e(TAG, "Error adding key to device: ${e}")
+            }
+        }
+
+        coroutineScope {
+            try {
+                localKeyStorge.savePrivateKey(
+                    key = privateKeys(
+                        keyId = 2,
+                        privateKey = encryptionService.publicKeyToString(keypair.public)
                     )
                 )
             } catch (e: Exception) {
@@ -456,7 +473,7 @@ class NetworkDataRepository(
                     )
                 )
             }
-//            Log.d(TAG,"Adding My key at backend: ${currentUser.publicRSAKey}")
+            Log.d(TAG,"Adding My key at backend: ${currentUser.publicRSAKey}")
             AESKeys.add(
                 AESKeyData(
                     username = currentUser.username,
@@ -1225,5 +1242,26 @@ class NetworkDataRepository(
         catch (e: Exception){
             error(e)
         }
+    }
+
+    override suspend fun migrationProcessData(
+        uid: String,
+
+    ) {
+        val uid = authServie.getCurrentUser()
+        val keyFlow = localKeyStorge.getPrivateKey(keyId = 1)
+        val privateKey = keyFlow.firstOrNull()?.privateKey
+        apiService.migrationProcess(
+            uid = uid,
+            privateRSAKey = privateKey?:""
+        )
+    }
+
+    override suspend fun getMigrationStatus(uid: String): Boolean {
+        val status = coroutineScope {
+            val cD = async { apiService.getMigrationStatus(uid) }
+            cD.await()
+        }
+        return status
     }
 }

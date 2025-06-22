@@ -11,6 +11,7 @@ import com.mad.softwares.chatApplication.ui.chats.singles.AddChatViewModel
 import com.mad.softwares.chatApplication.ui.chats.groups.AddGroupViewModel
 import com.mad.softwares.chatApplication.ui.chats.ChatsViewModel
 import com.mad.softwares.chatApplication.ui.messages.MessagesViewModel
+import com.mad.softwares.chatApplication.ui.migration.MigrateViewmodel
 import com.mad.softwares.chatApplication.ui.welcome.welcomeViewModel
 
 object GodViewModelProvider {
@@ -52,6 +53,13 @@ object GodViewModelProvider {
         initializer {
             ShareHandlerViewModel(
                 dataRepository =  myApplication().container.dataRepository
+            )
+        }
+
+        initializer {
+            MigrateViewmodel(
+                savedStateHandle = this.createSavedStateHandle(),
+                dataRepository = myApplication().container.dataRepository
             )
         }
     }
