@@ -341,7 +341,7 @@ fun MessagesBodySuccess(
                                     }, label = "animated content"
                                 ) {targetNumberState->
                                     Text(
-                                        text = "S: ${uiState.selectedSentMessages.size} R: ${uiState.selectedReceivedMessages.size}",
+                                        text = "$targetNumberState",
                                         color = MaterialTheme.colorScheme.onPrimary,
                                         maxLines = 1,
                                         overflow = TextOverflow.Ellipsis
