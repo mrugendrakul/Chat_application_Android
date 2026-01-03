@@ -574,7 +574,8 @@ fun MessagesBodySuccess(
                                     },
                                     isCardSelected = uiState.selectedReceivedMessages.contains(
                                         message
-                                    )
+                                    ),
+                                    setAndNavigateMdMessage = setAndNavigateMdMessage
                                 )
                             } else {
                                 ReceiverGroupChat(
@@ -614,7 +615,8 @@ fun MessagesBodySuccess(
                                     },
                                     isCardSelected = uiState.selectedReceivedMessages.contains(
                                         message
-                                    )
+                                    ),
+                                    setAndNavigateMdMessage = setAndNavigateMdMessage
                                 )
                             }
                         } else {
@@ -1226,11 +1228,14 @@ fun MdMessageChat(msg: String,setMsg:()->Unit){
         modifier = Modifier
             .padding(8.dp),
         shape = RoundedCornerShape(12.dp),
-        onClick = setMsg
+        onClick = setMsg,
+        colors = CardDefaults.cardColors(
+            containerColor = MaterialTheme.colorScheme.secondaryContainer
+        )
     ) {
         Column(
             modifier = Modifier
-                .padding(2.dp)
+                .padding(4.dp)
         ) {
             Text("Markdown File")
             Text("${msg.slice(IntRange(0, 20))}...")
@@ -1695,6 +1700,7 @@ fun ReceiverChat(
     msgPosition: messagePosition = messagePosition.Alone,
     modifier: Modifier = Modifier,
     isCardSelected: Boolean,
+    setAndNavigateMdMessage:(setMessage: MessageReceived) ->Unit
 ) {
     val date = message.timeStamp.toDate()
 //    val sdf  = SimpleDateFormat("HH:mm")
@@ -1797,7 +1803,19 @@ fun ReceiverChat(
                             //                            fontSize = 20.sp
                             //                        )
                             //                    }
-                            GetCodeMessage(msg = message.content)
+//                            GetCodeMessage(msg = message.content)
+                            when (message.contentType) {
+                                ContentType.text -> GetCodeMessage(message.content)
+                                ContentType.image -> GetCodeMessage(message.content)
+                                ContentType.document -> GetCodeMessage(message.content)
+                                ContentType.audio -> GetCodeMessage(message.content)
+                                ContentType.video -> GetCodeMessage(message.content)
+                                ContentType.deleted -> GetCodeMessage(message.content)
+                                ContentType.default -> GetCodeMessage(message.content)
+                                ContentType.Md -> MdMessageChat(message.content) {
+                                    setAndNavigateMdMessage(message)
+                                }
+                            }
 
                             //                Card(
                             //                    modifier = Modifier
@@ -1856,6 +1874,7 @@ fun ReceiverGroupChat(
     message: MessageReceived,
     msgPosition: messagePosition,
     isCardSelected: Boolean,
+    setAndNavigateMdMessage:(setMessage: MessageReceived)->Unit,
 ) {
     val date = message.timeStamp.toDate()
 //    val sdf  = SimpleDateFormat("HH:mm")
@@ -1966,7 +1985,19 @@ fun ReceiverGroupChat(
                             //                            fontSize = 20.sp
                             //                        )
                             //                    }
-                            GetCodeMessage(msg = message.content)
+//                            GetCodeMessage(msg = message.content)
+                            when (message.contentType) {
+                                ContentType.text -> GetCodeMessage(message.content)
+                                ContentType.image -> GetCodeMessage(message.content)
+                                ContentType.document -> GetCodeMessage(message.content)
+                                ContentType.audio -> GetCodeMessage(message.content)
+                                ContentType.video -> GetCodeMessage(message.content)
+                                ContentType.deleted -> GetCodeMessage(message.content)
+                                ContentType.default -> GetCodeMessage(message.content)
+                                ContentType.Md -> MdMessageChat(message.content) {
+                                    setAndNavigateMdMessage(message)
+                                }
+                            }
 
                             //                    Card(
                             //                        modifier = Modifier
@@ -2260,7 +2291,7 @@ fun PreviewMessagebodySuccess() {
                         content = "# Hello this is new markdown message",
                         contentType = ContentType.Md,
                         timeStamp = Timestamp(Date(2024 - 1900, 1, 25, 20, 20)),
-                        senderId = "ThereSelf",
+                        senderId = "MyeSElf",
                         status = messageStatus.Send
                     ),
 //                    MessageReceived(
