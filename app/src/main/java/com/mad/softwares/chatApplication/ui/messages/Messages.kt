@@ -60,6 +60,7 @@ import androidx.compose.material.icons.filled.ContentCopy
 import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material.icons.filled.Deselect
 import androidx.compose.material.icons.filled.Error
+import androidx.compose.material.icons.filled.Image
 import androidx.compose.material.icons.filled.MoreVert
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
@@ -804,10 +805,11 @@ fun AttatchmentContent(
             hideSheet()
             navigateToMdSending()
         }, image = ImageVector.vectorResource(R.drawable.outline_markdown_24), text = "Send Markdown text")
-//        AttachmentButton(onClick = {
-//            hideSheet()
-//            sendCode()
-//        }, image = Icons.Default.Image, text = "Send Image")
+        AttachmentButton(onClick = {
+            hideSheet()
+            sendCode()
+        }, image = Icons.Default.Image, text = "Send Image")
+
 //        AttachmentButton(onClick = {
 //            hideSheet()
 //            sendCode()
