@@ -38,6 +38,11 @@ class AddChatViewModel(
 //        getMembers()
     }
 
+    override fun onCleared() {
+        super.onCleared()
+        resetAddChatSuccess()
+    }
+
 
 //    fun getMembers() {
 //        Log.d(TAGaddChat, "getMembers called")
@@ -146,7 +151,8 @@ class AddChatViewModel(
                     chatName = generateSixDigitUUID(6),
                     chatId = generateSixDigitUUID(24),
                     profilePhoto = "",
-                    isGroup = false
+                    isGroup = false,
+                    isAiChat = false
                 )
                 addChatUiState.update {
                     it.copy(

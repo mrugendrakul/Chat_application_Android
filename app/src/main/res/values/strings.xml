@@ -43,11 +43,16 @@
     <string name="receive_message">Receive Message</string>
     <string name="default_here">Default here</string>
     <string name="delete_alert_message">After confirming the chats will de deleted for all the members and cannot be restored</string>
-    <string name="send_text">Send message securely...</string>
+    <string name="send_text">Send message securely…</string>
     <string name="share_the_data">Share the data</string>
     <string name="loading_messages">Loading Messages....</string>
-    <string name="this_function_is_not_implemented_yet">This function is not implemented yet</string>
+    <string name="this_function_is_not_implemented_yet">This function will be implemented in next version!</string>
     <string name="please_connect_to_internet_and_try_again">Please connect to internet and try again</string>
     <string name="migration">Migration</string>
     <string name="your_migration_was_a_success_dismiss_this_dialog_to_enjoy_using_the_app">Your migration was a success, Dismiss this dialog to enjoy using the app!</string>
+    <string name="add_ai_model">Add AI Model</string>
+    <string name="add_ai_model_with_name">Add Ai Model With Name</string>
+    <string name="markdown_viewer">Markdown Viewer</string>
+    <string name="md_message_viewer">Md Message Viewer</string>
+
 </resources>

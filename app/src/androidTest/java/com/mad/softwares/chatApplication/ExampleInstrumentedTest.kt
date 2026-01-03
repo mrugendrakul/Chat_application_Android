@@ -53,8 +53,8 @@ class ExampleInstrumentedTest {
             com.google.firebase.Firebase.firestore,
             db.collection("Users"),
             db.collection("Chats"),
-            db.collection("Messages"),,
-
+            db.collection("Messages"),
+            db.collection("Keys")
             )
 //        Firebase.auth.useEmulator("10.0.2.2", 9099)
         authenticator = FirebaseAuth.getInstance()

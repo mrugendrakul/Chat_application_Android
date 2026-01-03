@@ -516,6 +516,63 @@ class ChatsViewModel(
                         }
                     }
                 )
+
+                //aiChats
+                dataRepository.getLiveAiChatsAndGroupsStore(
+                    myUsername = chatsUiState.value.currentUser.username,
+                    onChatAdd = { newAiChat->
+                        Log.d(TAGchat,"New aiChat added Added!!!")
+                        chatsUiState.update { it.copy(
+                            aiChats = it.aiChats + newAiChat,
+                            isLoading = false,
+                            currentChatStatus = CurrentChatStatus.Success
+                        ) }
+                    },
+                    onChatUpdate = { updatedAiChat->
+                        Log.d(TAGchat,"New aiChat added Updated!!!")
+                        val element = chatsUiState.value.aiChats.filter { aiChat->
+                            aiChat.chatId == updatedAiChat.chatId
+                        }
+                        val index = chatsUiState.value.aiChats.indexOf(element[0])
+                        val newAiChat = element[0].copy(lastMessage = lastMessage(
+                            content = updatedAiChat.lastMessage.content,
+                            timestamp = updatedAiChat.lastMessage.timestamp,
+                            sender = updatedAiChat.lastMessage.sender
+                        ))
+                        chatsUiState.update {
+                            it.copy(
+                                groups = updateElement(it.groups,newAiChat,index),
+                                isLoading = false,
+                                currentChatStatus = CurrentChatStatus.Success)}
+                        Log.d(TAGchat,"Chat is update with new element : ${newAiChat}")
+
+                    },
+                    onChatDelete = { deleteGroup->
+//                        Log.d(TAGchat,"Group is deleted : $deleteGroup")
+                        val element = chatsUiState.value.aiChats.filter { group->
+                            group.chatId == deleteGroup.chatId
+                        }
+                        val deletedGroup = element[0]
+                        chatsUiState.update {
+                            it.copy(
+                                aiChats = it.aiChats - deletedGroup,
+                                isLoading = false,
+                                currentChatStatus = CurrentChatStatus.Success
+                            )
+                        }
+                        Log.d(TAGchat,"Group is deleted : $deletedGroup")
+                    },
+                    onError = {
+                        chatsUiState.update {
+                            it.copy(
+                                isError = true,
+                                errorMessage = it.errorMessage,
+                                isLoading = false,
+                                currentChatStatus = CurrentChatStatus.Failed
+                            )
+                        }
+                    }
+                )
             }catch (
                 e:Exception
             ){
@@ -541,6 +598,7 @@ data class ChatsUiState(
 //        Chats(chatName = "sad@33.com")
     ),
     val groups: List<ChatOrGroup> = listOf(),
+    val aiChats : List<ChatOrGroup> = listOf(),
     val isLoading: Boolean = false,
     val isError: Boolean = false,
     val errorMessage: String = "",

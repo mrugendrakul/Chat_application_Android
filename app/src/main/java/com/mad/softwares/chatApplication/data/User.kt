@@ -12,7 +12,8 @@ data class User(
     val publicRSAKey:String = "",
     val privateEncryptedRSAKey:String = "",
     val salt:String = "",
-    val devicePrivateRSAKey:PrivateKey? = null
+    val devicePrivateRSAKey:PrivateKey? = null,
+    val isMigrated:Boolean = false
 )
 
 data class PublicRSAKey(

@@ -73,7 +73,7 @@ fun AddChat(
 //        jugadViewModel.getChats(true)
 //        viewModel.getChats(isForced = true)
 //        navigateUp()
-        viewModel.resetAddChatSuccess()
+//        viewModel.resetAddChatSuccess()
         navigateWithReload(false)
 
     }

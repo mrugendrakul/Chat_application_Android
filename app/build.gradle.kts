@@ -6,7 +6,7 @@ plugins {
 
     id("com.google.gms.google-services")
     id("com.google.devtools.ksp")
-    id("org.jetbrains.kotlin.plugin.compose") version "2.1.20"
+    id("org.jetbrains.kotlin.plugin.compose") version "2.3.0"
 }
 
 
@@ -21,14 +21,14 @@ android {
         }
     }
     namespace = "com.mad.softwares.chatApplication"
-    compileSdk = 35
+    compileSdk = 36
 
     defaultConfig {
         applicationId = "com.mad.softwares.chatApplication"
         minSdk = 26
-        targetSdk = 35
+        targetSdk = 36
         versionCode = 3
-        versionName = "0.10.18-beta.2"
+        versionName = "0.11.00-beta.1"
 
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
         vectorDrawables {
@@ -56,16 +56,22 @@ android {
         sourceCompatibility = JavaVersion.VERSION_17
         targetCompatibility = JavaVersion.VERSION_17
     }
-    kotlinOptions {
-        jvmTarget = "17"
+//    kotlinOptions {
+//        jvmTarget = "17"
+//    }
+    kotlin{
+//        compileOptions{
+//            jvmTarget.set(org.jetbrains.kotlin.gradle.dsl.JvmTarget.JVM_23)
+//        }
+        jvmToolchain(17)
     }
     buildFeatures {
         compose = true
         buildConfig = true
     }
-    composeOptions {
-        kotlinCompilerExtensionVersion = "1.5.14"
-    }
+//    composeOptions {
+//        kotlinCompilerExtensionVersion = "1.5.14"
+//    }
     packaging {
         resources {
             excludes += "/META-INF/{AL2.0,LGPL2.1}"
@@ -116,6 +122,12 @@ dependencies {
     implementation(libs.firebase.auth)
     implementation(libs.kotlinx.coroutines.play.services)
     implementation (libs.accompanist.pager)
+    implementation(libs.androidx.work.runtime.ktx)
+    implementation(libs.multiplatform.markdown.renderer.m3)
+    implementation(libs.androidx.compose.adaptive)
+    implementation(libs.androidx.compose.adaptive.layout)
+    implementation(libs.androidx.compose.adaptive.navigation)
+    testImplementation(libs.junit.jupiter)
     ksp(libs.androidx.room.compiler)
     implementation(libs.androidx.room.ktx)
     implementation(libs.androidx.ui.tooling.preview)
