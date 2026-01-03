@@ -6,7 +6,9 @@ import androidx.lifecycle.viewmodel.CreationExtras
 import androidx.lifecycle.viewmodel.initializer
 import androidx.lifecycle.viewmodel.viewModelFactory
 import com.mad.softwares.chatApplication.MyApplication
+import com.mad.softwares.chatApplication.network.AiApiLocalhost
 import com.mad.softwares.chatApplication.ui.ShareHandle.ShareHandlerViewModel
+import com.mad.softwares.chatApplication.ui.chats.AiModel.AddAiModelAndChatViewModel
 import com.mad.softwares.chatApplication.ui.chats.singles.AddChatViewModel
 import com.mad.softwares.chatApplication.ui.chats.groups.AddGroupViewModel
 import com.mad.softwares.chatApplication.ui.chats.ChatsViewModel
@@ -39,7 +41,8 @@ object GodViewModelProvider {
         initializer {
             MessagesViewModel(
                 savedStateHandle = this.createSavedStateHandle(),
-                dataRepository = myApplication().container.dataRepository
+                dataRepository = myApplication().container.dataRepository,
+                aiApis = myApplication().container.aiWorkManagerRespository,
             )
         }
 
@@ -60,6 +63,14 @@ object GodViewModelProvider {
             MigrateViewmodel(
                 savedStateHandle = this.createSavedStateHandle(),
                 dataRepository = myApplication().container.dataRepository
+            )
+        }
+
+        initializer {
+            AddAiModelAndChatViewModel(
+                savedStateHandle = this.createSavedStateHandle(),
+                dataRepository = myApplication().container.dataRepository,
+                aiApis = myApplication().container.aiWorkManagerRespository
             )
         }
     }

@@ -6,6 +6,7 @@ data class ChatOrGroup(
     val chatId:String = "",
     val chatName:String = "",
     val isGroup:Boolean = false,
+    val isAiChat:Boolean = false,
     val members:List<String> = listOf(),
     val chatPic:String = "",
         val membersData:MutableList<chatUser> = mutableListOf(),

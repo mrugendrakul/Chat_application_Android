@@ -70,6 +70,7 @@ interface FirebaseApi {
         chatId: String,
         profilePhoto: String = "",
         isGroup: Boolean = false,
+        isAiChat:Boolean =false,
         encryptedAESKeys: List<AESKeyData>,
         recentMessage: String
     )
@@ -107,6 +108,7 @@ interface FirebaseApi {
     suspend fun getLiveChatsOrGroups(
         username: String,
         isGroup: Boolean,
+        isAiChat:Boolean,
         onAddChat: (ChatOrGroup) -> Unit,
         onModifiedChat: (ChatOrGroup) -> Unit,
         onDeleteChat: (ChatOrGroup) -> Unit,
@@ -244,11 +246,13 @@ class NetworkFirebaseApi(
         Log.d(TAG, "Update ended in the api")
         var privateKey = getSecureKeys.await().getString("privateEncryptedRSAKey")
             ?: ""
+        var isMigrated = false
         if(privateKey == ""){
             Log.d(TAG, "Private key is empty")
             val getNewKey = keyCollection.document(docId).get()
             try {
                 privateKey = getNewKey.await().getString("privateRSAKey") ?: ""
+                isMigrated = true
             } catch (e: Exception) {
                 Log.e(TAG, "Unable to get the keys : $e")
             }
@@ -261,7 +265,8 @@ class NetworkFirebaseApi(
             publicRSAKey = getSecureKeys.await().getString("publicRSAKey") ?: "",
             privateEncryptedRSAKey = privateKey,
             salt = getSecureKeys.await().getString("salt") ?: "",
-            docId = currUser.docId
+            docId = currUser.docId,
+            isMigrated = true
         )
 
 
@@ -477,6 +482,7 @@ class NetworkFirebaseApi(
         chatId: String,
         profilePhoto: String,
         isGroup: Boolean,
+        isAiChat: Boolean,
         encryptedAESKeys: List<AESKeyData>,
         recentMessage: String
     ) {
@@ -497,6 +503,7 @@ class NetworkFirebaseApi(
             "chatName" to chatName,
             "profilePhoto" to profilePhoto,
             "isGroup" to isGroup,
+            "isAiChat" to isAiChat,
             "members" to newMembers,
             "lastMessage" to listOf(recentMessage, Timestamp.now()),
             "encryptedAESKeys" to newAESKeys
@@ -616,7 +623,7 @@ class NetworkFirebaseApi(
             Log.d(TAG, "Got the user data, profilePic:${profilePic} fcmtokens : $fcmTokens")
             return chatUser(username, fcmTokens.map { it.toString() }, profilePic)
         } catch (e: Exception) {
-            Log.e(TAG, "Unable to get the user data : $e")
+            Log.e(TAG, "Unable to get the user data for username ${username} : $e")
             return chatUser(profilePic = e.message.toString())
 //            throw e
         }
@@ -805,6 +812,7 @@ class NetworkFirebaseApi(
                                             "audio" -> ContentType.audio
                                             "video" -> ContentType.video
                                             "deleted" -> ContentType.deleted
+                                            "Md" -> ContentType.Md
                                             else -> {
                                                 ContentType.default
                                             }
@@ -902,6 +910,7 @@ class NetworkFirebaseApi(
     override suspend fun getLiveChatsOrGroups(
         username: String,
         isGroup: Boolean,
+        isAiChat: Boolean,
         onAddChat: (ChatOrGroup) -> Unit,
         onModifiedChat: (ChatOrGroup) -> Unit,
         onDeleteChat: (ChatOrGroup) -> Unit,
@@ -926,99 +935,112 @@ class NetworkFirebaseApi(
                 }
 
                 for (dc in snapshot!!.documentChanges) {
-                    when (dc.type) {
-                        DocumentChange.Type.ADDED -> {
-                            Log.d(TAG, "New Chat: ${dc.document.data}")
+                    val data = dc.document.data
+                    val isAiChatDoc = data["isAiChat"]?.toString()?.toBoolean() ?: false
+                    if(isAiChatDoc == isAiChat){
+                        when (dc.type) {
+                            DocumentChange.Type.ADDED -> {
+                                try {
+                                    Log.d(TAG, "New Chat: ${dc.document.data}")
 //                            for ()
-                            if (dc.document.data != null && dc.document.data.isNotEmpty()) {
-                                val lastMsg: List<Any> =
-                                    dc.document.data["lastMessage"] as List<Any>
-                                val encryptedAESKey =
-                                    dc.document.data["encryptedAESKeys"] as List<HashMap<String, String>>
-                                val myEncryptedAESKey = encryptedAESKey?.filter { key ->
-                                    key["username"] == username
-                                }?.get(0)
-                                Log.d(TAG, "ency key for $username is $myEncryptedAESKey")
-                                val newChat = ChatOrGroup(
-                                    chatId = dc.document.data["chatId"].toString(),
-                                    chatName = dc.document.data["chatName"].toString(),
-                                    isGroup = dc.document.data["isGroup"].toString().toBoolean(),
-                                    members = dc.document.data["members"] as List<String>,
-                                    chatPic = dc.document.data["chatPic"].toString(),
-                                    secureAESKey = myEncryptedAESKey?.get("key").toString(),
-                                    lastMessage = lastMessage(
-                                        content = lastMsg[0].toString(),
-                                        timestamp = lastMsg[1] as Timestamp,
-                                        sender = if (2 in lastMsg.indices) {
-                                            lastMsg[2].toString()
-                                        } else {
-                                            ""
-                                        },
-                                    ),
-                                )
-                                onAddChat(newChat)
-                            }
-                        }
-
-                        DocumentChange.Type.MODIFIED -> {
-
-                            Log.d(
-                                TAG,
-                                "-------Modified Chat: ${dc.document.data["chatId"].toString()}"
-                            )
-                            if (dc.document.data != null && dc.document.data.isNotEmpty()) {
-                                val lastMsg: List<Any> =
-                                    dc.document.data["lastMessage"] as List<Any>
-                                val encryptedAESKey =
-                                    dc.document.data["encryptedAESKeys"] as List<HashMap<String, String>>
-                                val myEncryptedAESKey = encryptedAESKey?.filter { key ->
-                                    key["username"] == username
-                                }?.get(0)
-                                val updateChat = ChatOrGroup(
-                                    chatId = dc.document.data["chatId"].toString(),
-                                    chatName = dc.document.data["chatName"].toString(),
-                                    isGroup = dc.document.data["isGroup"].toString().toBoolean(),
-                                    members = dc.document.data["members"] as List<String>,
-                                    chatPic = dc.document.data["chatPic"].toString(),
-                                    secureAESKey = myEncryptedAESKey?.get("key").toString(),
-                                    lastMessage = lastMessage(
-                                        content = lastMsg[0].toString(),
-                                        timestamp = lastMsg[1] as Timestamp,
-                                        sender = if (2 in lastMsg.indices) {
-                                            lastMsg[2].toString()
-                                        } else {
-                                            ""
-                                        }
-                                    )
-                                )
-                                onModifiedChat(updateChat)
+                                    if (dc.document.data != null && dc.document.data.isNotEmpty()) {
+                                        val lastMsg: List<Any> =
+                                            dc.document.data["lastMessage"] as List<Any>
+                                        val encryptedAESKey =
+                                            dc.document.data["encryptedAESKeys"] as List<HashMap<String, String>>
+                                        val myEncryptedAESKey = encryptedAESKey?.filter { key ->
+                                            key["username"] == username
+                                        }?.get(0)
+                                        Log.d(TAG, "ency key for $username is $myEncryptedAESKey")
+                                        val newChat = ChatOrGroup(
+                                            chatId = dc.document.data["chatId"].toString(),
+                                            chatName = dc.document.data["chatName"].toString(),
+                                            isGroup = dc.document.data["isGroup"].toString()
+                                                .toBoolean(),
+                                            isAiChat = dc.document.data["isAiChat"].toString()
+                                                .toBoolean(),
+                                            members = dc.document.data["members"] as List<String>,
+                                            chatPic = dc.document.data["chatPic"].toString(),
+                                            secureAESKey = myEncryptedAESKey?.get("key").toString(),
+                                            lastMessage = lastMessage(
+                                                content = lastMsg[0].toString(),
+                                                timestamp = lastMsg[1] as Timestamp,
+                                                sender = if (2 in lastMsg.indices) {
+                                                    lastMsg[2].toString()
+                                                } else {
+                                                    ""
+                                                },
+                                            ),
+                                        )
+                                        onAddChat(newChat)
+                                    }
+                                } catch (e: Exception) {
+                                    Log.d(TAG, "Error adding chat: ${e}")
+                                }
                             }
 
-                        }
+                            DocumentChange.Type.MODIFIED -> {
 
-                        DocumentChange.Type.REMOVED -> {
-                            Log.d(TAG, "-------Removed Chat: ${dc.document.data}")
-                            if (dc.document.data != null && dc.document.data.isNotEmpty()) {
-                                val lastMsg: List<Any> =
-                                    dc.document.data["lastMessage"] as List<Any>
-
-                                val updateChat = ChatOrGroup(
-                                    chatId = dc.document.data["chatId"].toString(),
-                                    chatName = dc.document.data["chatName"].toString(),
-                                    isGroup = dc.document.data["isGroup"].toString().toBoolean(),
-                                    members = dc.document.data["members"] as List<String>,
-                                    chatPic = dc.document.data["chatPic"].toString(),
-                                    lastMessage = lastMessage(
-                                        content = lastMsg[0].toString(),
-                                        timestamp = lastMsg[1] as Timestamp,
-                                        sender = if (2 in lastMsg.indices) {
-                                            lastMsg[2].toString()
-                                        } else {
-                                            ""
-                                        }
-                                    )
+                                Log.d(
+                                    TAG,
+                                    "-------Modified Chat: ${dc.document.data["chatId"].toString()}"
                                 )
-                                onDeleteChat(updateChat)
+                                if (dc.document.data != null && dc.document.data.isNotEmpty()) {
+                                    val lastMsg: List<Any> =
+                                        dc.document.data["lastMessage"] as List<Any>
+                                    val encryptedAESKey =
+                                        dc.document.data["encryptedAESKeys"] as List<HashMap<String, String>>
+                                    val myEncryptedAESKey = encryptedAESKey?.filter { key ->
+                                        key["username"] == username
+                                    }?.get(0)
+                                    val updateChat = ChatOrGroup(
+                                        chatId = dc.document.data["chatId"].toString(),
+                                        chatName = dc.document.data["chatName"].toString(),
+                                        isGroup = dc.document.data["isGroup"].toString()
+                                            .toBoolean(),
+                                        members = dc.document.data["members"] as List<String>,
+                                        chatPic = dc.document.data["chatPic"].toString(),
+                                        secureAESKey = myEncryptedAESKey?.get("key").toString(),
+                                        lastMessage = lastMessage(
+                                            content = lastMsg[0].toString(),
+                                            timestamp = lastMsg[1] as Timestamp,
+                                            sender = if (2 in lastMsg.indices) {
+                                                lastMsg[2].toString()
+                                            } else {
+                                                ""
+                                            }
+                                        )
+                                    )
+                                    onModifiedChat(updateChat)
+                                }
+
+                            }
+
+                            DocumentChange.Type.REMOVED -> {
+                                Log.d(TAG, "-------Removed Chat: ${dc.document.data}")
+                                if (dc.document.data != null && dc.document.data.isNotEmpty()) {
+                                    val lastMsg: List<Any> =
+                                        dc.document.data["lastMessage"] as List<Any>
+
+                                    val updateChat = ChatOrGroup(
+                                        chatId = dc.document.data["chatId"].toString(),
+                                        chatName = dc.document.data["chatName"].toString(),
+                                        isGroup = dc.document.data["isGroup"].toString()
+                                            .toBoolean(),
+                                        members = dc.document.data["members"] as List<String>,
+                                        chatPic = dc.document.data["chatPic"].toString(),
+                                        lastMessage = lastMessage(
+                                            content = lastMsg[0].toString(),
+                                            timestamp = lastMsg[1] as Timestamp,
+                                            sender = if (2 in lastMsg.indices) {
+                                                lastMsg[2].toString()
+                                            } else {
+                                                ""
+                                            }
+                                        )
+                                    )
+                                    onDeleteChat(updateChat)
+                                }
                             }
                         }
                     }

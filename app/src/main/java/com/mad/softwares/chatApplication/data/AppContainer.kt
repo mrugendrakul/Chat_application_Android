@@ -26,6 +26,8 @@ interface AppContainer {
     val localKeyStorge: LocalKeysStorage
     val localAESKeyStorage: LocalAESkeys
     val notificationAddon: NotificationAddon
+
+    val aiWorkManagerRespository : WorkRespository
 }
 
 class DefaultAppContainer(private val context : Context) : AppContainer{
@@ -67,4 +69,6 @@ class DefaultAppContainer(private val context : Context) : AppContainer{
         dataRepository = dataRepository,
         encryptionService =   encryption
     )
+
+    override val aiWorkManagerRespository: WorkRespository = AiWorkManagerRespository(context)
 }

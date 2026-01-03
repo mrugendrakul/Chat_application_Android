@@ -101,7 +101,8 @@ class AddGroupViewModel (
                     chatName = addGroupUiState.value.newGroupName,
                     chatId = generateSixDigitUUID(24),
                     profilePhoto = "",
-                    isGroup = true
+                    isGroup = true,
+                    isAiChat = false
                 )
                 addGroupUiState.update {
                     it.copy(

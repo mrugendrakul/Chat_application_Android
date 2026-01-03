@@ -10,6 +10,8 @@ enum class ContentType(){
     audio,
     video,
     deleted,
+    Md,
+
     default
 }
 

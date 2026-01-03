@@ -4,6 +4,7 @@ package com.mad.softwares.chatApplication.ui.chats
 
 import android.Manifest
 import android.os.Build
+import android.util.Log
 import androidx.annotation.RequiresApi
 import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.Image
@@ -39,8 +40,10 @@ import androidx.compose.material.icons.filled.Group
 import androidx.compose.material.icons.filled.MoreVert
 import androidx.compose.material.icons.filled.Person
 import androidx.compose.material.icons.filled.SelectAll
+import androidx.compose.material.icons.filled.SmartToy
 import androidx.compose.material.icons.outlined.Group
 import androidx.compose.material.icons.outlined.Person
+import androidx.compose.material.icons.outlined.SmartToy
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
 import androidx.compose.material3.Card
@@ -116,6 +119,7 @@ fun AllChatsAndGroups(
 //    viewModel: ChatsViewModel,
     navitageToAddChats: (List<String>) -> Unit,
     navigateToAddGroup: (String) -> Unit,
+    navigateToAddAiModel : ()->Unit,
     navigateToWelcome: () -> Unit,
     navigateToCurrentChat: (String) -> Unit,
     navigateToMigration :()->Unit
@@ -131,6 +135,7 @@ fun AllChatsAndGroups(
                 isCardEnabled = true,
                 navigateToAddChats = { navitageToAddChats(viewModel.getMembers()) },
                 navigateToAddGroup = { navigateToAddGroup(chatsUiState.currentUser.username) },
+                navigateToAddAiModel = navigateToAddAiModel,
                 logOut = { viewModel.logoutUser() },
                 permissionState =
                 rememberPermissionState(permission = Manifest.permission.POST_NOTIFICATIONS),
@@ -188,6 +193,7 @@ fun UserChatsBody(
     isCardEnabled: Boolean,
     navigateToAddChats: () -> Unit,
     navigateToAddGroup: () -> Unit,
+    navigateToAddAiModel : ()-> Unit,
     logOut: () -> Unit,
     permissionState: PermissionState?,
     addToSelection: (Boolean, ChatOrGroup) -> Unit,
@@ -204,7 +210,7 @@ fun UserChatsBody(
     val expandedFab by remember {
         derivedStateOf { listState.firstVisibleItemIndex == 0 }
     }
-    val pagerState = rememberPagerState(0, pageCount = { 2 })
+    val pagerState = rememberPagerState(0, pageCount = { 3 })
 
     val titleAndIcons = listOf(
         NavBarItemsTitleAndIcons(
@@ -216,6 +222,11 @@ fun UserChatsBody(
             title = "Groups",
             openIcon = Icons.Filled.Group,
             closeIcon = Icons.Outlined.Group
+        ),
+        NavBarItemsTitleAndIcons(
+            title = "Ai Chats",
+            openIcon = Icons.Filled.SmartToy,
+            closeIcon = Icons.Outlined.SmartToy
         )
     )
     val scope = rememberCoroutineScope()
@@ -233,11 +244,20 @@ fun UserChatsBody(
             AddChatFab(
                 expanded = expandedFab,
                 navigateToAddChat = {
-                    if (pagerState.currentPage == 0) navigateToAddChats() else {
-                        navigateToAddGroup()
+                    when (pagerState.currentPage){
+                        0->{navigateToAddChats()}
+                        1->{navigateToAddGroup()}
+                        2->{
+                            navigateToAddAiModel()
+                            Log.d("Ui Log","Adding model pressed ")}
                     }
                 },
-                text = if (pagerState.currentPage == 0) "Add Chat" else "Add Group"
+                text = when(pagerState.currentPage){
+                    0->"Add Chat"
+                    1->"Add Group"
+                    2->"Add AI Model"
+                    else->""
+                }
             )
         },
         snackbarHost = {
@@ -468,6 +488,16 @@ fun UserChatsBody(
                         isCardEnabled = isCardEnabled,
                         setSelectionChats = setSelect,
                         addToSelection = addToSelection
+                    )
+                }
+
+                2 ->  Column(
+                    modifier = Modifier.fillMaxSize(),
+                    verticalArrangement = Arrangement.Top
+                ) {
+                    ShowChats(
+                        uiState = chatsUiState,
+                        paddingValues = paddingValues
                     )
                 }
             }
@@ -938,6 +968,39 @@ fun SingleChat(
     }
 }
 
+@Composable
+fun ShowChats(
+    uiState: ChatsUiState,
+    paddingValues: PaddingValues
+){
+    LazyColumn(
+        modifier = Modifier
+            .fillMaxSize()
+            .padding(paddingValues)
+    ) {
+//        item {
+//            Column(
+//                modifier = Modifier.fillMaxSize(),
+//                verticalArrangement = Arrangement.Center,
+//                horizontalAlignment = Alignment.CenterHorizontally
+//            ) {
+//                Text("Ai Chats Coming soon \uD83D\uDE09")
+//            }
+//        }
+        items(
+            uiState.aiChats
+        ){
+            SingleChat(
+                chat = it,
+                navigateToCurrentChat = {},
+                isCardEnabled = true,
+                isCardSelected = false,
+                currentUsername = "",
+                setSelectionChats = {}
+            )
+        }
+    }
+}
 
 @Composable
 fun AddChatFab(
@@ -958,6 +1021,20 @@ fun AddChatFab(
         containerColor = MaterialTheme.colorScheme.secondaryContainer,
         expanded = expanded
     )
+}
+
+@Composable
+@Preview
+fun ShowChatsPreview(){
+    ChitChatTheme() {
+        ShowChats(
+            uiState = ChatsUiState(aiChats = listOf(ChatOrGroup(
+                chatName = "Ai 1",
+                lastMessage = lastMessage(content = "Wow", sender = "me", timestamp = Timestamp.now())
+            ))),
+            paddingValues = PaddingValues()
+        )
+    }
 }
 
 @OptIn(ExperimentalPermissionsApi::class)
@@ -1122,6 +1199,7 @@ fun UserChatsPreview() {
             isCardEnabled = true,
             navigateToAddChats = {},
             navigateToAddGroup = {},
+            navigateToAddAiModel = {},
             logOut = {},
             permissionState = null,
             addToSelection = { _, _ -> },

@@ -21,7 +21,6 @@ import androidx.compose.animation.scaleIn
 import androidx.compose.animation.scaleOut
 import androidx.compose.animation.shrinkHorizontally
 import androidx.compose.animation.shrinkVertically
-import androidx.compose.animation.slideInHorizontally
 import androidx.compose.animation.slideInVertically
 import androidx.compose.animation.slideOutHorizontally
 import androidx.compose.animation.slideOutVertically
@@ -61,10 +60,7 @@ import androidx.compose.material.icons.filled.ContentCopy
 import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material.icons.filled.Deselect
 import androidx.compose.material.icons.filled.Error
-import androidx.compose.material.icons.filled.Image
-import androidx.compose.material.icons.filled.LocationOn
 import androidx.compose.material.icons.filled.MoreVert
-import androidx.compose.material.icons.filled.UploadFile
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.DropdownMenu
@@ -100,6 +96,7 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalHapticFeedback
 import androidx.compose.ui.platform.LocalUriHandler
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.res.vectorResource
 import androidx.compose.ui.text.AnnotatedString
 import androidx.compose.ui.text.SpanStyle
 import androidx.compose.ui.text.TextStyle
@@ -130,7 +127,6 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import kotlinx.coroutines.withTimeoutOrNull
-import org.w3c.dom.Text
 import java.text.SimpleDateFormat
 import java.time.ZoneId
 import java.util.Date
@@ -141,6 +137,7 @@ object messagesdestinationData : destinationData {
     override val title = R.string.chats
     override val canBack = true
     val routeWithArgs = "$route/{$chatIDAndUsername}"
+    val nestedGraphMessages = "NestedGRaphMessages"
 }
 
 enum class messagePosition() {
@@ -186,10 +183,13 @@ fun copyToClipboardTextConversion(Messages: List<MessageReceived>):String{
 @Composable
 fun Messages(
     viewModel: MessagesViewModel = viewModel(factory = GodViewModelProvider.Factory),
-    navigateUp: () -> Unit
+    navigateUp: () -> Unit,
+    navigateToMdSending: () -> Unit,
+    navigateToMdPreview: ()->Unit,
 ) {
     val uiState = viewModel.messagesUiState.collectAsState().value
-//    val currentScreen = uiState.messageScreen
+//    val aiTagsMessage = viewModel.aiMessage.collectAsState().value
+//     val currentScreen = uiState.messageScreen
 //    when (uiState.messageScreen) {
 //        MessageScreen.Loading -> {
 //            MessageBodyLoading()
@@ -228,7 +228,13 @@ fun Messages(
         selectionBoth = viewModel::startSelectionMode,
         navigateUp = navigateUp,
         deselectAll = viewModel::deSelectAll,
-        deleteMessages = viewModel::deleteMessages
+        deleteMessages = viewModel::deleteMessages,
+        navigateToMdSending = navigateToMdSending,
+        setAndNavigateMdMessage = {
+            viewModel.setSelectedMessage(it)
+            navigateToMdPreview()
+        }
+//        aiMessage = aiTagsMessage
     )
 }
 
@@ -244,6 +250,9 @@ fun MessagesBodySuccess(
     toggleMessageSelection: (MessageReceived, Boolean, Boolean) -> Unit = { _, _, _ -> },
     selectionBoth: () -> Unit,
     deleteMessages: () -> Unit,
+    navigateToMdSending: () -> Unit,
+    setAndNavigateMdMessage:(currentMessage:MessageReceived)-> Unit,
+//    aiMessage : tags,
     modifier: Modifier = Modifier
 ) {
     val scope = rememberCoroutineScope()
@@ -380,7 +389,9 @@ fun MessagesBodySuccess(
                                     } ?: false
 
                                     if (isConnected) {
+
                                         deleteMessages()
+                                        deselectAll()
                                     } else {
                                         snackbarHostState.currentSnackbarData?.dismiss()
                                         scope.launch {
@@ -639,7 +650,8 @@ fun MessagesBodySuccess(
                                 },
                                 message = message,
                                 msgPosition = msgPosition,
-                                isCardSelected = uiState.selectedSentMessages.contains(message)
+                                isCardSelected = uiState.selectedSentMessages.contains(message),
+                                setAndNavigateMdMessage = setAndNavigateMdMessage
                             )
 
                         }
@@ -689,7 +701,8 @@ fun MessagesBodySuccess(
                                     withDismissAction = true
                                 )
                             }
-                        }
+                        },
+                        navigateToMdSending = navigateToMdSending
                     )
 
                 }
@@ -777,6 +790,7 @@ fun AttachmentButton(
 fun AttatchmentContent(
     hideSheet: () -> Unit,
     sendCode: () -> Unit,
+    navigateToMdSending: ()->Unit,
 ) {
 
     Row(
@@ -788,16 +802,16 @@ fun AttatchmentContent(
 
         AttachmentButton(onClick = {
             hideSheet()
-            sendCode()
-        }, image = Icons.Default.LocationOn, text = "Send Location")
-        AttachmentButton(onClick = {
-            hideSheet()
-            sendCode()
-        }, image = Icons.Default.Image, text = "Send Image")
-        AttachmentButton(onClick = {
-            hideSheet()
-            sendCode()
-        }, image = Icons.Default.UploadFile, text = "Send Document")
+            navigateToMdSending()
+        }, image = ImageVector.vectorResource(R.drawable.outline_markdown_24), text = "Send Markdown text")
+//        AttachmentButton(onClick = {
+//            hideSheet()
+//            sendCode()
+//        }, image = Icons.Default.Image, text = "Send Image")
+//        AttachmentButton(onClick = {
+//            hideSheet()
+//            sendCode()
+//        }, image = Icons.Default.UploadFile, text = "Send Document")
     }
 }
 
@@ -988,6 +1002,7 @@ fun parseMessage(message: String): Map<String, textTypeParse> {
     val codeRegex = Regex("```(.*?)```", RegexOption.DOT_MATCHES_ALL)
 //    val linkRegex = Regex("<([^\\s]+)>", RegexOption.DOT_MATCHES_ALL) // Ensure no spaces in links
     val linkRegex = Regex("\\<(.*?)\\>")
+    val advancedLinkRegex = Regex("https://(.*?)")
 //    val linkRegex = Regex("(?:\\[(.*?)]?)\\<(.*?)\\>")
 
     // Collect matches from al regex patterns
@@ -996,6 +1011,8 @@ fun parseMessage(message: String): Map<String, textTypeParse> {
     codeRegex.findAll(message)
         .forEach { matches.add(Triple(it.range, textTypeParse.code, it.groupValues[1])) }
     linkRegex.findAll(message)
+        .forEach { matches.add(Triple(it.range, textTypeParse.link, it.groupValues[1])) }
+    advancedLinkRegex.findAll(message)
         .forEach { matches.add(Triple(it.range, textTypeParse.link, it.groupValues[1])) }
 
     // Sort matches by their start positions
@@ -1201,6 +1218,23 @@ val middleModifier = Modifier
     .padding(vertical = 1.dp)
     .padding(horizontal = 5.dp)
 
+@Composable
+fun MdMessageChat(msg: String,setMsg:()->Unit){
+    Card(
+        modifier = Modifier
+            .padding(8.dp),
+        shape = RoundedCornerShape(12.dp),
+        onClick = setMsg
+    ) {
+        Column(
+            modifier = Modifier
+                .padding(2.dp)
+        ) {
+            Text("Markdown File")
+            Text("${msg.slice(IntRange(0, 20))}...")
+        }
+    }
+}
 
 @Composable
 fun SenderChat(
@@ -1208,6 +1242,7 @@ fun SenderChat(
     message: MessageReceived,
     msgPosition: messagePosition = messagePosition.Alone,
     isCardSelected: Boolean,
+    setAndNavigateMdMessage : (currentMessage:MessageReceived)->Unit,
 ) {
     val date = message.timeStamp.toDate()
     //    val sdf  = SimpleDateFormat("HH:mm")
@@ -1355,6 +1390,9 @@ fun SenderChat(
                                     ContentType.video -> GetCodeMessage(msg)
                                     ContentType.deleted -> GetCodeMessage(msg)
                                     ContentType.default -> GetCodeMessage(msg)
+                                    ContentType.Md -> MdMessageChat(msg) {
+                                        setAndNavigateMdMessage(message)
+                                    }
                                 }
                             }
                             //                if (message.status == messageStatus.Send) {
@@ -2215,6 +2253,14 @@ fun PreviewMessagebodySuccess() {
                         senderId = "ThereSelf",
                         status = messageStatus.Send
                     ),
+                    MessageReceived(
+                        messageId = "3",
+                        content = "# Hello this is new markdown message",
+                        contentType = ContentType.Md,
+                        timeStamp = Timestamp(Date(2024 - 1900, 1, 25, 20, 20)),
+                        senderId = "ThereSelf",
+                        status = messageStatus.Send
+                    ),
 //                    MessageReceived(
 //                        messageId = "3",
 //                        content = "Hello Friend its nice to see you",
@@ -2270,7 +2316,10 @@ fun PreviewMessagebodySuccess() {
             navigateUp = {},
             deselectAll = {},
             deleteMessages = {},
-            selectionBoth = {}
+            selectionBoth = {},
+            navigateToMdSending = {},
+            setAndNavigateMdMessage = {}
+//            aiMessage = tags(listOf(OllamaModel(name="one",model="one")))
         )
     }
 }

@@ -36,7 +36,7 @@ class MyApplication:Application() {
 
         if(BuildConfig.DEBUG){
             val firestore = Firebase.firestore
-            firestore.useEmulator("10.0.2.2", 8080)
+            firestore.useEmulator("10.0.2.2", 8090)
 
             firestore.firestoreSettings = firestoreSettings {
                 isPersistenceEnabled = false

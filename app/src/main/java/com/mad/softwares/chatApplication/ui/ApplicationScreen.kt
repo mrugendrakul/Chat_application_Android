@@ -26,9 +26,14 @@ import androidx.navigation.NavHostController
 import androidx.navigation.NavType
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
-import androidx.navigation.compose.navigation
 import androidx.navigation.navArgument
+import androidx.navigation.navigation
 import com.mad.softwares.chatApplication.R
+import com.mad.softwares.chatApplication.ui.chats.AiModel.AddAiModelAndChatViewModel
+import com.mad.softwares.chatApplication.ui.chats.AiModel.AddAiModelAndChatWithName
+import com.mad.softwares.chatApplication.ui.chats.AiModel.AiTagFromOllama
+import com.mad.softwares.chatApplication.ui.chats.AiModel.addAiModelAndChatDestination
+import com.mad.softwares.chatApplication.ui.chats.AiModel.addAiModelAndChatWithName
 import com.mad.softwares.chatApplication.ui.chats.singles.AddChat
 import com.mad.softwares.chatApplication.ui.chats.groups.AddGroup
 import com.mad.softwares.chatApplication.ui.chats.AllChatsAndGroups
@@ -38,7 +43,12 @@ import com.mad.softwares.chatApplication.ui.chats.chatsScreenDestination
 import com.mad.softwares.chatApplication.ui.chats.groups.AddGroupViewModel
 import com.mad.softwares.chatApplication.ui.chats.groups.AddGroupWithName
 import com.mad.softwares.chatApplication.ui.chats.groups.addGroupWithNameDestination
+import com.mad.softwares.chatApplication.ui.messages.MdMessageViewer
+import com.mad.softwares.chatApplication.ui.messages.MdMessageViewerDataDestination
+import com.mad.softwares.chatApplication.ui.messages.MdSenderScreen
+import com.mad.softwares.chatApplication.ui.messages.MdSenderScreenDestination
 import com.mad.softwares.chatApplication.ui.messages.Messages
+import com.mad.softwares.chatApplication.ui.messages.MessagesViewModel
 import com.mad.softwares.chatApplication.ui.theme.ChitChatTheme
 import com.mad.softwares.chatApplication.ui.welcome.LoginScreen
 import com.mad.softwares.chatApplication.ui.welcome.SignUpScreen
@@ -139,8 +149,71 @@ fun ApplicationScreen(
                 },
                 navigateToMigration = {
                     navController.navigate(migrationScreenDestination.route)
+                },
+                navigateToAddAiModel = {
+                    navController.navigate(addAiModelAndChatDestination.route)
                 }
             )
+        }
+
+        navigation(
+            startDestination = addAiModelAndChatDestination.route,
+            route = addAiModelAndChatDestination.nestedGraph
+        ) {
+            composable(
+                route = addAiModelAndChatDestination.route
+            ) { backStackEntry->
+
+                val parentEntry = remember {
+                    navController.getBackStackEntry(addAiModelAndChatDestination.nestedGraph)
+                }
+                val addGroupViewModel = viewModel<AddAiModelAndChatViewModel>(
+                    parentEntry,
+                    factory = GodViewModelProvider.Factory
+                )
+                AiTagFromOllama(
+                    viewModel =  addGroupViewModel,
+                    navigateWithReload = {
+                        navController.navigate("${chatsScreenDestination.route}/$it") {
+                            popUpTo(0)
+                        }
+                    },
+                    navigateUp = {
+                        navController.popBackStack(
+                            chatsScreenDestination.routeWithReload,
+                            false
+                        )
+                    },
+                    navigateToNaming = {
+                        navController.navigate(addAiModelAndChatWithName.route)
+                    }
+                )
+            }
+
+            composable(
+                route = addAiModelAndChatWithName.route
+            ) {
+                    backStackEntry->
+
+                val parentEntry = remember {
+                    navController.getBackStackEntry(addAiModelAndChatDestination.nestedGraph)
+                }
+                val addGroupViewModel = viewModel<AddAiModelAndChatViewModel>(
+                    parentEntry,
+                    factory = GodViewModelProvider.Factory
+                )
+                AddAiModelAndChatWithName(
+                    viewModel = addGroupViewModel,
+                    navigateWithReload = {
+                        navController.navigate("${chatsScreenDestination.route}/$it") {
+                            popUpTo(0)
+                        }
+                    },
+                    navigateUp = {
+                        navController.navigateUp()
+                    }
+                )
+            }
         }
 
         composable(
@@ -234,20 +307,70 @@ fun ApplicationScreen(
 //        composable(ChatsNavGraphDestinationData.route){
 //            ChatsNavGraph(navController)+
 //        }
-
-
-        composable(
-            route = messagesdestinationData.routeWithArgs,
-            arguments = listOf(
-                navArgument(messagesdestinationData.chatIDAndUsername) {
-                    type = NavType.StringType
-                    defaultValue = ""
+        navigation(
+            startDestination = messagesdestinationData.routeWithArgs,
+            route = messagesdestinationData.nestedGraphMessages
+        )
+        {
+            composable(
+                route = messagesdestinationData.routeWithArgs,
+                arguments = listOf(
+                    navArgument(messagesdestinationData.chatIDAndUsername) {
+                        type = NavType.StringType
+                        defaultValue = ""
+                    }
+                )
+            ) {
+                val parentEntry = remember {
+                    navController.getBackStackEntry(messagesdestinationData.nestedGraphMessages)
                 }
-            )
-        ) {
-            Messages(
-                navigateUp = { navController.navigateUp() }
-            )
+                val messagesViewModel = viewModel<MessagesViewModel>(
+                    parentEntry,
+                    factory = GodViewModelProvider.Factory
+                )
+                Messages(
+                    viewModel = messagesViewModel,
+                    navigateToMdSending = {navController.navigate(MdSenderScreenDestination.route)},
+                    navigateToMdPreview = {navController.navigate(MdMessageViewerDataDestination.route)},
+                    navigateUp = {navController.navigateUp()}
+                )
+            }
+
+            composable(
+                route = MdSenderScreenDestination.route
+
+            ) {
+                val parentEntry = remember {
+                    navController.getBackStackEntry(messagesdestinationData.nestedGraphMessages)
+                }
+                val messagesViewModel = viewModel<MessagesViewModel>(
+                    parentEntry,
+                    factory = GodViewModelProvider.Factory
+                )
+                MdSenderScreen(
+                    messagesViewModel,
+                    navigateUp = {navController.navigateUp()}
+                )
+            }
+
+            composable(
+                route = MdMessageViewerDataDestination.route
+
+            ) {
+                val parentEntry = remember {
+                    navController.getBackStackEntry(messagesdestinationData.nestedGraphMessages)
+                }
+                val messagesViewModel = viewModel<MessagesViewModel>(
+                    parentEntry,
+                    factory = GodViewModelProvider.Factory
+                )
+                MdMessageViewer(
+                    messagesViewModel,
+                    navigateUp = {navController.navigateUp()}
+                )
+            }
+
+
         }
 
         composable(

@@ -50,7 +50,8 @@ interface DataRepository {
         chatName: String,
         chatId: String,
         profilePhoto: String,
-        isGroup: Boolean
+        isGroup: Boolean,
+        isAiChat:Boolean,
     )
 
     suspend fun getChats(myUsername: String): List<ChatOrGroup>
@@ -99,6 +100,14 @@ interface DataRepository {
         onChatUpdate: (ChatOrGroup) -> Unit,
         onChatDelete: (ChatOrGroup) -> Unit,
         onError: (e: Exception) -> Unit
+    )
+
+    suspend fun getLiveAiChatsAndGroupsStore(
+        myUsername: String,
+        onChatAdd:(ChatOrGroup) ->Unit,
+        onChatUpdate: (ChatOrGroup) -> Unit,
+        onChatDelete: (ChatOrGroup) -> Unit,
+        onError:(e:Exception) ->Unit,
     )
 
     suspend fun stopLiveChat()
@@ -151,13 +160,9 @@ class NetworkDataRepository(
         val salt = encryptionService.generateRandomSalt()
         val newuser = user.copy(
             publicRSAKey = encryptionService.publicKeyToString(keypair.public),
-            privateEncryptedRSAKey = encryptionService.byteArrayToString(
-                encryptionService.encryptPrivateKeyWithPassword(
-                    privateKey = keypair.private,
-                    password = user.password,
-                    salt = salt
-                )
-            ),
+            privateEncryptedRSAKey =
+                encryptionService.privateKeyToString(keypair.private)
+            ,
             salt = encryptionService.byteArrayToString(salt)
         )
         coroutineScope {
@@ -256,7 +261,7 @@ class NetworkDataRepository(
                 localKeyStorge.savePrivateKey(
                     key = privateKeys(
                         keyId = 1,
-                        privateKey = encryptionService.privateKeyToString(
+                        privateKey = if (loggedUser.isMigrated) loggedUser.privateEncryptedRSAKey else encryptionService.privateKeyToString(
                             encryptionService.decryptPrivateKeyWithPassword(
                                 encryptedPrivateKey = encryptionService.stringToByteArray(loggedUser.privateEncryptedRSAKey),
                                 password = user.password,
@@ -333,7 +338,7 @@ class NetworkDataRepository(
 //            }
             val curUser = User(
                 docId = uid,
-                username = authServie.getCurrentUsername()
+            username = authServie.getCurrentUsername()
             )
 //            Log.d(TAG, "Current user is : ${curUser.username}")
             Log.d(TAG,"Current User got no api hit:${curUser.username}")
@@ -437,7 +442,8 @@ class NetworkDataRepository(
         chatName: String,
         chatId: String,
         profilePhoto: String,
-        isGroup: Boolean
+        isGroup: Boolean,
+        isAiChat: Boolean
     ) {
         val AESKeys: MutableList<AESKeyData> = mutableListOf()
 //
@@ -492,6 +498,7 @@ class NetworkDataRepository(
                 chatId = chatId,
                 profilePhoto = profilePhoto,
                 isGroup = isGroup,
+                isAiChat = isAiChat,
                 encryptedAESKeys = AESKeys.toList(),
                 recentMessage = encryptionService.byteArrayToString(recentMessage)
             )
@@ -599,6 +606,7 @@ class NetworkDataRepository(
         apiService.getLiveChatsOrGroups(
             username = myUsername,
             isGroup = false,
+            isAiChat = false,
             onAddChat = { newChat ->
                 CoroutineScope(Dispatchers.IO).launch {
                     try {
@@ -620,7 +628,7 @@ class NetworkDataRepository(
                                 }
                             }
                         }
-
+                        Log.d(TAG, "Chat added in data : ")
                         if (secureAESKeyFlow.firstOrNull()?.decryptedASEKey == null) {
 //                            Log.d(TAG,"Adding key to backend for all chats in all chats : ${newChat.secureAESKey}")
                             secureAES = encryptionService.aesKeyToString(
@@ -631,6 +639,7 @@ class NetworkDataRepository(
                                     )
                                 )
                             )
+                            Log.d(TAG,"SecureAES key is : ${secureAES}")
                             localChatKeysStorage.saveAESKey(
                                 ChatOrGroupAESKeys(
                                     chatId = newChat.chatId.toInt(),
@@ -759,6 +768,7 @@ class NetworkDataRepository(
         apiService.getLiveChatsOrGroups(
             username = myUsername,
             isGroup = true,
+            isAiChat = false,
             onAddChat = { newChat ->
                 CoroutineScope(Dispatchers.IO).launch {
                     val secureAESKeyFlow =
@@ -820,6 +830,138 @@ class NetworkDataRepository(
                         Log.d(TAG, "Chat added in data")
                         onChatAdd(laterLatestChat)
                     }
+                }
+            },
+            onModifiedChat = { modifiedChat ->
+                CoroutineScope(Dispatchers.IO).launch {
+                    val secureAESKeyFlow =
+                        localChatKeysStorage.getAESKeyById(modifiedChat.chatId.toInt())
+                    var secureAES: String = ""
+                    if (secureAESKeyFlow.firstOrNull()?.decryptedASEKey == null) {
+                        Log.d(
+                            TAG,
+                            "Adding key to backend for all chats in all chats : ${modifiedChat.secureAESKey}"
+                        )
+                        secureAES = encryptionService.aesKeyToString(
+                            encryptionService.decryptAESKeyWithPrivateKey(
+                                encryptedAESKey = encryptionService.stringToByteArray(modifiedChat.secureAESKey),
+                                privateKey = encryptionService.stringToPrivateKey(privateKey ?: "")
+                            )
+                        )
+                        localChatKeysStorage.saveAESKey(
+                            ChatOrGroupAESKeys(
+                                chatId = modifiedChat.chatId.toInt(),
+                                decryptedASEKey = secureAES,
+                                chatName = modifiedChat.chatName
+                            )
+                        )
+                    } else {
+                        Log.d(TAG, "No key to backend for current chat")
+                        secureAES = secureAESKeyFlow.firstOrNull()?.decryptedASEKey ?: ""
+                    }
+
+                    var contentEnc = ""
+                    try {
+                        contentEnc = String(
+                            encryptionService.aesDecrypt(
+                                encryptedData = encryptionService.stringToByteArray(
+                                    modifiedChat.lastMessage.content
+                                ), secretKey = encryptionService.stringToAESKey(secureAES)
+                            )
+                        )
+                    } catch (e: Exception) {
+                        Log.e(TAG, "Unable to decrypt the message: $e")
+                        contentEnc = "Encrypted Message, update application"
+                    }
+
+                    val latestModifiedChat = modifiedChat.copy(
+                        lastMessage = modifiedChat.lastMessage.copy(
+                            content = contentEnc
+                        )
+                    )
+
+                    onChatUpdate(latestModifiedChat)
+                }
+
+            },
+            onDeleteChat = onChatDelete,
+            onError = onError
+        )
+    }
+
+    override suspend fun getLiveAiChatsAndGroupsStore(
+        myUsername: String,
+        onChatAdd: (ChatOrGroup) -> Unit,
+        onChatUpdate: (ChatOrGroup) -> Unit,
+        onChatDelete: (ChatOrGroup) -> Unit,
+        onError: (e: Exception) -> Unit
+    ) {
+        val keyFlow = localKeyStorge.getPrivateKey(keyId = 1)
+        val privateKey = keyFlow.firstOrNull()?.privateKey
+        apiService.getLiveChatsOrGroups(
+            username = myUsername,
+            isGroup = false,
+            isAiChat = true,
+            onAddChat = { newChat ->
+                CoroutineScope(Dispatchers.IO).launch {
+                    val secureAESKeyFlow =
+                        localChatKeysStorage.getAESKeyById(newChat.chatId.toInt())
+                    var secureAES: String = ""
+                    if (secureAESKeyFlow.firstOrNull()?.decryptedASEKey == null) {
+//                            Log.d(TAG,"Adding key to backend for all chats in all chats : ${newChat.secureAESKey}")
+                        secureAES = encryptionService.aesKeyToString(
+                            encryptionService.decryptAESKeyWithPrivateKey(
+                                encryptedAESKey = encryptionService.stringToByteArray(newChat.secureAESKey),
+                                privateKey = encryptionService.stringToPrivateKey(privateKey ?: "")
+                            )
+                        )
+                        localChatKeysStorage.saveAESKey(
+                            ChatOrGroupAESKeys(
+                                chatId = newChat.chatId.toInt(),
+                                decryptedASEKey = secureAES,
+                                chatName = newChat.chatName
+                            )
+                        )
+                    } else {
+                        Log.d(TAG, "No key to backend for current ai chat")
+                        secureAES = secureAESKeyFlow.firstOrNull()?.decryptedASEKey ?: ""
+                    }
+//                    var tempUsername: String = "chat"
+//                    for (mem in newChat.members) {
+//                        if (mem != myUsername) {
+//                            tempUsername = mem
+//                            val memInfo =
+//                                coroutineScope {
+//                                    val info = async { apiService.getUserChatData(mem) }
+//                                    info.await()
+//                                }
+//                            if (memInfo.username != "") {
+//                                newChat.membersData.add(memInfo)
+//                            }
+//                        }
+//                    }
+//                    val latestChat = newChat.copy(chatName = tempUsername)
+                    var contentEnc = ""
+                    try {
+                        contentEnc = String(
+                            encryptionService.aesDecrypt(
+                                encryptedData = encryptionService.stringToByteArray(
+                                    newChat.lastMessage.content
+                                ), secretKey = encryptionService.stringToAESKey(secureAES)
+                            )
+                        )
+                    } catch (e: Exception) {
+                        Log.e(TAG, "Unable to decrypt the message: $e")
+                        contentEnc = "Encrypted Message, update application"
+                    }
+                    val laterLatestChat = newChat.copy(
+                        lastMessage = newChat.lastMessage.copy(
+                            content = contentEnc
+                        )
+                    )
+                    Log.d(TAG, "ai Chat added in data : $laterLatestChat")
+                    onChatAdd(laterLatestChat)
+
                 }
             },
             onModifiedChat = { modifiedChat ->
