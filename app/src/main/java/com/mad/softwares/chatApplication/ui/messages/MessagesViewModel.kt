@@ -13,17 +13,14 @@ import com.mad.softwares.chatApplication.data.DataRepository
 import com.mad.softwares.chatApplication.data.MessageReceived
 import com.mad.softwares.chatApplication.data.WorkRespository
 import com.mad.softwares.chatApplication.data.messageStatus
-import com.mad.softwares.chatApplication.data.models.OllamaModel
-import com.mad.softwares.chatApplication.data.models.ollamaResponse
-import com.mad.softwares.chatApplication.data.models.tags
-import com.mad.softwares.chatApplication.network.AiApiLocalhost
+import com.mad.softwares.chatApplication.data.models.AiResponse
+import com.mad.softwares.chatApplication.data.models.messages
 import com.mad.softwares.chatApplication.ui.updateElement
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Deferred
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.async
-import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
@@ -63,50 +60,117 @@ class MessagesViewModel(
 //        getLiveMessages()
     }
 
-    fun getTags(){
-        viewModelScope.launch {
-            try {
-                aiApis.getAiTags()
-                aiApis.sendMessage()
-            }
-            catch (e: Exception){
-                Log.e(TAGmess,"Error getting tags",e)
-            }
-        }
-    }
 
-    val aiMessage: StateFlow<tags> = aiApis.TagsInfo
-        .map{
-            info ->
-            val outputData = info.outputData.getString("AI_TAGS_RESPONSE")
-            Log.d(TAGmess,"Output dta for the model $outputData")
-//            val outputObject = Gson().fromJson(outputData, tags::class.java)
-            when{
-                outputData.isNullOrEmpty() ->{
-                    tags(listOf(OllamaModel(model = "Loading...",name="loading...")))
-                }
-                info.state == WorkInfo.State.RUNNING -> {
-                    Log.d(TAGmess,"Output dta for the model loading $outputData")
-                    tags(listOf(OllamaModel(model = "Loading...",name="loading...")))
-                }
-                info.state.isFinished ->{
-                    Log.d(TAGmess,"Output dta for the model Finished $outputData")
-                    val outputObject = Gson().fromJson(outputData, tags::class.java)
-                    outputObject
-                }
-                else ->{
-                    tags(listOf(OllamaModel(
-                        name = "Loading ...",
-                        model = "Loading models...."
-                    )))
-                }
-            }
-        }
-        .stateIn(
-            scope = viewModelScope,
-            started = SharingStarted.WhileSubscribed(5_000),
-            initialValue = tags(listOf(OllamaModel(name="Starting",model="Starting")))
-        )
+//    val aiMessage: StateFlow<AiResponseUiState> = aiApis.messageInfo
+//        .map{
+//            info ->
+//            val outputData = info.outputData.getString("AI_EXPENSIVE_RESPONSE")
+//            Log.d(TAGmess,"Output dta for the model $outputData")
+////            val outputObject = Gson().fromJson(outputData, tags::class.java)
+//            when{
+//                outputData.isNullOrEmpty() ->{
+//                    AiResponseUiState(AiResponse(message = messages("assistant","Getting Response"),false),AiState.Loading
+//                    )
+//                }
+//                info.state == WorkInfo.State.RUNNING -> {
+//                    Log.d(TAGmess,"Output dta for the model loading $outputData")
+//                    AiResponseUiState(AiResponse(message = messages("assistant","Getting Response"),false),AiState.Loading
+//                    )
+//                }
+//                info.state.isFinished ->{
+//                    Log.d(TAGmess,"Output dta for the model Finished $outputData")
+//                    val outputObject = Gson().fromJson(outputData,AiResponse::class.java)
+//                    val currentUserName = messagesUiState.value.currentUser
+//                    val newMessage = MessageReceived(
+//                        contentType = ContentType.Md,
+//                        content = outputObject.message.content,
+//                        senderId = messagesUiState.value.currChat.members.firstOrNull { it -> it != currentUserName }?:"",
+//                        status = messageStatus.Send,
+//                        timeStamp = Timestamp.now()
+//                    )
+//                    backgroundScope.launch() {
+//
+////            delay(500)
+//                        try {
+//
+//                            val messageId = dataRepository.sendMessage(
+//                                message = newMessage,
+//                                chatId = messagesUiState.value.chatID,
+//                                secureAESKey = messagesUiState.value.currChat.secureAESKey,
+//                                fcmTokens = messagesUiState.value.currChat.membersData.map { it.fcmToken }
+//                                    .flatten()
+////                    chatId = "12345677"
+//                            )
+//
+//
+////                messagesUiState.value.messages.set(
+////                    index = messagesUiState.value.messages.indexOf(newMessage),
+////                    element = newMessage.copy(status = messageStatus.Send)
+////                )
+//                            Log.d(TAGmess, "Message id: $messageId")
+//                            messagesUiState.update {
+//                                it.copy(
+//                                    errorMessage = "No error : ${newMessage.timeStamp}",
+//                                    messages = it.messages + newMessage
+////                        messages = it.messages - newMessage
+//                                )
+//                            }
+//
+//                            Log.d(TAGmess, "Message sent successfully for ai ========>--------------->")
+//
+//                            return@launch
+////                getMessages(true)
+//
+//                        } catch (e: Exception) {
+//                            Log.e(TAGmess, "Unable to send the message : $e")
+//                            try {
+////                    messagesUiState.value.messages.set(
+////                        index = messagesUiState.value.messages.indexOf(newMessage),
+////                        element = newMessage.copy(status = messageStatus.Error)
+////                    )
+//                                messagesUiState.update {
+//                                    it.copy(
+//                                        messages = updateElement(
+//                                            it.messages,
+//                                            index = it.messages.indexOf(newMessage),
+//                                            newElement = newMessage.copy(status = messageStatus.Error)
+//                                        )
+//                                    )
+//                                }
+//                                return@launch
+//                            } catch (e: Exception) {
+//                                Log.e(TAGmess, "Unable to update the message status : $e")
+//
+////                    Log.e(TAGmess,"Unable to send the message")
+////                throw Exception("Unable to send the message : ${status.await()}")
+//                                messagesUiState.update {
+//                                    it.copy(
+////                        messageScreen = MessageScreen.Error,
+////                        isError = true,
+//                                        errorMessage = "${e.message.toString()} : ${newMessage.timeStamp}"
+//                                    )
+//                                }
+//                                Log.e(TAGmess, "Error sending message :$e")
+//                                return@launch
+//                            }
+//                        }
+//                    }
+//
+//                    AiResponseUiState(AiResponse(message = messages("assistant",content = outputObject.message.content),true),AiState.Success
+//                    )
+//                }
+//                else ->{
+//                    AiResponseUiState(AiResponse(message = messages("assistant","Getting Response"),false),AiState.Loading
+//                    )
+//                }
+//            }
+//        }
+//        .stateIn(
+//            scope = viewModelScope,
+//            started = SharingStarted.WhileSubscribed(5_000),
+//            initialValue = AiResponseUiState(AiResponse(message = messages("assistant","Initial State"),false),AiState.Success
+//            )
+//        )
 
 
     fun getChatInfo() {
@@ -185,6 +249,7 @@ class MessagesViewModel(
     }
 
     fun sendTextMessage() {
+
 //        val sender: List<String> =
 //            messagesUiState.value.currChat.members - messagesUiState.value.currChat.membersData.map { it.username }
 //                .toSet()
@@ -209,6 +274,7 @@ class MessagesViewModel(
             )
         }
         Log.d(TAGmess, "Message status = ${messagesUiState.value.messages.last().status}")
+
 //        messagesUiState.value.messages.set(
 //            index= messagesUiState.value.messages.indexOf(messagesUiState.value.messageToSend),
 //            element = messagesUiState.value.messageToSend.copy(status = messageStatus.Send)
@@ -310,6 +376,11 @@ class MessagesViewModel(
                     return@launch
                 }
             }
+        }
+        val currentUserName = messagesUiState.value.currentUser
+        val model = messagesUiState.value.currChat.members.firstOrNull { it -> it != currentUserName }?:""
+        if(messagesUiState.value.currChat.isAiChat){
+            aiApis.sendMessage(tempMessage,model)
         }
     }
 
@@ -440,6 +511,35 @@ class MessagesViewModel(
                 }
             }
         }
+    }
+
+    fun sendAiChatMessage() {
+//        val sender: List<String> =
+//            messagesUiState.value.currChat.members - messagesUiState.value.currChat.membersData.map { it.username }
+////                .toSet()
+////        Log.d(TAGmess,"members are in sender : ${sender}")
+////        val senderUsername = sender.get(0)
+//        val tempMessage = messagesUiState.value.messageToSend
+//        val newMessage = MessageReceived(
+//            contentType = ContentType.text,
+//            content = messagesUiState.value.messageToSend,
+//            senderId = messagesUiState.value.currentUser,
+//            status = messageStatus.Sending,
+//            timeStamp = Timestamp.now()
+//        )
+////        messagesUiState.value.messages.add(
+////            newMessage
+////        )
+//
+//        messagesUiState.update {
+//            it.copy(
+//                messageToSend = "",
+//                messages = it.messages + newMessage
+//            )
+//        }
+//        Log.d(TAGmess, "ai Message status = ${messagesUiState.value.messages.last().status}")
+
+//        aiApis.sendMessage(tempMessage)
     }
 
     //Deprecated
@@ -746,3 +846,14 @@ enum class MessageScreen() {
     Success,
     SelectionMode
 }
+//
+//enum class AiState(){
+//    Loading,
+//    Error,
+//    Success
+//}
+//
+//data class AiResponseUiState(
+//    val aiResponse: AiResponse = AiResponse(message = messages("assistant","Getting Response"),true),
+//    val aiState: AiState = AiState.Loading
+//)

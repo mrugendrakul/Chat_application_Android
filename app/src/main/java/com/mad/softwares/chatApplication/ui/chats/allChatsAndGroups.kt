@@ -496,8 +496,13 @@ fun UserChatsBody(
                     verticalArrangement = Arrangement.Top
                 ) {
                     ShowChats(
-                        uiState = chatsUiState,
-                        paddingValues = paddingValues
+                        chatsUiState = chatsUiState,
+                        paddingValues = paddingValues,
+                        listState = listState,
+                        navigateToCurrentChat = navigateToCurrentChat,
+                        isCardEnabled = isCardEnabled,
+                        setSelectionChats = setSelect,
+                        addToSelection = addToSelection
                     )
                 }
             }
@@ -970,12 +975,34 @@ fun SingleChat(
 
 @Composable
 fun ShowChats(
-    uiState: ChatsUiState,
-    paddingValues: PaddingValues
+    chatsUiState: ChatsUiState,
+    paddingValues: PaddingValues,
+    listState: LazyListState,
+    navigateToCurrentChat: (String) -> Unit,
+    isCardEnabled: Boolean,
+    setSelectionChats: () -> Unit,
+    addToSelection: (Boolean, ChatOrGroup) -> Unit
 ){
-    LazyColumn(
+
+    val haptic = LocalHapticFeedback.current
+    if (chatsUiState.aiChats.isEmpty()) {
+        Column(
+            modifier = Modifier
+                .padding(paddingValues)
+//                .fillMaxSize()
+            ,
+            verticalArrangement = Arrangement.Center,
+            horizontalAlignment = Alignment.CenterHorizontally
+        ) {
+            Text(
+                text = "No Ai chats yet press below icon to add chat with AI model",
+                fontSize = 20.sp,
+                textAlign = TextAlign.Center
+            )
+        }
+    } else {LazyColumn(
         modifier = Modifier
-            .fillMaxSize()
+//            .fillMaxSize()
             .padding(paddingValues)
     ) {
 //        item {
@@ -987,18 +1014,62 @@ fun ShowChats(
 //                Text("Ai Chats Coming soon \uD83D\uDE09")
 //            }
 //        }
-        items(
-            uiState.aiChats
-        ){
-            SingleChat(
-                chat = it,
-                navigateToCurrentChat = {},
-                isCardEnabled = true,
-                isCardSelected = false,
-                currentUsername = "",
-                setSelectionChats = {}
-            )
+        if (!chatsUiState.selectStatus) {
+            items(
+                items = chatsUiState.aiChats.sortedBy { it.lastMessage.timestamp }.reversed(),
+                key = {chat->chat.chatId}
+            ) {
+                SingleChat(
+                    chat = it,
+                    navigateToCurrentChat = navigateToCurrentChat,
+                    isCardEnabled = isCardEnabled,
+                    currentUsername = chatsUiState.currentUser.username,
+                    setSelectionChats = setSelectionChats,
+                    cardModifier = Modifier
+                        .fillMaxWidth()
+                        .combinedClickable(
+                            onClick = {
+                                haptic.performHapticFeedback(HapticFeedbackType.TextHandleMove)
+                                navigateToCurrentChat("${it.chatId},${chatsUiState.currentUser.username}")
+                            },
+                            onLongClick = {
+                                haptic.performHapticFeedback(HapticFeedbackType.LongPress)
+                                setSelectionChats()
+                                addToSelection(true, it)
+                            }
+                        ),
+                    isCardSelected = chatsUiState.selectedChatsOrGroups.contains(it)
+//                    addToSelection = addToSelection,
+//                    selectedStatus = chatsUiState.selectedChatsOrGroups.contains(it),
+                )
+
+            }
+        } else {
+            items(chatsUiState.aiChats.sortedBy { it.lastMessage.timestamp }.reversed()) { chat ->
+                SingleChat(
+                    chat = chat,
+                    navigateToCurrentChat = navigateToCurrentChat,
+                    isCardEnabled = isCardEnabled,
+                    currentUsername = chatsUiState.currentUser.username,
+                    setSelectionChats = setSelectionChats,
+                    isCardSelected = chatsUiState.selectedChatsOrGroups.contains(chat),
+//                        isCardSelected = true,
+                    cardModifier = Modifier
+                        .fillMaxWidth()
+                        .toggleable(
+                            value = chatsUiState.selectedChatsOrGroups.contains(chat),
+                            onValueChange = {
+                                haptic.performHapticFeedback(HapticFeedbackType.TextHandleMove)
+                                addToSelection(it, chat)
+                            }
+                        )
+
+//                    addToSelection = addToSelection,
+//                    selectedStatus = chatsUiState.selectedChatsOrGroups.contains(it)
+                )
+            }
         }
+    }
     }
 }
 
@@ -1026,13 +1097,27 @@ fun AddChatFab(
 @Composable
 @Preview
 fun ShowChatsPreview(){
+    val listState = LazyListState()
     ChitChatTheme() {
         ShowChats(
-            uiState = ChatsUiState(aiChats = listOf(ChatOrGroup(
-                chatName = "Ai 1",
-                lastMessage = lastMessage(content = "Wow", sender = "me", timestamp = Timestamp.now())
-            ))),
-            paddingValues = PaddingValues()
+            chatsUiState = ChatsUiState(
+                aiChats = listOf(
+                    ChatOrGroup(
+                        chatName = "Ai 1",
+                        lastMessage = lastMessage(
+                            content = "Wow",
+                            sender = "me",
+                            timestamp = Timestamp.now()
+                        )
+                    )
+                )
+            ),
+            paddingValues = PaddingValues(),
+            listState = listState,
+            navigateToCurrentChat = {  },
+            isCardEnabled = false,
+            setSelectionChats = {  },
+            addToSelection = {_,_->Unit  },
         )
     }
 }

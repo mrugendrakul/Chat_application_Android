@@ -26,7 +26,7 @@ val baseUrl =
     }
 val okHttpClient=  OkHttpClient.Builder()
         .connectTimeout(30, TimeUnit.SECONDS)
-    .readTimeout(1, TimeUnit.MINUTES)
+    .readTimeout(2, TimeUnit.MINUTES)
     .writeTimeout(30, TimeUnit.SECONDS)
     .build()
 val retroFitObject =

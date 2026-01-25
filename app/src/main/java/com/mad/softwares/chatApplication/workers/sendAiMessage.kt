@@ -4,6 +4,8 @@ import android.content.Context
 import android.util.Log
 import androidx.work.CoroutineWorker
 import androidx.work.WorkerParameters
+import androidx.work.workDataOf
+import com.google.gson.Gson
 import com.mad.softwares.chatApplication.data.models.messages
 import com.mad.softwares.chatApplication.data.models.ollamaResponse
 import com.mad.softwares.chatApplication.network.AiApiLocalhost
@@ -14,13 +16,17 @@ class sendAiMessage(ctx: Context, params: WorkerParameters): CoroutineWorker(ctx
     override suspend fun doWork(): Result {
         return withContext(Dispatchers.IO){
             return@withContext try {
+                val userMessage = inputData.getString("AI_MESSAGE_USER")
+                val model = inputData.getString("AI_MODEL")
                 val aiResponseChat = AiApiLocalhost().aiTakling.sendMessage(request = ollamaResponse(
-                    model = "qwen2.5-coder:3b",
-                    messages = listOf(messages(role = "user", content = "5 good works for your thought")),
+                    model = model?:"",
+                    messages = listOf(messages(role = "user", content = userMessage?:"")),
                     stream = false
                 ))
                 Log.d("Workers","Ai response we got $aiResponseChat")
-                Result.success()
+                val AiExpensiveResponse = Gson().toJson(aiResponseChat)
+                val outputData = workDataOf("AI_EXPENSIVE_RESPONSE" to AiExpensiveResponse)
+                Result.success(outputData)
             }
             catch (e: Throwable){
                 Log.e("Workers","Error sending message to ai- ${e}")

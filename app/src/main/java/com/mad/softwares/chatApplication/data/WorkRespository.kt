@@ -7,5 +7,5 @@ interface WorkRespository {
     val TagsInfo: Flow<WorkInfo>
     val messageInfo:Flow<WorkInfo>
     fun getAiTags()
-    fun sendMessage()
+    fun sendMessage(message: String,model:String)
 }

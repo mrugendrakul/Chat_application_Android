@@ -2,6 +2,7 @@ package com.mad.softwares.chatApplication.data
 
 import android.content.Context
 import androidx.lifecycle.asFlow
+import androidx.work.Data
 import androidx.work.ExistingWorkPolicy
 import androidx.work.OneTimeWorkRequestBuilder
 import androidx.work.WorkInfo
@@ -39,8 +40,9 @@ class AiWorkManagerRespository(context: Context): WorkRespository {
         starting.enqueue()
     }
 
-    override fun sendMessage() {
+    override fun sendMessage(message: String,model: String) {
         val initialCall = OneTimeWorkRequestBuilder<sendAiMessage>()
+            .setInputData(setInputDataForAiMessage(message,model))
             .addTag(AI_MESSAGE)
             .build()
 
@@ -50,5 +52,12 @@ class AiWorkManagerRespository(context: Context): WorkRespository {
             initialCall
         )
         starting.enqueue()
+    }
+
+    private fun setInputDataForAiMessage (message:String,model: String): Data{
+        val dataBuilder = Data.Builder()
+        dataBuilder.put("AI_MESSAGE_USER",message)
+        dataBuilder.put("AI_MODEL",model)
+        return dataBuilder.build()
     }
 }

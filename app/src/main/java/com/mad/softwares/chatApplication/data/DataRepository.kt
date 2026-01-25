@@ -1203,7 +1203,7 @@ class NetworkDataRepository(
                 val cD = async { apiService.getChatData(chatId, chatName) }
                 cD.await()
             }
-            if (chatData.isGroup) {
+            if (chatData.isGroup && !chatData.isAiChat) {
                 for (members in chatData.members) {
                     if (members != chatName) {
                         val userInfo = coroutineScope {
@@ -1240,7 +1240,8 @@ class NetworkDataRepository(
                 return chatData.copy(
                     secureAESKey = secureAES
                 )
-            } else {
+            } else if(!chatData.isGroup && !chatData.isAiChat){
+                Log.d(TAG,"Getting data for norma chat ----->$chatId",)
                 var tempChatName = ""
                 for (members in chatData.members) {
                     if (members != chatName) {
@@ -1274,9 +1275,53 @@ class NetworkDataRepository(
                     Log.d(TAG, "No key to backend")
                     secureAES = secureAESKeyFlow.firstOrNull()?.decryptedASEKey ?: ""
                 }
-                Log.d(TAG, "Chat data is : ${chatData.chatName} , ${chatData.chatId}")
+                Log.d(TAG, "Chat data is : ${chatData.chatName} , ${chatData.chatId} , ${chatData.isAiChat}")
                 return chatData.copy(
                     chatName = tempChatName,
+                    secureAESKey = secureAES
+                )
+            }
+            else {
+                Log.d(TAG,"Getting data for Ai  chat ----->")
+                for (members in chatData.members) {
+                    if (members != chatName) {
+                        val userInfo = try{
+                            coroutineScope {
+                                val info = async { apiService.getUserChatData(members) }
+                                info.await()
+                            }
+                        }
+                        catch (e:Exception){
+                            chatUser(members)
+                        }
+                        chatData.membersData.add(userInfo)
+                    }
+                }
+                Log.d(TAG, "Ai Chat data is : ${chatData.chatName} , ${chatData.chatId}")
+                val secureAESKeyFlow = localChatKeysStorage.getAESKeyById(chatId.toInt())
+                var secureAES: String = ""
+                if (secureAESKeyFlow.firstOrNull()?.decryptedASEKey == null) {
+                    Log.d(TAG, "Adding key to backend for current chat")
+                    secureAES = encryptionService.aesKeyToString(
+                        encryptionService.decryptAESKeyWithPrivateKey(
+                            encryptedAESKey = encryptionService.stringToByteArray(chatData.secureAESKey),
+                            privateKey = encryptionService.stringToPrivateKey(privateKey ?: "")
+                        )
+                    )
+                    localChatKeysStorage.saveAESKey(
+                        ChatOrGroupAESKeys(
+                            chatId = chatData.chatId.toInt(),
+                            decryptedASEKey = secureAES,
+                            chatName = chatData.chatName
+                        )
+                    )
+                } else {
+                    Log.d(TAG, "No key to backend for current chat")
+                    secureAES = secureAESKeyFlow.firstOrNull()?.decryptedASEKey ?: ""
+                }
+
+
+                return chatData.copy(
                     secureAESKey = secureAES
                 )
             }

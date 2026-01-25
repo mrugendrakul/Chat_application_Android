@@ -21,6 +21,7 @@ import androidx.compose.animation.scaleIn
 import androidx.compose.animation.scaleOut
 import androidx.compose.animation.shrinkHorizontally
 import androidx.compose.animation.shrinkVertically
+import androidx.compose.animation.slideInHorizontally
 import androidx.compose.animation.slideInVertically
 import androidx.compose.animation.slideOutHorizontally
 import androidx.compose.animation.slideOutVertically
@@ -120,6 +121,8 @@ import com.mad.softwares.chatApplication.data.ChatOrGroup
 import com.mad.softwares.chatApplication.data.ContentType
 import com.mad.softwares.chatApplication.data.MessageReceived
 import com.mad.softwares.chatApplication.data.messageStatus
+import com.mad.softwares.chatApplication.data.models.AiResponse
+import com.mad.softwares.chatApplication.data.models.messages
 import com.mad.softwares.chatApplication.ui.ApptopBar
 import com.mad.softwares.chatApplication.ui.GodViewModelProvider
 import com.mad.softwares.chatApplication.ui.destinationData
@@ -234,8 +237,9 @@ fun Messages(
         setAndNavigateMdMessage = {
             viewModel.setSelectedMessage(it)
             navigateToMdPreview()
-        }
-//        aiMessage = aiTagsMessage
+        },
+//        sendExpensiveAiMessage = viewModel::sendAiChatMessage,
+//        aiMessage = viewModel.aiMessage.collectAsState().value
     )
 }
 
@@ -253,7 +257,8 @@ fun MessagesBodySuccess(
     deleteMessages: () -> Unit,
     navigateToMdSending: () -> Unit,
     setAndNavigateMdMessage:(currentMessage:MessageReceived)-> Unit,
-//    aiMessage : tags,
+//    sendExpensiveAiMessage:()->Unit,
+//    aiMessage : AiResponseUiState,
     modifier: Modifier = Modifier
 ) {
     val scope = rememberCoroutineScope()
@@ -443,11 +448,13 @@ fun MessagesBodySuccess(
                         listState.animateScrollToItem(0)
                     }
                 },
-                isLoading = uiState.messageScreen == MessageScreen.Loading,
+//                sendExpensiveAiMessage = sendExpensiveAiMessage,
                 updateMessage = updateMessage,
                 sendAttatchment = {
                     sheetVisible = true
-                }
+                },
+                isLoading = uiState.messageScreen == MessageScreen.Loading,
+//                aiMessage = aiMessage
             )
         },
         snackbarHost = {
@@ -487,6 +494,24 @@ fun MessagesBodySuccess(
                 verticalArrangement = Arrangement.Top,
                 //                contentPadding = PaddingValues(top = 100.dp)
             ) {
+//                item(){
+//                    AnimatedContent(targetState = aiMessage.aiState,
+//                        transitionSpec = ({ fadeIn()+slideInVertically { -it } togetherWith fadeOut() })
+//                    ){targetState->
+//                        when(targetState) {
+//                            AiState.Loading -> Text(
+//                                text = "Loading Respone From Ai"
+//                            )
+//                            AiState.Error -> Text(
+//                                text = "Error Communicating to Ai"
+//                            )
+//                            AiState.Success -> {
+//                                Box(){}
+//                            }
+//                        }
+//
+//                    }
+//                }
 
 
                 groupedMessages.forEach { (date, messages) ->
@@ -1006,7 +1031,7 @@ fun parseMessage(message: String): Map<String, textTypeParse> {
     val codeRegex = Regex("```(.*?)```", RegexOption.DOT_MATCHES_ALL)
 //    val linkRegex = Regex("<([^\\s]+)>", RegexOption.DOT_MATCHES_ALL) // Ensure no spaces in links
     val linkRegex = Regex("\\<(.*?)\\>")
-    val advancedLinkRegex = Regex("https://(.*?)")
+    val advancedLinkRegex = Regex("""https?://\S+""")
 //    val linkRegex = Regex("(?:\\[(.*?)]?)\\<(.*?)\\>")
 
     // Collect matches from al regex patterns
@@ -1017,7 +1042,7 @@ fun parseMessage(message: String): Map<String, textTypeParse> {
     linkRegex.findAll(message)
         .forEach { matches.add(Triple(it.range, textTypeParse.link, it.groupValues[1])) }
     advancedLinkRegex.findAll(message)
-        .forEach { matches.add(Triple(it.range, textTypeParse.link, it.groupValues[1])) }
+        .forEach { matches.add(Triple(it.range, textTypeParse.link, it.groupValues[0])) }
 
     // Sort matches by their start positions
     matches.sortBy { it.first.first }
@@ -1230,7 +1255,7 @@ fun MdMessageChat(msg: String,setMsg:()->Unit){
         shape = RoundedCornerShape(12.dp),
         onClick = setMsg,
         colors = CardDefaults.cardColors(
-            containerColor = MaterialTheme.colorScheme.secondaryContainer
+            containerColor = MaterialTheme.colorScheme.surface
         )
     ) {
         Column(
@@ -1238,7 +1263,10 @@ fun MdMessageChat(msg: String,setMsg:()->Unit){
                 .padding(4.dp)
         ) {
             Text("Markdown File")
-            Text("${msg.slice(IntRange(0, 20))}...")
+            Text(msg,
+                maxLines = 1,
+                overflow = TextOverflow.Ellipsis)
+//            Text(msg)
         }
     }
 }
@@ -2055,9 +2083,11 @@ fun BottomMessageSend(
     modifier: Modifier = Modifier,
     appUistate: MessagesUiState,
     sendMessage: () -> Unit,
+//    sendExpensiveAiMessage:()->Unit,
     updateMessage: (String) -> Unit,
     sendAttatchment: () -> Unit,
-    isLoading: Boolean
+    isLoading: Boolean,
+//    aiMessage : AiResponseUiState,
 ) {
     val scope = rememberCoroutineScope()
     val haptic = LocalHapticFeedback.current
@@ -2158,57 +2188,68 @@ fun BottomMessageSend(
                     //
 
                     if (!isLoading) {
-                        IconButton(
-                            onClick = {
-                                if (appUistate.messageToSend.isNotEmpty()) {
-                                    haptic.performHapticFeedback(HapticFeedbackType.TextHandleMove)
-                                    sendMessage()
-                                } else {
-                                    haptic.performHapticFeedback(HapticFeedbackType.TextHandleMove)
-                                    sendAttatchment()
+                        AnimatedVisibility(
+                            visible = true,
+                            enter = slideInHorizontally(initialOffsetX = {it}),
+                            exit = slideOutHorizontally(targetOffsetX = {it})
+                        )
+                        {
+                            IconButton(
+                                onClick = {
+                                    if (appUistate.messageToSend.isNotEmpty()) {
+                                        haptic.performHapticFeedback(HapticFeedbackType.TextHandleMove)
+//                                    if(appUistate.currChat.isAiChat){
+//                                        sendExpensiveAiMessage()
+//                                    }else{
+                                        sendMessage()
+//                                    }
+                                    } else {
+                                        haptic.performHapticFeedback(HapticFeedbackType.TextHandleMove)
+                                        sendAttatchment()
+                                    }
+                                },
+
+                                modifier = Modifier
+                                    //                        .fillMaxWidth()
+                                    .padding(bottom = 10.dp, end = 10.dp)
+                                    .size(45.dp),
+                                colors = IconButtonDefaults.iconButtonColors(
+                                    containerColor = MaterialTheme.colorScheme.primary
+
+                                )
+                            ) {
+                                AnimatedVisibility(
+                                    visible = appUistate.messageToSend.isNotEmpty(),
+                                    enter = scaleIn(),
+                                    exit = scaleOut()
+                                ) {
+                                    Icon(
+                                        imageVector = Icons.AutoMirrored.Filled.Send,
+                                        modifier = Modifier
+                                            .fillMaxHeight()
+                                            .padding(10.dp)
+                                            .size(80.dp),
+                                        tint = MaterialTheme.colorScheme.onPrimary,
+                                        contentDescription = "send"
+                                    )
                                 }
-                            },
+                                AnimatedVisibility(
+                                    visible = appUistate.messageToSend.isEmpty(),
+                                    enter = scaleIn(),
+                                    exit = scaleOut()
+                                ) {
+                                    Icon(
+                                        imageVector = Icons.Default.Attachment,
+                                        modifier = Modifier
+                                            .fillMaxHeight()
+                                            .padding(10.dp)
+                                            .size(80.dp),
+                                        tint = MaterialTheme.colorScheme.onPrimary,
+                                        contentDescription = "send"
+                                    )
+                                }
 
-                            modifier = Modifier
-                                //                        .fillMaxWidth()
-                                .padding(bottom = 10.dp, end = 10.dp)
-                                .size(45.dp),
-                            colors = IconButtonDefaults.iconButtonColors(
-                                containerColor = MaterialTheme.colorScheme.primary
-
-                            )
-                        ) {
-                            AnimatedVisibility(
-                                visible = appUistate.messageToSend.isNotEmpty(),
-                                enter = scaleIn(),
-                                exit = scaleOut()
-                            ) {
-                                Icon(
-                                    imageVector = Icons.AutoMirrored.Filled.Send,
-                                    modifier = Modifier
-                                        .fillMaxHeight()
-                                        .padding(10.dp)
-                                        .size(80.dp),
-                                    tint = MaterialTheme.colorScheme.onPrimary,
-                                    contentDescription = "send"
-                                )
                             }
-                            AnimatedVisibility(
-                                visible = appUistate.messageToSend.isEmpty(),
-                                enter = scaleIn(),
-                                exit = scaleOut()
-                            ) {
-                                Icon(
-                                    imageVector = Icons.Default.Attachment,
-                                    modifier = Modifier
-                                        .fillMaxHeight()
-                                        .padding(10.dp)
-                                        .size(80.dp),
-                                    tint = MaterialTheme.colorScheme.onPrimary,
-                                    contentDescription = "send"
-                                )
-                            }
-
                         }
                     }
 
@@ -2287,8 +2328,15 @@ fun PreviewMessagebodySuccess() {
                         status = messageStatus.Send
                     ),
                     MessageReceived(
+                        messageId = "4",
+                        content = "Link here https://www.google.com",
+                        timeStamp = Timestamp(Date(2024 - 1900, 1, 25, 20, 18)),
+                        senderId = "ThereSelf",
+                        status = messageStatus.Send
+                    ),
+                    MessageReceived(
                         messageId = "3",
-                        content = "# Hello this is new markdown message",
+                        content = "**Hello** this is **new markdown** message",
                         contentType = ContentType.Md,
                         timeStamp = Timestamp(Date(2024 - 1900, 1, 25, 20, 20)),
                         senderId = "MyeSElf",
@@ -2351,8 +2399,7 @@ fun PreviewMessagebodySuccess() {
             deleteMessages = {},
             selectionBoth = {},
             navigateToMdSending = {},
-            setAndNavigateMdMessage = {}
-//            aiMessage = tags(listOf(OllamaModel(name="one",model="one")))
+            setAndNavigateMdMessage = {},
         )
     }
 }
