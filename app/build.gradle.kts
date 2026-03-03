@@ -6,7 +6,7 @@ plugins {
 
     id("com.google.gms.google-services")
     id("com.google.devtools.ksp")
-    id("org.jetbrains.kotlin.plugin.compose") version "2.3.0"
+    id("org.jetbrains.kotlin.plugin.compose") version "2.3.10"
 }
 
 
@@ -132,6 +132,7 @@ dependencies {
     implementation(libs.androidx.room.ktx)
     implementation(libs.androidx.ui.tooling.preview)
     implementation(libs.androidx.room.runtime)
+    implementation(libs.androidx.datastore.preferences)
 //    implementation("com.google.auth:google-auth-library-oauth2-http:1.25.0")
 //    implementation(libs.room.ktx)
 //    implementation(libs.room.runtime)

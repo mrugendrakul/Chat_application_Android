@@ -1,6 +1,7 @@
 package com.mad.softwares.chatApplication.data
 
 import com.google.firebase.Timestamp
+import com.mad.softwares.chatApplication.ui.messages.MessageSegement
 import org.checkerframework.checker.signature.qual.IdentifierOrPrimitiveType
 
 enum class ContentType(){
@@ -27,6 +28,7 @@ enum class messageStatus(){
 data class MessageReceived(
     val messageId:String = "",
     val content:String = "",
+    val parsedContent: List<MessageSegement> = listOf(),
     val contentType:ContentType = ContentType.text,
     val senderId:String = "",
     val timeStamp:Timestamp = Timestamp.now(),

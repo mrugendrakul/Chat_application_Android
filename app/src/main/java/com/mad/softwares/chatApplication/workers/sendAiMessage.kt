@@ -8,8 +8,10 @@ import androidx.work.workDataOf
 import com.google.gson.Gson
 import com.mad.softwares.chatApplication.data.models.messages
 import com.mad.softwares.chatApplication.data.models.ollamaResponse
+import com.mad.softwares.chatApplication.dataStore
 import com.mad.softwares.chatApplication.network.AiApiLocalhost
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.withContext
 
 class sendAiMessage(ctx: Context, params: WorkerParameters): CoroutineWorker(ctx,params) {
@@ -17,8 +19,11 @@ class sendAiMessage(ctx: Context, params: WorkerParameters): CoroutineWorker(ctx
         return withContext(Dispatchers.IO){
             return@withContext try {
                 val userMessage = inputData.getString("AI_MESSAGE_USER")
+                Log.d("Workers","Got input $userMessage")
                 val model = inputData.getString("AI_MODEL")
-                val aiResponseChat = AiApiLocalhost().aiTakling.sendMessage(request = ollamaResponse(
+                val preferences = applicationContext.dataStore.data.first()
+                val currentUrl = preferences[API_URL_ENDPOINT]
+                val aiResponseChat = AiApiLocalhost(currentUrl?:"").aiTakling.sendMessage(request = ollamaResponse(
                     model = model?:"",
                     messages = listOf(messages(role = "user", content = userMessage?:"")),
                     stream = false

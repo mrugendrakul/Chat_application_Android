@@ -55,5 +55,6 @@
     <string name="markdown_viewer">Markdown Viewer</string>
     <string name="md_message_viewer">Md Message Viewer</string>
     <string name="ai_messages">Ai Messages</string>
+    <string name="user_infos">User Information</string>
 
 </resources>
