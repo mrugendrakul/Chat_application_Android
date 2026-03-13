@@ -864,14 +864,14 @@ data class StyleRegex(
 
 val styleMap: List<StyleRegex> = listOf(
     StyleRegex(
-        Regex = Regex("~(.*?)~", RegexOption.DOT_MATCHES_ALL),
+        Regex = Regex("~(?!\\s)([^~]+)(?<!\\s)~", RegexOption.DOT_MATCHES_ALL),
         style = SpanStyle(
             textDecoration = TextDecoration.LineThrough
         ),
         symbol = "~"
     ),
     StyleRegex(
-        Regex = Regex("_(.*?)_", RegexOption.DOT_MATCHES_ALL),
+        Regex = Regex("_(?!\\s)([^_]+)(?<!\\s)_", RegexOption.DOT_MATCHES_ALL),
         style = SpanStyle(
             fontStyle = FontStyle.Italic,
 //                fontWeight = FontWeight.Bold
@@ -879,14 +879,14 @@ val styleMap: List<StyleRegex> = listOf(
         symbol = "_"
     ),
     StyleRegex(
-        Regex = Regex("\\*(.*?)\\*", RegexOption.DOT_MATCHES_ALL),
+        Regex = Regex("\\*(?!\\s)([^*]+)(?<!\\s)\\*", RegexOption.DOT_MATCHES_ALL),
         style = SpanStyle(
             fontWeight = FontWeight.Bold
         ),
         symbol = "*"
     ),
     StyleRegex(
-        Regex = Regex("!(.*?)!", RegexOption.DOT_MATCHES_ALL),
+        Regex = Regex("!(?!\\s)([^!]+)(?<!\\s)!", RegexOption.DOT_MATCHES_ALL),
         style = SpanStyle(
             textDecoration = TextDecoration.Underline
         ),
@@ -933,7 +933,7 @@ fun annotateMessage(
             withStyle(match.style){
                 append(match.content)
             }
-            currentIndex += match.range.last +1
+            currentIndex = match.range.last +1
         }
 
         if(currentIndex< length){
@@ -2264,7 +2264,7 @@ fun SecureMessageTag(
 //}
 
 @Preview(
-    device = "spec:width=1280dp,height=800dp,dpi=240,orientation=portrait", showSystemUi = true, showBackground = false,
+    device = "spec:width=411dp,height=891dp", showSystemUi = true, showBackground = false,
     wallpaper = Wallpapers.GREEN_DOMINATED_EXAMPLE, backgroundColor = 0xFFA42626
 )
 @Composable
