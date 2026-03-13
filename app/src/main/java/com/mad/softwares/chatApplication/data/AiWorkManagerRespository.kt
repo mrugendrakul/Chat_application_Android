@@ -7,6 +7,8 @@ import androidx.work.ExistingWorkPolicy
 import androidx.work.OneTimeWorkRequestBuilder
 import androidx.work.WorkInfo
 import androidx.work.WorkManager
+import com.google.gson.Gson
+import com.mad.softwares.chatApplication.data.models.messages
 import com.mad.softwares.chatApplication.workers.getApiTag
 import com.mad.softwares.chatApplication.workers.sendAiMessage
 import com.mad.softwares.chatApplication.workers.sendAiStreamingMessage
@@ -55,7 +57,7 @@ class AiWorkManagerRespository(context: Context): WorkRespository {
 
     override fun sendMessage(message: String,model: String): String {
         val initialCall = OneTimeWorkRequestBuilder<sendAiMessage>()
-            .setInputData(setInputDataForAiMessage(message,model))
+            .setInputData(setInputDataForAiMessage(message,model,listOf()))
             .addTag(AI_MESSAGE)
             .build()
 
@@ -68,9 +70,9 @@ class AiWorkManagerRespository(context: Context): WorkRespository {
         return initialCall.stringId
     }
 
-    override fun sendStreamMessage(message: String, model: String):String {
+    override fun sendStreamMessage(message: String, model: String, context: List<messages>):String {
         val initialCall = OneTimeWorkRequestBuilder<sendAiStreamingMessage>()
-            .setInputData(setInputDataForAiMessage(message,model))
+            .setInputData(setInputDataForAiMessage(message,model,context))
             .addTag(AI_MESSAGE)
             .build()
 
@@ -84,10 +86,12 @@ class AiWorkManagerRespository(context: Context): WorkRespository {
         return initialCall.stringId
     }
 
-    private fun setInputDataForAiMessage (message:String,model: String): Data{
+    private fun setInputDataForAiMessage (message:String,model: String, dataContext : List<messages>): Data{
+        val stringContext = Gson().toJson(dataContext)
         val dataBuilder = Data.Builder()
         dataBuilder.put("AI_MESSAGE_USER",message)
         dataBuilder.put("AI_MODEL",model)
+        dataBuilder.put("AI_CONTEXT", stringContext)
         return dataBuilder.build()
     }
 }

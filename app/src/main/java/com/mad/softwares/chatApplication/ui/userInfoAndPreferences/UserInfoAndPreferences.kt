@@ -1,19 +1,30 @@
 package com.mad.softwares.chatApplication.ui.userInfoAndPreferences
 
+import android.widget.Toast
+import androidx.activity.compose.rememberLauncherForActivityResult
+import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.ScrollState
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
+import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
+import androidx.compose.material3.Card
+import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Text
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Scaffold
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
+import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.TextUnit
 import androidx.compose.ui.unit.dp
@@ -36,14 +47,19 @@ object UserInfoAndPreferencesDestination: destinationData{
 fun UserInfoAndPreference(
     viewModel: UserInfoViewModel = viewModel(factory = GodViewModelProvider.Factory),
     navigateUp:()-> Unit,
+    navigateToStart:()-> Unit,
 ){
     val uiState = viewModel.infoUiState.collectAsState().value
+    if(uiState.logout){
+        navigateToStart()
+    }
     UserInfoAndPreferenceScreen(
         uiState = uiState,
         navigateUp,
         onAiUrlChange= viewModel::setAiUrl,
         setAiUrl = viewModel::setAiUrlOnPreference,
-        aiPrefEndpoint = viewModel.aiEndpointFromPref.collectAsState().value
+        aiPrefEndpoint = viewModel.aiEndpointFromPref.collectAsState().value,
+        logoutUser = viewModel::logoutUser
     )
 }
 
@@ -54,12 +70,35 @@ fun UserInfoAndPreferenceScreen(
     navigateUp:()->Unit,
     onAiUrlChange:(String)->Unit,
     setAiUrl:()->Unit,
-    aiPrefEndpoint : String
+    aiPrefEndpoint : String,
+    logoutUser :()-> Unit,
 ){
     val currentUser = uiState.currentUser
     val scrollState = remember {
         ScrollState(0)
     }
+    val permissionShower = remember { mutableStateOf(true) }
+    val context = LocalContext.current
+    val permissionLauncher = rememberLauncherForActivityResult(
+        ActivityResultContracts.RequestPermission()
+    ) { isGranted ->
+        if (isGranted) {
+            // Start your Worker or API call here
+            permissionShower.value = false
+        } else {
+            Toast.makeText(context, "Local Network access is required", Toast.LENGTH_SHORT).show()
+        }
+
+    }
+    LaunchedEffect(key1 = Unit) {
+        permissionLauncher.launch("android.permission.ACCESS_LOCAL_NETWORK")
+    }
+//    Button(onClick = {
+//        permissionLauncher.launch("android.permission.ACCESS_LOCAL_NETWORK")
+//    }) {
+//        Text("Connect to PC Server")
+//    }
+
     Scaffold(
         topBar = {
             ApptopBar(
@@ -76,7 +115,9 @@ fun UserInfoAndPreferenceScreen(
         }
     ) {
         paddingValues ->
-        Column(modifier = Modifier.padding(paddingValues)
+        val showModal = remember { mutableStateOf(false) }
+        Column(modifier = Modifier
+            .padding(paddingValues)
             .verticalScroll(scrollState)
             .padding(8.dp),
         ) {
@@ -99,6 +140,49 @@ fun UserInfoAndPreferenceScreen(
             Button(onClick = setAiUrl) {
                 Text("Update the AI End point")
             }
+            Button(onClick = { showModal.value = true }) {
+                Text("Logout")
+            }
+            if(permissionShower.value){
+                Card(
+                    modifier = Modifier
+                        .padding(8.dp),
+                    shape = RoundedCornerShape(24.dp),
+                    colors = CardDefaults.cardColors(
+                        containerColor = MaterialTheme.colorScheme.errorContainer,
+                        contentColor = MaterialTheme.colorScheme.onErrorContainer
+                    ),
+                    onClick = { permissionLauncher.launch("android.permission.ACCESS_LOCAL_NETWORK") }
+                ) {
+                    Text(
+                        "Permission To Access local network not givne to us",
+                        modifier = Modifier
+                            .padding(8.dp, 4.dp),
+                        fontSize = 20.sp
+                    )
+                }
+            }
+        }
+
+        if(showModal.value){
+            AlertDialog(
+                onDismissRequest = {
+                    showModal.value = false
+                },
+                confirmButton = {
+                    Button(onClick = { logoutUser()
+                        showModal.value = false}) {
+                        Text("Go Ahead")
+                    }
+                },
+                dismissButton = {
+                    OutlinedButton(onClick = {showModal.value = false}) {
+                        Text("Cancel")
+                    }
+                },
+                title = { Text("Logout Account?") },
+                text = { Text("After logging out, you cannot access account without signing back") }
+            )
         }
     }
 }
@@ -114,7 +198,8 @@ fun UserInfoAndPreferencesPreview(){
         navigateUp = {},
         onAiUrlChange = {},
         setAiUrl = {},
-        aiPrefEndpoint = "123.84.993.dl:3345"
+        aiPrefEndpoint = "123.84.993.dl:3345",
+        logoutUser = {}
         )
 
     }

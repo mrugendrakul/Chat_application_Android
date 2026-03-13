@@ -163,6 +163,7 @@ class welcomeViewModel(
                     )
 
                 val user = signupUser
+                Log.d(TAGview,"Getting error in pic ${user.profilePic}")
                 if(user.username.isEmpty()){
                     startUiState.update { it.copy(isError = true,
                         errorMessage = user.profilePic,
@@ -179,8 +180,8 @@ class welcomeViewModel(
             }
             startUiState.update { it.copy(isLoading = false) }
         }
-
-        Log.d(TAGview,"signup failed error message 3: ${startUiState.value.errorMessage}")
+        startUiState.update { it.copy(isError = true, isLoading = false) }
+        Log.d(TAGview,"signup failed error message 3: ${startUiState.value.errorMessage} ")
     }
 
     fun resetUserInside() {

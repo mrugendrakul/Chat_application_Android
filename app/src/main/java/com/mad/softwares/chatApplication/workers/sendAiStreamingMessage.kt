@@ -6,6 +6,7 @@ import androidx.work.CoroutineWorker
 import androidx.work.WorkerParameters
 import androidx.work.workDataOf
 import com.google.gson.Gson
+import com.google.gson.reflect.TypeToken
 import com.mad.softwares.chatApplication.data.models.AiResponse
 import com.mad.softwares.chatApplication.data.models.messages
 import com.mad.softwares.chatApplication.data.models.ollamaResponse
@@ -22,8 +23,14 @@ class sendAiStreamingMessage(ctx: Context, params: WorkerParameters): CoroutineW
             try {
                 val userMessage = inputData.getString("AI_MESSAGE_USER") ?: ""
                 val model = inputData.getString("AI_MODEL") ?: ""
+                val chatContext = inputData.getString("AI_CONTEXT")
 //                val isStream = inputData.getBoolean("AI_STREAM", false) // Pass this flag from UI
-
+                val parsedObjectContext:List<messages> = if (!chatContext.isNullOrEmpty()) {
+                    val type = object : TypeToken<List<messages>>() {}.type
+                    Gson().fromJson(chatContext, type)
+                } else {
+                    emptyList()
+                }
                 Log.d("Workers", "Got input:- $userMessage")
 
                 val preferences = applicationContext.dataStore.data.first()
@@ -32,7 +39,7 @@ class sendAiStreamingMessage(ctx: Context, params: WorkerParameters): CoroutineW
 
                 val requestBody = ollamaResponse(
                     model = model,
-                    messages = listOf(messages(role = "user", content = userMessage)),
+                    messages = parsedObjectContext + messages("user",userMessage),
                     stream = true
                 )
 

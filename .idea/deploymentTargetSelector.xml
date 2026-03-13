@@ -4,10 +4,10 @@
     <selectionStates>
       <SelectionState runConfigName="app">
         <option name="selectionMode" value="DROPDOWN" />
-        <DropdownSelection timestamp="2025-12-29T18:05:24.992681025Z">
+        <DropdownSelection timestamp="2026-03-07T14:51:14.165580Z">
           <Target type="DEFAULT_BOOT">
             <handle>
-              <DeviceId pluginId="LocalEmulator" identifier="path=/home/Mrugendra/.android/avd/Medium_Phone.avd" />
+              <DeviceId pluginId="PhysicalDevice" identifier="serial=d07e1ea4" />
             </handle>
           </Target>
         </DropdownSelection>
@@ -26,16 +26,10 @@
           </targets>
         </DialogSelection>
       </SelectionState>
-      <SelectionState runConfigName="PreviewMessagebodySuccess">
+      <SelectionState runConfigName="UserInfoAndPreferencesPreview">
         <option name="selectionMode" value="DROPDOWN" />
       </SelectionState>
-      <SelectionState runConfigName="UserChatsPreview">
-        <option name="selectionMode" value="DROPDOWN" />
-      </SelectionState>
-      <SelectionState runConfigName="MdScreenPreview">
-        <option name="selectionMode" value="DROPDOWN" />
-      </SelectionState>
-      <SelectionState runConfigName="MdMainScreenPreview">
+      <SelectionState runConfigName="AiMessagePreview">
         <option name="selectionMode" value="DROPDOWN" />
       </SelectionState>
     </selectionStates>

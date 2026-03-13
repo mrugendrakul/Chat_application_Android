@@ -23,7 +23,6 @@ import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.flatMapLatest
-import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.mapNotNull
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.flow.update
@@ -39,6 +38,7 @@ class AiMessagesViewModel(
     private val aiApis: WorkRespository
 ) : ViewModel() {
     val aiMessagesUiState = MutableStateFlow(AiMessagesUiState())
+    val lastIndexAdded = MutableStateFlow(0)
 
     init {
         val chatId_username =
@@ -59,16 +59,18 @@ class AiMessagesViewModel(
     }
 
     val aiMessageUUID = MutableStateFlow<String>("")
+
     @OptIn(ExperimentalCoroutinesApi::class)
-    val aiMessage: StateFlow<AiResponseUiState> = aiMessageUUID.flatMapLatest { uuid->
+    val aiMessage: StateFlow<AiResponseUiState> = aiMessageUUID.flatMapLatest { uuid ->
         return@flatMapLatest aiApis.getMessageInfoById(uuid)
-            .mapNotNull{ info -> if(info==null) {
-                AiResponseUiState()
-            } else {
-                mapInfoByUIState(info)
+            .mapNotNull { info ->
+                if (info == null) {
+                    AiResponseUiState()
+                } else {
+                    mapInfoByUIState(info)
+                }
             }
-            }
-        }
+    }
         .stateIn(
             scope = viewModelScope,
             started = SharingStarted.WhileSubscribed(5_000),
@@ -77,8 +79,8 @@ class AiMessagesViewModel(
             )
         )
 
-    fun mapInfoByUIState(info: WorkInfo): AiResponseUiState{
-        Log.d(AiMessagesTag,"Getting the info as $info")
+    fun mapInfoByUIState(info: WorkInfo): AiResponseUiState {
+        Log.d(AiMessagesTag, "Getting the info as $info")
 //        if(info == null){
 //            Log.d(AiMessagesTag,"Getting the info null")
 //            AiResponseUiState(
@@ -91,54 +93,69 @@ class AiMessagesViewModel(
 //        else {
 
 
-            val outputData = info.outputData.getString("AI_EXPENSIVE_RESPONSE")
+        val outputData = info.outputData.getString("AI_EXPENSIVE_RESPONSE")
 
-            val streamData = info.progress.getString("AI_STREAM_FULL")
-            Log.d(AiMessagesTag, "Output dta for the model streaming $streamData")
+        val streamData = info.progress.getString("AI_STREAM_FULL")
+        Log.d(AiMessagesTag, "Output dta for the model streaming $streamData")
 //            val outputObject = Gson().fromJson(outputData, tags::class.java)
-           return when {
-                streamData?.isNotEmpty() == true -> {
-                    Log.d(AiMessagesTag, "Output dta for the model chuncking $streamData")
-                    AiResponseUiState(
-                        AiResponse(
-                            message = messages("assistant", streamData ?: "No stream"),
-                            false
-                        ), AiState.Streaming
-                    )
-                }
-
-                outputData.isNullOrEmpty() -> {
-                    Log.d(AiMessagesTag, "This is getting called initially.")
-                    AiResponseUiState(
-                        AiResponse(message = messages("assistant", "No data so let's start!"), false),
-                        AiState.Loading
-                    )
-                }
-
-                info.state == WorkInfo.State.RUNNING -> {
-                    Log.d(AiMessagesTag, "Output dta for the model loading $outputData")
-                    AiResponseUiState(
-                        AiResponse(
-                            message = messages("assistant", streamData ?: "No stream"),
-                            false
-                        ), AiState.Loading
-                    )
-                }
-
-                info.state.isFinished -> {
-                    Log.d(AiMessagesTag, "Output dta for the model Finished $outputData")
-
-                    try {
-                        val outputObject = Gson().fromJson(outputData, AiResponse::class.java)
-                        val currentUserName = aiMessagesUiState.value.currentUser
-                        val newMessage = MessageReceived(
-                            contentType = ContentType.Md,
-                            content = outputObject.message.content,
-                            senderId = aiMessagesUiState.value.currChatInfo.members.firstOrNull { it -> it != currentUserName }
-                                ?: "",
-                            status = messageStatus.Send,
-                            timeStamp = Timestamp.now()
+        return when {
+            streamData?.isNotEmpty() == true -> {
+//                Log.d(AiMessagesTag, "Output dta for the model chuncking $streamData")
+                Log.d(AiMessagesTag,"last index in streaming ${lastIndexAdded.value} ${aiMessagesUiState.value.aiMessages.size }")
+                aiMessagesUiState.update {
+                    it.copy(
+                        aiMessages = updateElement(
+                            list = it.aiMessages, index = lastIndexAdded.value,
+                            newElement = AiResponseUiState
+                                (
+                                aiResponse = AiResponse(
+                                    messages("assistant", streamData),
+                                    done = true
+                                ), aiState = AiState.Streaming
+                            )
                         )
+                    )
+                }
+                AiResponseUiState(
+                    AiResponse(
+                        message = messages("assistant", streamData ?: "No stream"),
+                        false
+                    ), AiState.Streaming
+                )
+            }
+
+            outputData.isNullOrEmpty() -> {
+                Log.d(AiMessagesTag, "This is getting called initially.")
+                AiResponseUiState(
+                    AiResponse(message = messages("assistant", "No data so let's start!"), false),
+                    AiState.Loading
+                )
+            }
+
+            info.state == WorkInfo.State.RUNNING -> {
+//                Log.d(AiMessagesTag, "Output dta for the model loading $outputData")
+                AiResponseUiState(
+                    AiResponse(
+                        message = messages("assistant", streamData ?: "No stream"),
+                        false
+                    ), AiState.Loading
+                )
+            }
+
+            info.state.isFinished -> {
+                Log.d(AiMessagesTag, "Output dta for the model Finished $outputData")
+
+                try {
+                    val outputObject = Gson().fromJson(outputData, AiResponse::class.java)
+                    val currentUserName = aiMessagesUiState.value.currentUser
+                    val newMessage = MessageReceived(
+                        contentType = ContentType.Md,
+                        content = outputObject.message.content,
+                        senderId = aiMessagesUiState.value.currChatInfo.members.firstOrNull { it -> it != currentUserName }
+                            ?: "",
+                        status = messageStatus.Send,
+                        timeStamp = Timestamp.now()
+                    )
 //                    backgroundScope.launch() {
 //
 ////            delay(500)
@@ -206,42 +223,108 @@ class AiMessagesViewModel(
 //                            }
 //                        }
 //                    }
-
-
-                        AiResponseUiState(
-                            AiResponse(
-                                message = messages(
-                                    "assistant",
-                                    content = outputObject.message.content
-                                ), true
-                            ), AiState.Success
-                        )
-                    } catch (e: Exception) {
-                        Log.e(AiMessagesTag, "Got error in the output data $e")
-                        AiResponseUiState(
-                            AiResponse(
-                                message = messages(
-                                    "assistant",
-                                    content = outputData
-                                ), true
-                            ), AiState.Success
+                    Log.d(AiMessagesTag,"last index in finished. ${lastIndexAdded.value} ${aiMessagesUiState.value.aiMessages.size}")
+                    val model =
+                        aiMessagesUiState.value.currChatInfo.members.firstOrNull { it -> it != currentUserName }
+                            ?: ""
+                    sendMessageCloud(messageTextToSend = outputObject.message.content, senderId = model)
+                    aiMessagesUiState.update {
+                        it.copy(
+                            aiMessages = updateElement(
+                                list = it.aiMessages, index = lastIndexAdded.value,
+                                newElement = AiResponseUiState
+                                    (
+                                    aiResponse = AiResponse(
+                                        messages("assistant", outputObject.message.content),
+                                        done = true
+                                    ), aiState = AiState.Success
+                                )
+                            )
                         )
                     }
-                }
-
-                else -> {
-                    val streamData = info.outputData.getString("AI_STREAM_FULL")
-                    Log.d(AiMessagesTag, "Output dta for the model loading $outputData")
                     AiResponseUiState(
                         AiResponse(
-                            message = messages("assistant", streamData ?: "No stream"),
-                            false
-                        ), AiState.Loading
+                            message = messages(
+                                "assistant",
+                                content = outputObject.message.content
+                            ), true
+                        ), AiState.Success
+                    )
+                } catch (e: Exception) {
+                    Log.e(AiMessagesTag, "Got error in the output data $e")
+                    aiMessagesUiState.update {
+                        it.copy(
+                            aiMessages = updateElement(
+                                list = it.aiMessages, index = lastIndexAdded.value,
+                                newElement = AiResponseUiState
+                                    (
+                                    aiResponse = AiResponse(
+                                        messages("assistant", outputData),
+                                        done = true
+                                    ), aiState = AiState.Success
+                                )
+                            )
+                        )
+                    }
+                    AiResponseUiState(
+                        AiResponse(
+                            message = messages(
+                                "assistant",
+                                content = outputData
+                            ), true
+                        ), AiState.Success
                     )
                 }
             }
+
+            else -> {
+                val streamData = info.outputData.getString("AI_STREAM_FULL")
+                Log.d(AiMessagesTag, "Output dta for the model loading $outputData")
+                AiResponseUiState(
+                    AiResponse(
+                        message = messages("assistant", streamData ?: "No stream"),
+                        false
+                    ), AiState.Loading
+                )
+            }
+        }
 //        }
     }
+
+    private fun syncMessages (){
+        viewModelScope.launch {
+            Log.d(AiMessagesTag,"Ai Live messages started getting here.")
+            dataRepository.getLiveMessages(
+                chatId = aiMessagesUiState.value.chatId,
+                secureAESKey = aiMessagesUiState.value.currChatInfo.secureAESKey,
+                onMessagesChange = {
+
+                },
+                onError = {},
+                onAdd = { message->
+                    val newMessageList = (aiMessagesUiState.value.messages + message).sortedBy { it.timeStamp }
+                    aiMessagesUiState.update { state ->
+                        state.copy(
+                            messages = newMessageList,
+                            aiMessages = newMessageList.map { mess->
+                                Log.d(AiMessagesTag,"Mapping this message text- ${mess.content}")
+                                val role = if(mess.senderId == aiMessagesUiState.value.currentUser){
+                                    "user"
+                                }else{
+                                    "assistant"
+                                }
+                                AiResponseUiState(aiResponse = AiResponse(message = messages(role,mess.content),true),
+                                    AiState.Success)
+                            })
+                    }
+//                    Log.d(AiMessagesTag,"Storing message text -  ${message.content}")
+
+                },
+                onDelete = {}
+            )
+        }
+    }
+
     fun sendMessageToAi() {
         Log.d(AiMessagesTag, "Calling ai messate to send")
         val tempMessage = aiMessagesUiState.value.messageToSend
@@ -254,8 +337,22 @@ class AiMessagesViewModel(
                 ?: ""
         if (aiMessagesUiState.value.currChatInfo.isAiChat) {
             val returnUuid = aiApis.sendMessage(tempMessage, model)
-            Log.d(AiMessagesTag,"Got the UUId $returnUuid")
+            Log.d(AiMessagesTag, "Got the UUId $returnUuid")
             aiMessageUUID.value = returnUuid
+            aiMessagesUiState.update {
+                it.copy(
+                    aiMessages = aiMessagesUiState.value.aiMessages.plus(
+                        AiResponseUiState
+                            (
+                            aiResponse = AiResponse(
+                                messages("user", tempMessage),
+                                done = true
+                            ), aiState = AiState.Success
+                        )
+                    )
+                )
+            }
+            lastIndexAdded.value = aiMessagesUiState.value.aiMessages.size
         }
     }
 
@@ -272,9 +369,139 @@ class AiMessagesViewModel(
             aiMessagesUiState.value.currChatInfo.members.firstOrNull { it -> it != currentUserName }
                 ?: ""
         if (aiMessagesUiState.value.currChatInfo.isAiChat) {
-           val returnUuid = aiApis.sendStreamMessage(tempMessage, model)
-            Log.d(AiMessagesTag,"Got the UUId $returnUuid")
+            val contextMessage:List<messages> = aiMessagesUiState.value.aiMessages.map { it-> messages(it.aiResponse.message.role,it.aiResponse.message.content) }
+            val returnUuid = aiApis.sendStreamMessage(tempMessage, model, context =contextMessage)
+            Log.d(AiMessagesTag, "Got the UUId $returnUuid")
             aiMessageUUID.value = returnUuid
+            aiMessagesUiState.update {
+                it.copy(
+                    aiMessages = aiMessagesUiState.value.aiMessages.plus(
+                        AiResponseUiState
+                            (
+                            aiResponse = AiResponse(
+                                messages("user", tempMessage),
+                                done = true
+                            ), aiState = AiState.Success
+                        )
+                    )
+                )
+            }
+            lastIndexAdded.value = aiMessagesUiState.value.aiMessages.size
+            Log.d(AiMessagesTag,"last index ${lastIndexAdded.value} ${aiMessagesUiState.value.aiMessages.size}")
+            aiMessagesUiState.update {
+                it.copy(
+                    aiMessages = aiMessagesUiState.value.aiMessages.plus(
+                        AiResponseUiState
+                            (
+                            aiResponse = AiResponse(
+                                messages("assistant", ""),
+                                done = true
+                            ), aiState = AiState.Loading
+                        )
+                    )
+                )
+            }
+            sendMessageCloud(messageTextToSend = tempMessage, senderId = aiMessagesUiState.value.currentUser)
+            Log.d(AiMessagesTag,"last index  after dummy addition${lastIndexAdded.value} ${aiMessagesUiState.value.aiMessages.size}")
+        }
+    }
+
+    private fun sendMessageCloud(messageTextToSend:String,senderId: String) {
+
+//        val tempMessageOutside = messagesUiState.value.messageToSend
+        viewModelScope.launch() {
+//            val tempMessage = messagesUiState.value.messageToSend
+//            val parsedContent = parseMessage(tempMessage)
+            val newMessage = MessageReceived(
+                contentType = ContentType.text,
+//                parsedContent = "",
+                content = messageTextToSend,
+                senderId = senderId,
+                status = messageStatus.Sending,
+                timeStamp = Timestamp.now()
+            )
+//        messagesUiState.value.messages.add(
+//            newMessage
+//        )
+
+//            aiMessagesUiState.update {
+//                it.copy(
+//                    messageToSend = "",
+//                    messages = it.messages + newMessage
+//                )
+//            }
+            Log.d(AiMessagesTag, "Message status sending from here....")
+
+//            delay(500)
+            try {
+
+                val messageId = dataRepository.sendMessage(
+                    message = newMessage,
+                    chatId = aiMessagesUiState.value.chatId,
+                    secureAESKey = aiMessagesUiState.value.currChatInfo.secureAESKey,
+                    fcmTokens = aiMessagesUiState.value.currChatInfo.membersData.map { it.fcmToken }
+                        .flatten()
+//                    chatId = "12345677"
+                )
+
+
+//                messagesUiState.value.messages.set(
+//                    index = messagesUiState.value.messages.indexOf(newMessage),
+//                    element = newMessage.copy(status = messageStatus.Send)
+//                )
+                Log.d(AiMessagesTag, "Message id: $messageId")
+                aiMessagesUiState.update {
+                    it.copy(
+//                        errorMessage = "No error : ${newMessage.timeStamp}",
+                        messages = updateElement(
+                            it.messages,
+                            index = it.messages.indexOf(newMessage),
+                            newElement = newMessage.copy(
+                                messageId = messageId,
+                                status = messageStatus.Send
+                            )
+                        )
+//                        messages = it.messages - newMessage
+                    )
+                }
+
+                Log.d(AiMessagesTag, "Message sent successfully ========>--------------->")
+                return@launch
+//                getMessages(true)
+
+            } catch (e: Exception) {
+                Log.e(AiMessagesTag, "Unable to send the message : $e")
+                try {
+//                    messagesUiState.value.messages.set(
+//                        index = messagesUiState.value.messages.indexOf(newMessage),
+//                        element = newMessage.copy(status = messageStatus.Error)
+//                    )
+                    aiMessagesUiState.update {
+                        it.copy(
+                            messages = updateElement(
+                                it.messages,
+                                index = it.messages.indexOf(newMessage),
+                                newElement = newMessage.copy(status = messageStatus.Error)
+                            )
+                        )
+                    }
+                    return@launch
+                } catch (e: Exception) {
+                    Log.e(AiMessagesTag, "Unable to update the message status : $e")
+
+//                    Log.e(TAGmess,"Unable to send the message")
+//                throw Exception("Unable to send the message : ${status.await()}")
+                    aiMessagesUiState.update {
+                        it.copy(
+//                        messageScreen = MessageScreen.Error,
+//                        isError = true,
+//                            errorMessage = "${e.message.toString()} : ${newMessage.timeStamp}"
+                        )
+                    }
+                    Log.e(AiMessagesTag, "Error sending message :$e")
+                    return@launch
+                }
+            }
         }
     }
 
@@ -317,7 +544,7 @@ class AiMessagesViewModel(
 //                            messageScreen = MessageScreen.Success
                         )
                     }
-//                    getLiveMessages()
+                    syncMessages()
                     Log.d(TAGmess, "Got chat info success")
                 }
 //                return@launch
@@ -357,7 +584,7 @@ data class AiResponseUiState(
         message = messages("assistant", "Initial state!!"),
         true
     ),
-    val aiState: AiState = AiState.Loading
+    val aiState: AiState = AiState.Success
 )
 
 data class AiMessagesUiState(
@@ -366,4 +593,5 @@ data class AiMessagesUiState(
     val currentUser: String = "",
     val messageToSend: String = "",
     val messages: List<MessageReceived> = listOf(),
+    val aiMessages: List<AiResponseUiState> = listOf()
 )

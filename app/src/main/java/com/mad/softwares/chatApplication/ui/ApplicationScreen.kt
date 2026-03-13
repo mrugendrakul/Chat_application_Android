@@ -181,19 +181,32 @@ fun ApplicationScreen(
                     defaultValue= ""
                 })
             ){
-                AiMessages()
+                AiMessages(
+                    navigateUp = {
+                        navController.navigateUp()
+                    }
+                )
             }
         }
 
-        composable(route = UserInfoAndPreferencesDestination.route,
-            enterTransition = { slideInHorizontally { it } },
-            exitTransition = { slideOutHorizontally { it } }) {
-            UserInfoAndPreference(
-                navigateUp = {
-                    navController.navigateUp()
-                }
-            )
-        }
+
+            composable(
+                route = UserInfoAndPreferencesDestination.route,
+                enterTransition = { slideInHorizontally { it } },
+                exitTransition = { slideOutHorizontally { it } }) {
+                UserInfoAndPreference(
+                    navigateUp = {
+                        navController.navigateUp()
+                    },
+                    navigateToStart ={
+                        navController.navigate(welcomeDestination.route) {
+                            popUpTo(0)
+                        }
+                    },
+                )
+            }
+
+
 
         navigation(
             startDestination = addAiModelAndChatDestination.route,

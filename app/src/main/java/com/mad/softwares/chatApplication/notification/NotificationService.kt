@@ -102,11 +102,9 @@ class NotificationService(): FirebaseMessagingService() {
             getSystemService(NOTIFICATION_SERVICE) as NotificationManager
         val channelId = "Chats"
 
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
-            val channel =
-                NotificationChannel(channelId, title, NotificationManager.IMPORTANCE_DEFAULT)
-            notificationManager.createNotificationChannel(channel)
-        }
+        val channel =
+            NotificationChannel(channelId, title, NotificationManager.IMPORTANCE_DEFAULT)
+        notificationManager.createNotificationChannel(channel)
 
         val notificationIntent = Intent(this, MainActivity::class.java)
         val pendingIntent = PendingIntent.getActivity(

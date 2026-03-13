@@ -34,14 +34,14 @@ val okHttpClient=  OkHttpClient.Builder()
 
 
 interface AiApiLocalhostService {
-    @GET("/api/tags")
+    @GET("/wrapper/tags")
     suspend fun getTags(): tags
 //@Headers("Read-Timeout: 120")
-    @POST("api/chat")
+    @POST("wrapper/chat")
     suspend fun sendMessage(@Body request: ollamaResponse): AiResponse
 
     @Streaming
-    @POST("api/chat")
+    @POST("wrapper/streamingChat")
     suspend fun sendMessageStream(@Body request: ollamaResponse): ResponseBody
 }
 interface AiApiLocalhostInterface{
