@@ -276,7 +276,7 @@ class NetworkFirebaseApi(
         currUser: User,
         docId: String
     ): User {
-        Log.d(TAG, "updateCalled here")
+        Log.d(TAG, "updateCalled here for signup")
 //        val docId = mutableListOf<String>()
         val sub = "no ID"
         val newTokens: ArrayList<String> = arrayListOf(currUser.fcmToken)
@@ -1212,6 +1212,7 @@ class NetworkFirebaseApi(
             }
         }catch (e: Exception){
             Log.e(TAG,"Unable to get the migration status : ${e}")
+            throw e
             return false
         }
     }

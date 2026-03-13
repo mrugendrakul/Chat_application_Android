@@ -199,10 +199,10 @@ class NetworkDataRepository(
                     status = { statusDeferred.complete(it) }
                 )
             val status = statusDeferred.await()
-
+            Log.d(TAG,"Getting status here as $status")
             if (status == "success") {
                 try {
-
+                    Log.d(TAG,"Signup started and success in data repo")
                     apiService.registerUserToDatabase(
                         currUser = newuser,
                         docId = currentUser?.uid ?: "garbage"

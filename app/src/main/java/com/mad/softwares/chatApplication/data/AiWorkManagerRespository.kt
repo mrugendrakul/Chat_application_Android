@@ -2,14 +2,20 @@ package com.mad.softwares.chatApplication.data
 
 import android.content.Context
 import androidx.lifecycle.asFlow
+import androidx.work.Data
 import androidx.work.ExistingWorkPolicy
 import androidx.work.OneTimeWorkRequestBuilder
 import androidx.work.WorkInfo
 import androidx.work.WorkManager
+import com.google.gson.Gson
+import com.mad.softwares.chatApplication.data.models.messages
 import com.mad.softwares.chatApplication.workers.getApiTag
 import com.mad.softwares.chatApplication.workers.sendAiMessage
+import com.mad.softwares.chatApplication.workers.sendAiStreamingMessage
 import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.flowOf
 import kotlinx.coroutines.flow.mapNotNull
+import java.util.UUID
 
 val AI_RESPONSE_TAG = "AI_RESPONSE_TAG"
 val AI_RESPONSE_NAME = "AI_RESPONSE_NAME"
@@ -26,6 +32,16 @@ class AiWorkManagerRespository(context: Context): WorkRespository {
     override val messageInfo: Flow<WorkInfo> = workManager.getWorkInfosByTagLiveData(AI_MESSAGE).asFlow().mapNotNull {
         if(it.isNotEmpty()) it.first() else null
     }
+
+    override fun getMessageInfoById(uuid: String): Flow<WorkInfo?> {
+        val uuidForWork = try{
+            UUID.fromString(uuid)
+        }
+        catch(e: IllegalArgumentException){
+            return flowOf(null)
+        }
+        return workManager.getWorkInfoByIdFlow(uuidForWork)
+    }
     override fun getAiTags() {
         val initialApiCall = OneTimeWorkRequestBuilder<getApiTag>()
             .addTag(AI_RESPONSE_TAG)
@@ -39,8 +55,9 @@ class AiWorkManagerRespository(context: Context): WorkRespository {
         starting.enqueue()
     }
 
-    override fun sendMessage() {
+    override fun sendMessage(message: String,model: String): String {
         val initialCall = OneTimeWorkRequestBuilder<sendAiMessage>()
+            .setInputData(setInputDataForAiMessage(message,model,listOf()))
             .addTag(AI_MESSAGE)
             .build()
 
@@ -50,5 +67,31 @@ class AiWorkManagerRespository(context: Context): WorkRespository {
             initialCall
         )
         starting.enqueue()
+        return initialCall.stringId
+    }
+
+    override fun sendStreamMessage(message: String, model: String, context: List<messages>):String {
+        val initialCall = OneTimeWorkRequestBuilder<sendAiStreamingMessage>()
+            .setInputData(setInputDataForAiMessage(message,model,context))
+            .addTag(AI_MESSAGE)
+            .build()
+
+        val starting = workManager.beginUniqueWork(
+            AI_MESSAGE,
+            ExistingWorkPolicy.REPLACE,
+            initialCall
+        )
+
+        starting.enqueue()
+        return initialCall.stringId
+    }
+
+    private fun setInputDataForAiMessage (message:String,model: String, dataContext : List<messages>): Data{
+        val stringContext = Gson().toJson(dataContext)
+        val dataBuilder = Data.Builder()
+        dataBuilder.put("AI_MESSAGE_USER",message)
+        dataBuilder.put("AI_MODEL",model)
+        dataBuilder.put("AI_CONTEXT", stringContext)
+        return dataBuilder.build()
     }
 }
