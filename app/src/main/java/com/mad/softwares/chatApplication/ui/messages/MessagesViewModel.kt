@@ -13,14 +13,17 @@ import com.mad.softwares.chatApplication.data.DataRepository
 import com.mad.softwares.chatApplication.data.MessageReceived
 import com.mad.softwares.chatApplication.data.WorkRespository
 import com.mad.softwares.chatApplication.data.messageStatus
-import com.mad.softwares.chatApplication.data.models.AiResponse
-import com.mad.softwares.chatApplication.data.models.messages
+import com.mad.softwares.chatApplication.data.models.OllamaModel
+import com.mad.softwares.chatApplication.data.models.ollamaResponse
+import com.mad.softwares.chatApplication.data.models.tags
+import com.mad.softwares.chatApplication.network.AiApiLocalhost
 import com.mad.softwares.chatApplication.ui.updateElement
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Deferred
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.async
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
@@ -28,14 +31,13 @@ import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
-import kotlinx.coroutines.withContext
 
 val TAGmess = "messagesViewModel"
 
 class MessagesViewModel(
     private val savedStateHandle: SavedStateHandle,
     private val dataRepository: DataRepository,
-//    private val aiApis: WorkRespository
+    private val aiApis : WorkRespository
 ) : ViewModel() {
     var messagesUiState = MutableStateFlow(MessagesUiState())
         private set
@@ -61,69 +63,51 @@ class MessagesViewModel(
 //        getLiveMessages()
     }
 
-
-
-    private data class MatchRecord(
-        val range: IntRange,
-        val type: textTypeParse,
-        val content: String
-    )
-
-    private suspend fun parseMessage(message: String): List<MessageSegement> = withContext(Dispatchers.Default){
-        val result = mutableListOf<MessageSegement>()
-
-        val codeRegex = Regex("```(.*?)```", RegexOption.DOT_MATCHES_ALL)
-//    val linkRegex = Regex("<([^\\s]+)>", RegexOption.DOT_MATCHES_ALL) // Ensure no spaces in links
-        val linkRegex = Regex("\\<(.*?)\\>")
-        val advancedLinkRegex = Regex("""https?://\S+""")
-//    val linkRegex = Regex("(?:\\[(.*?)]?)\\<(.*?)\\>")
-
-        // Collect matches from al regex patterns
-        val matches = mutableListOf<MatchRecord>()
-
-        codeRegex.findAll(message)
-            .forEach { matches.add(MatchRecord(it.range,textTypeParse.code,it.groupValues[1])) }
-        linkRegex.findAll(message)
-            .forEach { matches.add(MatchRecord(it.range,textTypeParse.link,it.groupValues[1])) }
-        advancedLinkRegex.findAll(message)
-            .forEach { matches.add(MatchRecord(it.range,textTypeParse.link,it.groupValues[0])) }
-
-        // Sort matches by their start positions
-        matches.sortBy { it.range.first }
-
-        var lastIndex = 0
-
-        // Iterate through sorted matches and build the map
-        for (match in matches) {
-            val start = match.range.first
-            val end = match.range.last + 1
-
-            if(start<lastIndex) continue
-
-            // Add the text before the match as plain text
-            if (lastIndex < start) {
-                val textPart = message.substring(lastIndex, start)
-//            val textPart = content
-                result.add(MessageSegement(textPart, textTypeParse.text))
+    fun getTags(){
+        viewModelScope.launch {
+            try {
+                aiApis.getAiTags()
+                aiApis.sendMessage()
             }
-
-            // Add the matched text
-//        var matchedPart = message.substring(start, end
-            result.add(MessageSegement(match.content,match.type))
-
-            // Update last index
-            lastIndex = end
+            catch (e: Exception){
+                Log.e(TAGmess,"Error getting tags",e)
+            }
         }
-
-        // Add any remaining text as plain text
-        if (lastIndex < message.length) {
-            val remainingText = message.substring(lastIndex)
-            result.add(MessageSegement(remainingText, textTypeParse.text))
-        }
-
-
-        return@withContext result
     }
+
+    val aiMessage: StateFlow<tags> = aiApis.TagsInfo
+        .map{
+            info ->
+            val outputData = info.outputData.getString("AI_TAGS_RESPONSE")
+            Log.d(TAGmess,"Output dta for the model $outputData")
+//            val outputObject = Gson().fromJson(outputData, tags::class.java)
+            when{
+                outputData.isNullOrEmpty() ->{
+                    tags(listOf(OllamaModel(model = "Loading...",name="loading...")))
+                }
+                info.state == WorkInfo.State.RUNNING -> {
+                    Log.d(TAGmess,"Output dta for the model loading $outputData")
+                    tags(listOf(OllamaModel(model = "Loading...",name="loading...")))
+                }
+                info.state.isFinished ->{
+                    Log.d(TAGmess,"Output dta for the model Finished $outputData")
+                    val outputObject = Gson().fromJson(outputData, tags::class.java)
+                    outputObject
+                }
+                else ->{
+                    tags(listOf(OllamaModel(
+                        name = "Loading ...",
+                        model = "Loading models...."
+                    )))
+                }
+            }
+        }
+        .stateIn(
+            scope = viewModelScope,
+            started = SharingStarted.WhileSubscribed(5_000),
+            initialValue = tags(listOf(OllamaModel(name="Starting",model="Starting")))
+        )
+
 
     fun getChatInfo() {
         messagesUiState.update {
@@ -201,13 +185,30 @@ class MessagesViewModel(
     }
 
     fun sendTextMessage() {
-
 //        val sender: List<String> =
 //            messagesUiState.value.currChat.members - messagesUiState.value.currChat.membersData.map { it.username }
 //                .toSet()
 //        Log.d(TAGmess,"members are in sender : ${sender}")
 //        val senderUsername = sender.get(0)
+        val tempMessage = messagesUiState.value.messageToSend
+        val newMessage = MessageReceived(
+            contentType = ContentType.text,
+            content = messagesUiState.value.messageToSend,
+            senderId = messagesUiState.value.currentUser,
+            status = messageStatus.Sending,
+            timeStamp = Timestamp.now()
+        )
+//        messagesUiState.value.messages.add(
+//            newMessage
+//        )
 
+        messagesUiState.update {
+            it.copy(
+                messageToSend = "",
+                messages = it.messages + newMessage
+            )
+        }
+        Log.d(TAGmess, "Message status = ${messagesUiState.value.messages.last().status}")
 //        messagesUiState.value.messages.set(
 //            index= messagesUiState.value.messages.indexOf(messagesUiState.value.messageToSend),
 //            element = messagesUiState.value.messageToSend.copy(status = messageStatus.Send)
@@ -237,29 +238,7 @@ class MessagesViewModel(
 //                Log.e(TAGmess,"Error to send notification: $e")
 //            }
 //        }
-         val tempMessageOutside = messagesUiState.value.messageToSend
         backgroundScope.launch() {
-            val tempMessage = messagesUiState.value.messageToSend
-            val parsedContent = parseMessage(tempMessage)
-            val newMessage = MessageReceived(
-                contentType = ContentType.text,
-                parsedContent = parsedContent,
-                content = messagesUiState.value.messageToSend,
-                senderId = messagesUiState.value.currentUser,
-                status = messageStatus.Sending,
-                timeStamp = Timestamp.now()
-            )
-//        messagesUiState.value.messages.add(
-//            newMessage
-//        )
-
-            messagesUiState.update {
-                it.copy(
-                    messageToSend = "",
-                    messages = it.messages + newMessage
-                )
-            }
-            Log.d(TAGmess, "Message status = ${messagesUiState.value.messages.last().status}")
 
 //            delay(500)
             try {
@@ -463,35 +442,6 @@ class MessagesViewModel(
         }
     }
 
-//    fun sendAiChatMessage() {
-//        val sender: List<String> =
-//            messagesUiState.value.currChat.members - messagesUiState.value.currChat.membersData.map { it.username }
-////                .toSet()
-////        Log.d(TAGmess,"members are in sender : ${sender}")
-////        val senderUsername = sender.get(0)
-//        val tempMessage = messagesUiState.value.messageToSend
-//        val newMessage = MessageReceived(
-//            contentType = ContentType.text,
-//            content = messagesUiState.value.messageToSend,
-//            senderId = messagesUiState.value.currentUser,
-//            status = messageStatus.Sending,
-//            timeStamp = Timestamp.now()
-//        )
-////        messagesUiState.value.messages.add(
-////            newMessage
-////        )
-//
-//        messagesUiState.update {
-//            it.copy(
-//                messageToSend = "",
-//                messages = it.messages + newMessage
-//            )
-//        }
-//        Log.d(TAGmess, "ai Message status = ${messagesUiState.value.messages.last().status}")
-
-//        aiApis.sendMessage(tempMessage)
-//    }
-
     //Deprecated
     //    fun getMessages(isForced: Boolean = false) {
 //        if (!isForced && messagesUiState.value.messages.isNotEmpty()) {
@@ -562,106 +512,14 @@ class MessagesViewModel(
                 secureAESKey = messagesUiState.value.currChat.secureAESKey,
                 //Not in use.
                 onMessagesChange = { messageUpdate ->
-                    viewModelScope.launch{
-                        when(messageUpdate.contentType) {
-                            ContentType.text ->
-                                {
-                                val parsedContent: List<MessageSegement> =  parseMessage(messageUpdate.content)
-                                val parsedMessageUpdate = messageUpdate.copy(parsedContent = parsedContent)
-                                messagesUiState.update {
-                                    it.copy(
-                                        messages = updateMessageList(
-                                            messages = messagesUiState.value.messages.toMutableList(),
-                                            newMessage = parsedMessageUpdate
-                                        )
-                                    )
-                                }
-                            }
-                            ContentType.image -> {
-                                val parsedContent: List<MessageSegement> =  parseMessage(messageUpdate.content)
-                                val parsedMessageUpdate = messageUpdate.copy(parsedContent = parsedContent)
-                                messagesUiState.update {
-                                    it.copy(
-                                        messages = updateMessageList(
-                                            messages = messagesUiState.value.messages.toMutableList(),
-                                            newMessage = parsedMessageUpdate
-                                        )
-                                    )
-                                }
-                            }
-                            ContentType.document -> {
-                                val parsedContent: List<MessageSegement> =  parseMessage(messageUpdate.content)
-                                val parsedMessageUpdate = messageUpdate.copy(parsedContent = parsedContent)
-                                messagesUiState.update {
-                                    it.copy(
-                                        messages = updateMessageList(
-                                            messages = messagesUiState.value.messages.toMutableList(),
-                                            newMessage = parsedMessageUpdate
-                                        )
-                                    )
-                                }
-                            }
-                            ContentType.audio -> {
-                                val parsedContent: List<MessageSegement> =  parseMessage(messageUpdate.content)
-                                val parsedMessageUpdate = messageUpdate.copy(parsedContent = parsedContent)
-                                messagesUiState.update {
-                                    it.copy(
-                                        messages = updateMessageList(
-                                            messages = messagesUiState.value.messages.toMutableList(),
-                                            newMessage = parsedMessageUpdate
-                                        )
-                                    )
-                                }
-                            }
-                            ContentType.video -> {
-                                val parsedContent: List<MessageSegement> =  parseMessage(messageUpdate.content)
-                                val parsedMessageUpdate = messageUpdate.copy(parsedContent = parsedContent)
-                                messagesUiState.update {
-                                    it.copy(
-                                        messages = updateMessageList(
-                                            messages = messagesUiState.value.messages.toMutableList(),
-                                            newMessage = parsedMessageUpdate
-                                        )
-                                    )
-                                }
-                            }
-                            ContentType.deleted -> {
-                                val parsedContent: List<MessageSegement> =  parseMessage(messageUpdate.content)
-                                val parsedMessageUpdate = messageUpdate.copy(parsedContent = parsedContent)
-                                messagesUiState.update {
-                                    it.copy(
-                                        messages = updateMessageList(
-                                            messages = messagesUiState.value.messages.toMutableList(),
-                                            newMessage = parsedMessageUpdate
-                                        )
-                                    )
-                                }
-                            }
-                            ContentType.Md -> {
-                                val parsedContent: List<MessageSegement> =  parseMessage(messageUpdate.content)
-                                val parsedMessageUpdate = messageUpdate.copy(parsedContent = parsedContent)
-                                messagesUiState.update {
-                                    it.copy(
-                                        messages = updateMessageList(
-                                            messages = messagesUiState.value.messages.toMutableList(),
-                                            newMessage = parsedMessageUpdate
-                                        )
-                                    )
-                                }
-                            }
-                            ContentType.default -> {
-//                                val parsedContent: List<MessageSegement> =  parseMessage(messageUpdate.content)
-//                                val parsedMessageUpdate = messageUpdate.copy(parsedContent = parsedContent)
-                                messagesUiState.update {
-                                    it.copy(
-                                        messages = updateMessageList(
-                                            messages = messagesUiState.value.messages.toMutableList(),
-                                            newMessage = messageUpdate
-                                        )
-                                    )
-                                }
-                            }
-                        }
+                    Log.d(TAGmess, "Update Message is: ${messageUpdate.messageId}")
+                    messagesUiState.update {
+                        it.copy(
+                            messages = updateMessageList(
+                                messages = messagesUiState.value.messages.toMutableList(),
+                                newMessage = messageUpdate
+                            )
+                        )
                     }
                 },
                 onError = { e ->
@@ -674,74 +532,18 @@ class MessagesViewModel(
                     }
                 },
                 onAdd = { message ->
-                    viewModelScope.launch{
-                        when(message.contentType){
-                            ContentType.text -> {
-                                val parsedContent: Deferred<List<MessageSegement>> = async {
-                                    return@async parseMessage(message.content)
+                    Log.d(TAGmess, "New Message added : ${message}")
+                    messagesUiState.update {
+                        it.copy(
+                            messages =
+                                if (it.messages.contains(message)) {
+                                    Log.d(TAGmess, "Message already exists : ${message}")
+                                    (it.messages + message).sortedBy { it.timeStamp }
+                                } else {
+                                    Log.d(TAGmess, "Message does not exists : ${message}")
+                                    (it.messages + message).sortedBy { it.timeStamp }
                                 }
-                                val parsedMessage = message.copy(parsedContent = parsedContent.await())
-                                messagesUiState.update {
-                                    it.copy(
-                                        messages =
-                                            if (it.messages.contains(parsedMessage)) {
-                                                (it.messages + parsedMessage).sortedBy { it.timeStamp }
-                                            } else {
-                                                (it.messages + parsedMessage).sortedBy { it.timeStamp }
-                                            }
-                                    )
-                                }
-                            }
-                            ContentType.Md -> {
-//                                val parsedContent: Deferred<List<MessageSegement>> = async {
-//                                    return@async parseMessage(message.content)
-//                                }
-//                                val parsedMessage = message.copy(parsedContent = parsedContent.await())
-                                messagesUiState.update {
-                                    it.copy(
-                                        messages =
-                                            if (it.messages.contains(message)) {
-                                                (it.messages + message).sortedBy { it.timeStamp }
-                                            } else {
-                                                (it.messages + message).sortedBy { it.timeStamp }
-                                            }
-                                    )
-                                }
-                            }
-                            ContentType.default -> {
-                                val parsedContent: Deferred<List<MessageSegement>> = async {
-                                    return@async parseMessage(message.content)
-                                }
-                                val parsedMessage = message.copy(parsedContent = parsedContent.await())
-                                messagesUiState.update {
-                                    it.copy(
-                                        messages =
-                                            if (it.messages.contains(parsedMessage)) {
-                                                (it.messages + parsedMessage).sortedBy { it.timeStamp }
-                                            } else {
-                                                (it.messages + parsedMessage).sortedBy { it.timeStamp }
-                                            }
-                                    )
-                                }
-                            }
-                            else -> {
-                                val parsedContent: Deferred<List<MessageSegement>> = async {
-                                    return@async parseMessage(message.content)
-                                }
-                                val parsedMessage = message.copy(parsedContent = parsedContent.await())
-                                messagesUiState.update {
-                                    it.copy(
-                                        messages =
-                                            if (it.messages.contains(parsedMessage)) {
-                                                (it.messages + parsedMessage).sortedBy { it.timeStamp }
-                                            } else {
-                                                (it.messages + parsedMessage).sortedBy { it.timeStamp }
-                                            }
-                                    )
-                                }
-                            }
-                        }
-
+                        )
                     }
                 },
                 onDelete = { message ->
@@ -750,8 +552,16 @@ class MessagesViewModel(
                         it.copy(
                             messages =
                                 if (it.messages.contains(message)) {
+                                    Log.d(
+                                        TAGmess,
+                                        "Message already exists delete : ${message.messageId}"
+                                    )
                                     (it.messages - message).sortedBy { it.timeStamp }
                                 } else {
+                                    Log.d(
+                                        TAGmess,
+                                        "Message does not exists delete : ${message.messageId}"
+                                    )
                                     (it.messages - message).sortedBy { it.timeStamp }
                                 }
                         )
@@ -929,21 +739,6 @@ data class MessagesUiState(
     val selectedMessageForNextScreen: MessageReceived = MessageReceived()
 )
 
-data class MessageSegement(
-    val content:String,
-    val type: textTypeParse
-)
-
-enum class textTypeParse {
-    text,
-    code,
-    link
-}
-
-data class containerMessage(
-    val regex: Regex,
-    val type: textTypeParse
-)
 
 enum class MessageScreen() {
     Loading,
