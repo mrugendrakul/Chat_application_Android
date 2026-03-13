@@ -1,11 +1,7 @@
 package com.mad.softwares.chatApplication
 
 import android.app.Application
-import android.content.Context
 import android.util.Log
-import androidx.datastore.core.DataStore
-import androidx.datastore.preferences.core.Preferences
-import androidx.datastore.preferences.preferencesDataStore
 import com.google.firebase.FirebaseApp
 import com.google.firebase.firestore.firestoreSettings
 
@@ -18,17 +14,10 @@ import com.google.firebase.firestore.PersistentCacheSettings
 import com.google.firebase.firestore.firestore
 import com.mad.softwares.chatApplication.data.AppContainer
 import com.mad.softwares.chatApplication.data.DefaultAppContainer
-import com.mad.softwares.chatApplication.data.preferenceRepository.AiUrlPreferenceRepository
 
-const val AI_PREFERENCE_NAME = "ai_preference"
-
-val Context.dataStore : DataStore<Preferences> by preferencesDataStore(
-    name = AI_PREFERENCE_NAME
-)
 class MyApplication:Application() {
     lateinit var container:AppContainer
     private lateinit var auth:FirebaseAuth
-    lateinit var aiUrlPreferenceRepository: AiUrlPreferenceRepository
 
     override fun onCreate() {
         super.onCreate()
@@ -57,7 +46,7 @@ class MyApplication:Application() {
 
         }
 
-        aiUrlPreferenceRepository = AiUrlPreferenceRepository(dataStore)
+
         container = DefaultAppContainer(this)
 
 

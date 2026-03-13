@@ -21,7 +21,6 @@ import androidx.compose.animation.scaleIn
 import androidx.compose.animation.scaleOut
 import androidx.compose.animation.shrinkHorizontally
 import androidx.compose.animation.shrinkVertically
-import androidx.compose.animation.slideInHorizontally
 import androidx.compose.animation.slideInVertically
 import androidx.compose.animation.slideOutHorizontally
 import androidx.compose.animation.slideOutVertically
@@ -121,8 +120,6 @@ import com.mad.softwares.chatApplication.data.ChatOrGroup
 import com.mad.softwares.chatApplication.data.ContentType
 import com.mad.softwares.chatApplication.data.MessageReceived
 import com.mad.softwares.chatApplication.data.messageStatus
-import com.mad.softwares.chatApplication.data.models.AiResponse
-import com.mad.softwares.chatApplication.data.models.messages
 import com.mad.softwares.chatApplication.ui.ApptopBar
 import com.mad.softwares.chatApplication.ui.GodViewModelProvider
 import com.mad.softwares.chatApplication.ui.destinationData
@@ -237,9 +234,8 @@ fun Messages(
         setAndNavigateMdMessage = {
             viewModel.setSelectedMessage(it)
             navigateToMdPreview()
-        },
-//        sendExpensiveAiMessage = viewModel::sendAiChatMessage,
-//        aiMessage = viewModel.aiMessage.collectAsState().value
+        }
+//        aiMessage = aiTagsMessage
     )
 }
 
@@ -257,8 +253,7 @@ fun MessagesBodySuccess(
     deleteMessages: () -> Unit,
     navigateToMdSending: () -> Unit,
     setAndNavigateMdMessage:(currentMessage:MessageReceived)-> Unit,
-//    sendExpensiveAiMessage:()->Unit,
-//    aiMessage : AiResponseUiState,
+//    aiMessage : tags,
     modifier: Modifier = Modifier
 ) {
     val scope = rememberCoroutineScope()
@@ -448,13 +443,11 @@ fun MessagesBodySuccess(
                         listState.animateScrollToItem(0)
                     }
                 },
-//                sendExpensiveAiMessage = sendExpensiveAiMessage,
+                isLoading = uiState.messageScreen == MessageScreen.Loading,
                 updateMessage = updateMessage,
                 sendAttatchment = {
                     sheetVisible = true
-                },
-                isLoading = uiState.messageScreen == MessageScreen.Loading,
-//                aiMessage = aiMessage
+                }
             )
         },
         snackbarHost = {
@@ -494,24 +487,6 @@ fun MessagesBodySuccess(
                 verticalArrangement = Arrangement.Top,
                 //                contentPadding = PaddingValues(top = 100.dp)
             ) {
-//                item(){
-//                    AnimatedContent(targetState = aiMessage.aiState,
-//                        transitionSpec = ({ fadeIn()+slideInVertically { -it } togetherWith fadeOut() })
-//                    ){targetState->
-//                        when(targetState) {
-//                            AiState.Loading -> Text(
-//                                text = "Loading Respone From Ai"
-//                            )
-//                            AiState.Error -> Text(
-//                                text = "Error Communicating to Ai"
-//                            )
-//                            AiState.Success -> {
-//                                Box(){}
-//                            }
-//                        }
-//
-//                    }
-//                }
 
 
                 groupedMessages.forEach { (date, messages) ->
@@ -895,12 +870,6 @@ val styleMap: List<StyleRegex> = listOf(
     )
 )
 
-data class StyleMatch(
-    val style: SpanStyle,
-    val range: IntRange,
-    val content: String,
-)
-
 fun annotateMessage(
     msg: String
 ): AnnotatedString {
@@ -908,38 +877,30 @@ fun annotateMessage(
 
         var currentIndex = 0
         val length = msg.length
+        while (currentIndex < length) {
+            var matchFound = false
 
-        val matches = mutableListOf<StyleMatch>()
+            for ((regex, style, symbol) in styleMap) {
+                val match = regex.find(msg, currentIndex)
 
-        for((regex,style,_)in styleMap){
-            regex.findAll(msg,).forEach{ matchResult ->
-                matches.add(
-                    StyleMatch(style,
-                        matchResult.range,
-                        matchResult.groupValues[1]))
+                if (match != null && match.range.first == currentIndex) {
+                    // Apply the style to the matched text
+                    withStyle(style) {
+                        append(match.groupValues[1])
+                    }
+                    currentIndex = match.range.last + 1
+                    matchFound = true
+                    break
+                }
+            }
+
+            if (!matchFound) {
+                // Append the current character and move to the next
+                append(msg[currentIndex])
+                currentIndex++
             }
         }
-
-        matches.sortBy { it.range.first }
-
-        for (match in matches){
-            if(match.range.first < currentIndex){
-                continue
-            }
-            if(currentIndex< match.range.first){
-                append(msg.substring(currentIndex,match.range.first))
-            }
-
-            withStyle(match.style){
-                append(match.content)
-            }
-            currentIndex += match.range.last +1
-        }
-
-        if(currentIndex< length){
-            append(msg.substring(currentIndex,length))
-        }
-
+        append(msg.substring(currentIndex, msg.length))
     }
 
 
@@ -1027,6 +988,85 @@ fun checkForLink(message: String): Boolean {
     return codeRegex.containsMatchIn(message)
 }
 
+enum class textTypeParse {
+    text,
+    code,
+    link
+}
+
+data class containerMessage(
+    val regex: Regex,
+    val type: textTypeParse
+)
+
+
+fun parseMessage(message: String): Map<String, textTypeParse> {
+    val result = mutableMapOf<String, textTypeParse>()
+
+    val codeRegex = Regex("```(.*?)```", RegexOption.DOT_MATCHES_ALL)
+//    val linkRegex = Regex("<([^\\s]+)>", RegexOption.DOT_MATCHES_ALL) // Ensure no spaces in links
+    val linkRegex = Regex("\\<(.*?)\\>")
+    val advancedLinkRegex = Regex("https://(.*?)")
+//    val linkRegex = Regex("(?:\\[(.*?)]?)\\<(.*?)\\>")
+
+    // Collect matches from al regex patterns
+    val matches = mutableListOf<Triple<IntRange, textTypeParse, String>>()
+
+    codeRegex.findAll(message)
+        .forEach { matches.add(Triple(it.range, textTypeParse.code, it.groupValues[1])) }
+    linkRegex.findAll(message)
+        .forEach { matches.add(Triple(it.range, textTypeParse.link, it.groupValues[1])) }
+    advancedLinkRegex.findAll(message)
+        .forEach { matches.add(Triple(it.range, textTypeParse.link, it.groupValues[1])) }
+
+    // Sort matches by their start positions
+    matches.sortBy { it.first.first }
+
+    var lastIndex = 0
+
+    // Iterate through sorted matches and build the map
+    for ((range, type, content) in matches) {
+        val start = range.first
+        val end = range.last + 1
+
+        // Add the text before the match as plain text
+        if (lastIndex < start) {
+            val textPart = message.substring(lastIndex, start)
+//            val textPart = content
+            result[textPart] = textTypeParse.text
+        }
+
+        // Add the matched text
+//        var matchedPart = message.substring(start, end)
+        var matchedPart = content
+        when (type) {
+            textTypeParse.text -> {
+            }
+
+            textTypeParse.code -> {
+//                matchedPart = matchedPart.removeSurrounding("```")
+            }
+
+            textTypeParse.link -> {
+//                matchedPart = matchedPart.removeSurrounding("<",">")
+
+            }
+        }
+        result[matchedPart] = type
+
+        // Update last index
+        lastIndex = end
+    }
+
+    // Add any remaining text as plain text
+    if (lastIndex < message.length) {
+        val remainingText = message.substring(lastIndex)
+        result[remainingText] = textTypeParse.text
+    }
+
+    return result
+}
+
 
 /*fun parseLinkInMessage(message: String): Map<String, Boolean> {
     val result = mutableMapOf<String, Boolean>()
@@ -1098,101 +1138,69 @@ fun checkForLink(message: String): Boolean {
 //    }
 //}
 
-fun groupSegments(msg: List<MessageSegement>): List<DisplayBlock> {
-    val blocks = mutableListOf<DisplayBlock>()
-    var currentTextGroup = mutableListOf<MessageSegement>()
-
-    for (segment in msg) {
-        if (segment.type == textTypeParse.code) {
-            if (currentTextGroup.isNotEmpty()) {
-                blocks.add(DisplayBlock(isCodeBlock = false, segments = currentTextGroup.toList()))
-                currentTextGroup.clear()
-            }
-            blocks.add(DisplayBlock(isCodeBlock = true, segments = listOf(segment)))
-        } else {
-            currentTextGroup.add(segment)
-        }
-    }
-
-    if (currentTextGroup.isNotEmpty()) {
-        blocks.add(DisplayBlock(isCodeBlock = false, segments = currentTextGroup.toList()))
-    }
-
-    return blocks
-}
-data class DisplayBlock(
-    val isCodeBlock: Boolean,
-    val segments: List<MessageSegement>
-)
-
 @Composable
-fun GetCodeMessage(msg: List<MessageSegement>) {
-//    val parsedMessage = parseMessage(msg)
+fun GetCodeMessage(msg: String) {
+    val parsedMessage = parseMessage(msg)
     val handler = LocalUriHandler.current
     Column(
         modifier = Modifier
             .padding(10.dp)
     ) {
         val context = LocalContext.current
-        msg.forEach {
-            when (it.type) {
-                textTypeParse.code -> {
-                    Card(
-                        modifier = Modifier,
-                        shape = RoundedCornerShape(10.dp),
-                        colors = CardDefaults.cardColors(
-                            containerColor = MaterialTheme.colorScheme.tertiaryContainer
-                        )
-                    ) {
-                        SelectionContainer {
-                            Text(
-                                text = it.content,
-                                modifier = Modifier
-                                    .padding(6.dp),
-                                fontSize = 20.sp,
-                                fontFamily = FontFamily.Monospace
-
-        //                    inlineContent = InlineStyles(msg = msg),
-        //                    onTextLayout = {}
-                            )
-                        }
-                    }
-                }
-                textTypeParse.link -> {
-        //                Card(
-        //                    modifier = Modifier,
-        //                    shape = RoundedCornerShape(10.dp),
-        //                    colors = CardDefaults.cardColors(
-        //                        containerColor = MaterialTheme.colorScheme.error
-        //                    )
-        //                ) {
+        parsedMessage.forEach {
+            if (it.value == textTypeParse.code) {
+                Card(
+                    modifier = Modifier,
+                    shape = RoundedCornerShape(10.dp),
+                    colors = CardDefaults.cardColors(
+                        containerColor = MaterialTheme.colorScheme.tertiaryContainer
+                    )
+                ) {
                     SelectionContainer {
                         Text(
-                            text = it.content,
+                            text = it.key,
                             modifier = Modifier
-                                .padding(6.dp)
-                                .clickable(enabled = true, onClick = {
-        //                                    val intend = Intent(Intent.ACTION_VIEW, Uri.parse(it.key))
-        //                                    context.startActivity(intend)
-                                    handler.openUri(it.content)
-                                }),
-                            fontSize = 18.sp,
-                            fontFamily = FontFamily.Monospace,
-                            textDecoration = TextDecoration.Underline
-        //                    inlineContent = InlineStyles(msg = msg),
-        //                    onTextLayout = {}
+                                .padding(6.dp),
+                            fontSize = 20.sp,
+                            fontFamily = FontFamily.Monospace
+
+//                    inlineContent = InlineStyles(msg = msg),
+//                    onTextLayout = {}
                         )
                     }
-        //                }
                 }
-                textTypeParse.text -> {
-                    val annotatedText = remember (it.content){ annotateMessage(it.content) }
+            } else if (it.value == textTypeParse.link) {
+//                Card(
+//                    modifier = Modifier,
+//                    shape = RoundedCornerShape(10.dp),
+//                    colors = CardDefaults.cardColors(
+//                        containerColor = MaterialTheme.colorScheme.error
+//                    )
+//                ) {
+                SelectionContainer {
                     Text(
-                        text = annotatedText,
-                        modifier = Modifier,
-                        fontSize = 20.sp,
+                        text = it.key,
+                        modifier = Modifier
+                            .padding(6.dp)
+                            .clickable(enabled = true, onClick = {
+//                                    val intend = Intent(Intent.ACTION_VIEW, Uri.parse(it.key))
+//                                    context.startActivity(intend)
+                                handler.openUri(it.key)
+                            }),
+                        fontSize = 18.sp,
+                        fontFamily = FontFamily.Monospace,
+                        textDecoration = TextDecoration.Underline
+//                    inlineContent = InlineStyles(msg = msg),
+//                    onTextLayout = {}
                     )
                 }
+//                }
+            } else if (it.value == textTypeParse.text) {
+                Text(
+                    text = annotateMessage(it.key),
+                    modifier = Modifier,
+                    fontSize = 20.sp,
+                )
             }
         }
     }
@@ -1222,7 +1230,7 @@ fun MdMessageChat(msg: String,setMsg:()->Unit){
         shape = RoundedCornerShape(12.dp),
         onClick = setMsg,
         colors = CardDefaults.cardColors(
-            containerColor = MaterialTheme.colorScheme.surface
+            containerColor = MaterialTheme.colorScheme.secondaryContainer
         )
     ) {
         Column(
@@ -1230,10 +1238,7 @@ fun MdMessageChat(msg: String,setMsg:()->Unit){
                 .padding(4.dp)
         ) {
             Text("Markdown File")
-            Text(msg,
-                maxLines = 1,
-                overflow = TextOverflow.Ellipsis)
-//            Text(msg)
+            Text("${msg.slice(IntRange(0, 20))}...")
         }
     }
 }
@@ -1251,7 +1256,6 @@ fun SenderChat(
     val currentDate = Timestamp.now().toDate()
     val difference = (currentDate.time - date.time) / (1000 * 60 * 60)
     val msg = message.content
-    val parsedMessage = message.parsedContent
     var showTime by remember {
         mutableStateOf(false)
     }
@@ -1291,7 +1295,7 @@ fun SenderChat(
         SimpleDateFormat("YYYY/MM/dd hh:mm a")
     }
     val fDate = sdf.format(date)
-//    val parsedMessage = parseMessage(msg)
+    val parsedMessage = parseMessage(msg)
     val IntrSource = remember {
         MutableInteractionSource()
     }
@@ -1386,13 +1390,13 @@ fun SenderChat(
                                 //                            }GetCodeMessage(msg = msg)
 
                                 when (message.contentType) {
-                                    ContentType.text -> GetCodeMessage(parsedMessage)
-                                    ContentType.image -> GetCodeMessage(parsedMessage)
-                                    ContentType.document -> GetCodeMessage(parsedMessage)
-                                    ContentType.audio -> GetCodeMessage(parsedMessage)
-                                    ContentType.video -> GetCodeMessage(parsedMessage)
-                                    ContentType.deleted -> GetCodeMessage(parsedMessage)
-                                    ContentType.default -> GetCodeMessage(parsedMessage)
+                                    ContentType.text -> GetCodeMessage(msg)
+                                    ContentType.image -> GetCodeMessage(msg)
+                                    ContentType.document -> GetCodeMessage(msg)
+                                    ContentType.audio -> GetCodeMessage(msg)
+                                    ContentType.video -> GetCodeMessage(msg)
+                                    ContentType.deleted -> GetCodeMessage(msg)
+                                    ContentType.default -> GetCodeMessage(msg)
                                     ContentType.Md -> MdMessageChat(msg) {
                                         setAndNavigateMdMessage(message)
                                     }
@@ -1711,7 +1715,6 @@ fun ReceiverChat(
     var showTime by remember {
         mutableStateOf(false)
     }
-    val parsedMessage = message.parsedContent
 
     val aloneShape = RoundedCornerShape(5.dp, 20.dp, 20.dp, 20.dp)
     val topShape = RoundedCornerShape(20.dp, 20.dp, 20.dp, 5.dp)
@@ -1802,13 +1805,13 @@ fun ReceiverChat(
                             //                    }
 //                            GetCodeMessage(msg = message.content)
                             when (message.contentType) {
-                                ContentType.text -> GetCodeMessage(parsedMessage)
-                                ContentType.image -> GetCodeMessage(parsedMessage)
-                                ContentType.document -> GetCodeMessage(parsedMessage)
-                                ContentType.audio -> GetCodeMessage(parsedMessage)
-                                ContentType.video -> GetCodeMessage(parsedMessage)
-                                ContentType.deleted -> GetCodeMessage(parsedMessage)
-                                ContentType.default -> GetCodeMessage(parsedMessage)
+                                ContentType.text -> GetCodeMessage(message.content)
+                                ContentType.image -> GetCodeMessage(message.content)
+                                ContentType.document -> GetCodeMessage(message.content)
+                                ContentType.audio -> GetCodeMessage(message.content)
+                                ContentType.video -> GetCodeMessage(message.content)
+                                ContentType.deleted -> GetCodeMessage(message.content)
+                                ContentType.default -> GetCodeMessage(message.content)
                                 ContentType.Md -> MdMessageChat(message.content) {
                                     setAndNavigateMdMessage(message)
                                 }
@@ -1886,7 +1889,6 @@ fun ReceiverGroupChat(
     var showTime by remember {
         mutableStateOf(false)
     }
-    val parsedMessage = message.parsedContent
 
     val aloneShape = RoundedCornerShape(5.dp, 20.dp, 20.dp, 20.dp)
     val topShape = RoundedCornerShape(20.dp, 20.dp, 20.dp, 5.dp)
@@ -1985,13 +1987,13 @@ fun ReceiverGroupChat(
                             //                    }
 //                            GetCodeMessage(msg = message.content)
                             when (message.contentType) {
-                                ContentType.text -> GetCodeMessage(parsedMessage)
-                                ContentType.image -> GetCodeMessage(parsedMessage)
-                                ContentType.document -> GetCodeMessage(parsedMessage)
-                                ContentType.audio -> GetCodeMessage(parsedMessage)
-                                ContentType.video -> GetCodeMessage(parsedMessage)
-                                ContentType.deleted -> GetCodeMessage(parsedMessage)
-                                ContentType.default -> GetCodeMessage(parsedMessage)
+                                ContentType.text -> GetCodeMessage(message.content)
+                                ContentType.image -> GetCodeMessage(message.content)
+                                ContentType.document -> GetCodeMessage(message.content)
+                                ContentType.audio -> GetCodeMessage(message.content)
+                                ContentType.video -> GetCodeMessage(message.content)
+                                ContentType.deleted -> GetCodeMessage(message.content)
+                                ContentType.default -> GetCodeMessage(message.content)
                                 ContentType.Md -> MdMessageChat(message.content) {
                                     setAndNavigateMdMessage(message)
                                 }
@@ -2053,11 +2055,9 @@ fun BottomMessageSend(
     modifier: Modifier = Modifier,
     appUistate: MessagesUiState,
     sendMessage: () -> Unit,
-//    sendExpensiveAiMessage:()->Unit,
     updateMessage: (String) -> Unit,
     sendAttatchment: () -> Unit,
-    isLoading: Boolean,
-//    aiMessage : AiResponseUiState,
+    isLoading: Boolean
 ) {
     val scope = rememberCoroutineScope()
     val haptic = LocalHapticFeedback.current
@@ -2158,68 +2158,57 @@ fun BottomMessageSend(
                     //
 
                     if (!isLoading) {
-                        AnimatedVisibility(
-                            visible = true,
-                            enter = slideInHorizontally(initialOffsetX = {it}),
-                            exit = slideOutHorizontally(targetOffsetX = {it})
-                        )
-                        {
-                            IconButton(
-                                onClick = {
-                                    if (appUistate.messageToSend.isNotEmpty()) {
-                                        haptic.performHapticFeedback(HapticFeedbackType.TextHandleMove)
-//                                    if(appUistate.currChat.isAiChat){
-//                                        sendExpensiveAiMessage()
-//                                    }else{
-                                        sendMessage()
-//                                    }
-                                    } else {
-                                        haptic.performHapticFeedback(HapticFeedbackType.TextHandleMove)
-                                        sendAttatchment()
-                                    }
-                                },
+                        IconButton(
+                            onClick = {
+                                if (appUistate.messageToSend.isNotEmpty()) {
+                                    haptic.performHapticFeedback(HapticFeedbackType.TextHandleMove)
+                                    sendMessage()
+                                } else {
+                                    haptic.performHapticFeedback(HapticFeedbackType.TextHandleMove)
+                                    sendAttatchment()
+                                }
+                            },
 
-                                modifier = Modifier
-                                    //                        .fillMaxWidth()
-                                    .padding(bottom = 10.dp, end = 10.dp)
-                                    .size(45.dp),
-                                colors = IconButtonDefaults.iconButtonColors(
-                                    containerColor = MaterialTheme.colorScheme.primary
+                            modifier = Modifier
+                                //                        .fillMaxWidth()
+                                .padding(bottom = 10.dp, end = 10.dp)
+                                .size(45.dp),
+                            colors = IconButtonDefaults.iconButtonColors(
+                                containerColor = MaterialTheme.colorScheme.primary
 
-                                )
+                            )
+                        ) {
+                            AnimatedVisibility(
+                                visible = appUistate.messageToSend.isNotEmpty(),
+                                enter = scaleIn(),
+                                exit = scaleOut()
                             ) {
-                                AnimatedVisibility(
-                                    visible = appUistate.messageToSend.isNotEmpty(),
-                                    enter = scaleIn(),
-                                    exit = scaleOut()
-                                ) {
-                                    Icon(
-                                        imageVector = Icons.AutoMirrored.Filled.Send,
-                                        modifier = Modifier
-                                            .fillMaxHeight()
-                                            .padding(10.dp)
-                                            .size(80.dp),
-                                        tint = MaterialTheme.colorScheme.onPrimary,
-                                        contentDescription = "send"
-                                    )
-                                }
-                                AnimatedVisibility(
-                                    visible = appUistate.messageToSend.isEmpty(),
-                                    enter = scaleIn(),
-                                    exit = scaleOut()
-                                ) {
-                                    Icon(
-                                        imageVector = Icons.Default.Attachment,
-                                        modifier = Modifier
-                                            .fillMaxHeight()
-                                            .padding(10.dp)
-                                            .size(80.dp),
-                                        tint = MaterialTheme.colorScheme.onPrimary,
-                                        contentDescription = "send"
-                                    )
-                                }
-
+                                Icon(
+                                    imageVector = Icons.AutoMirrored.Filled.Send,
+                                    modifier = Modifier
+                                        .fillMaxHeight()
+                                        .padding(10.dp)
+                                        .size(80.dp),
+                                    tint = MaterialTheme.colorScheme.onPrimary,
+                                    contentDescription = "send"
+                                )
                             }
+                            AnimatedVisibility(
+                                visible = appUistate.messageToSend.isEmpty(),
+                                enter = scaleIn(),
+                                exit = scaleOut()
+                            ) {
+                                Icon(
+                                    imageVector = Icons.Default.Attachment,
+                                    modifier = Modifier
+                                        .fillMaxHeight()
+                                        .padding(10.dp)
+                                        .size(80.dp),
+                                    tint = MaterialTheme.colorScheme.onPrimary,
+                                    contentDescription = "send"
+                                )
+                            }
+
                         }
                     }
 
@@ -2264,7 +2253,7 @@ fun SecureMessageTag(
 //}
 
 @Preview(
-    device = "spec:width=1280dp,height=800dp,dpi=240,orientation=portrait", showSystemUi = true, showBackground = false,
+    device = "id:pixel_9_pro", showSystemUi = true, showBackground = false,
     wallpaper = Wallpapers.GREEN_DOMINATED_EXAMPLE, backgroundColor = 0xFFA42626
 )
 @Composable
@@ -2286,7 +2275,6 @@ fun PreviewMessagebodySuccess() {
                     MessageReceived(
                         messageId = "1",
                         content = "Hello Friend",
-                        parsedContent = listOf(MessageSegement("Hello bro ~strid~ style *bold*", textTypeParse.text)),
                         timeStamp = Timestamp(Date(2024 - 1900, 1, 25, 20, 15)),
                         senderId = "ThereSelf",
                         status = messageStatus.Send
@@ -2294,152 +2282,13 @@ fun PreviewMessagebodySuccess() {
                     MessageReceived(
                         messageId = "2",
                         content = "Hello Friend How are you doing",
-                        parsedContent = listOf(MessageSegement("Hello !bro! how are you doing *another* this is at end here.", textTypeParse.text)),
-                        timeStamp = Timestamp(Date(2024 - 1900, 1, 25, 20, 18)),
-                        senderId = "ThereSelf",
-                        status = messageStatus.Send
-                    ),
-                    MessageReceived(
-                        messageId = "4",
-                        content = "Link here https://www.google.com",
-                        parsedContent = listOf(MessageSegement("https://www.google.com", textTypeParse.link)),
-                        timeStamp = Timestamp(Date(2024 - 1900, 1, 25, 20, 18)),
-                        senderId = "ThereSelf",
-                        status = messageStatus.Send
-                    ),
-                    MessageReceived(
-                        messageId = "4",
-                        content = "Link here https://www.google.com",
-                        parsedContent = listOf(MessageSegement("AI Tools Directory: Video, Image, 3D, and Local AI\n" +
-                                "### \uD83C\uDFA5 Text-to-Video Generators (Cloud-Based)\n" +
-                                "Note: These tools run on cloud servers. Your local GPU, Mac, or phone specs do not affect their generation speed, only your web browser experience. Even the oldest chips survive here!\n" +
-                                " * Pika (pika.art) – Cinematic, stylized motion from text prompts.\n" +
-                                " * Runway Gen-2 / Gen-3 Alpha ([suspicious link removed]) – Industry-leading photorealistic temporal consistency.\n" +
-                                " * Luma Dream Machine (lumalabs.ai/dream-machine) – Fast transformer model for realistic physics.\n" +
-                                " * Kling AI (klingai.com) – Framework capable of holding long (up to 2 mins) consistent shots.\n" +
-                                " * Kaiber AI (kaiber.ai) – Audio-reactive diffusion models for music synchronization.\n" +
-                                "Performance across all Cloud Video tools:\n" +
-                                " * Desktop 5070 Ti (16GB): ⭐⭐⭐⭐⭐\n" +
-                                " * Laptop 5070 Ti (12GB): ⭐⭐⭐⭐⭐\n" +
-                                " * RTX 5060: ⭐⭐⭐⭐⭐\n" +
-                                " * Mac M4 (16GB): ⭐⭐⭐⭐⭐\n" +
-                                " * MX450: ⭐⭐⭐⭐⭐\n" +
-                                " * Snapdragon 8 Elite Gen 5: ⭐⭐⭐⭐⭐ (Runs perfectly in mobile Chrome/Brave)\n" +
-                                " * Snapdragon 8s Gen 3: ⭐⭐⭐⭐⭐\n" +
-                                " * Snapdragon 7s Gen 2: ⭐⭐⭐⭐⭐\n" +
-                                "\uD83D\uDD13 Open-Source Video Models (Local / Self-Hosted)\n" +
-                                "Note: Local video generation is extremely VRAM hungry. Android devices running Linux PRoot environments lack dedicated VRAM and rely on CPU rendering with high overhead. Don't expect to run heavy video generation on a phone.\n" +
-                                " * Open-Sora 2.0 (GitHub) – 11B parameter DiT mapping text to video latents.\n" +
-                                " * Desktop 5070 Ti (16GB): ⭐⭐⭐⭐\n" +
-                                " * Laptop 5070 Ti (12GB): ⭐⭐ (Requires heavy quantization)\n" +
-                                " * RTX 5060: ⭐ (VRAM bottleneck)\n" +
-                                " * Mac M4 (16GB): ⭐ (Will struggle with unified memory limits)\n" +
-                                " * MX450: ❌ (Instant Crash)\n" +
-                                " * Snapdragon 8 Elite Gen 5 (Termux PRoot): ❌ (Linux PRoot overhead + RAM limits will cause an instant OOM kill)\n" +
-                                " * Snapdragon 8s Gen 3 (Termux PRoot): ❌\n" +
-                                " * Snapdragon 7s Gen 2 (Termux PRoot): ❌\n" +
-                                " * LTX-Video (GitHub) – Highly optimized, fast-stepping diffusion model.\n" +
-                                " * Desktop 5070 Ti (16GB): ⭐⭐⭐⭐⭐\n" +
-                                " * Laptop 5070 Ti (12GB): ⭐⭐⭐⭐⭐ (Perfect fit)\n" +
-                                " * RTX 5060: ⭐⭐⭐⭐\n" +
-                                " * Mac M4 (16GB): ⭐⭐⭐⭐\n" +
-                                " * MX450: ❌\n" +
-                                " * Snapdragon 8 Elite Gen 5 (Termux PRoot): ⭐ (Might theoretically boot a quantized version overnight, but practically unusable)\n" +
-                                " * Snapdragon 8s Gen 3 (Termux PRoot): ❌\n" +
-                                " * Snapdragon 7s Gen 2 (Termux PRoot): ❌\n" +
-                                " * CogVideoX (GitHub) – 3D RoPE and 3D VAE architecture.\n" +
-                                " * Desktop 5070 Ti (16GB): ⭐⭐⭐⭐⭐\n" +
-                                " * Laptop 5070 Ti (12GB): ⭐⭐⭐⭐⭐ (For 2B Model)\n" +
-                                " * RTX 5060: ⭐⭐⭐⭐⭐ (For 2B Model)\n" +
-                                " * Mac M4 (16GB): ⭐⭐⭐⭐\n" +
-                                " * MX450: ⭐\n" +
-                                " * Snapdragon 8 Elite Gen 5 (Termux PRoot): ❌ (No native PyTorch/CUDA support via PRoot makes 3D attention layers fail)\n" +
-                                " * Snapdragon 8s Gen 3 (Termux PRoot): ❌\n" +
-                                " * Snapdragon 7s Gen 2 (Termux PRoot): ❌\n" +
-                                "### \uD83C\uDFA8 Specialized & Design Video (Cloud)\n" +
-                                "Note: All cloud-based. Hardware does not matter.\n" +
-                                " * Reeroll (reeroll.com) – AI motion graphics templates.\n" +
-                                " * Golpo AI (video.golpoai.com) – Whiteboard explainers.\n" +
-                                " * Boba AI (boba.video) – Anime style with lip-sync.\n" +
-                                " * Hera (hera.video) – AI motion designer.\n" +
-                                " * Bazaar (bazaar.it) – App screenshots to demo videos.\n" +
-                                " * Lumen5 (lumen5.com) – Blog/Article to video.\n" +
-                                "Performance across all Cloud Design tools:\n" +
-                                " * Desktop 5070 Ti (16GB): ⭐⭐⭐⭐⭐\n" +
-                                " * Laptop 5070 Ti (12GB): ⭐⭐⭐⭐⭐\n" +
-                                " * RTX 5060: ⭐⭐⭐⭐⭐\n" +
-                                " * Mac M4 (16GB): ⭐⭐⭐⭐⭐\n" +
-                                " * MX450: ⭐⭐⭐⭐⭐\n" +
-                                " * Snapdragon 8 Elite Gen 5: ⭐⭐⭐⭐⭐\n" +
-                                " * Snapdragon 8s Gen 3: ⭐⭐⭐⭐⭐\n" +
-                                " * Snapdragon 7s Gen 2: ⭐⭐⭐⭐⭐\n" +
-                                "### \uD83E\uDDCA 3D Generation & Spatial AI\n" +
-                                " * Marble (marble.worldlabs.ai) – Cloud-based NeRF / Gaussian Splatting from text.\n" +
-                                " * Desktop 5070 Ti (16GB): ⭐⭐⭐⭐⭐\n" +
-                                " * Laptop 5070 Ti (12GB): ⭐⭐⭐⭐⭐\n" +
-                                " * RTX 5060: ⭐⭐⭐⭐⭐\n" +
-                                " * Mac M4 (16GB): ⭐⭐⭐⭐⭐\n" +
-                                " * MX450: ⭐⭐⭐⭐\n" +
-                                " * Snapdragon 8 Elite Gen 5: ⭐⭐⭐⭐⭐ (Handles WebGL rendering natively in browser flawlessly)\n" +
-                                " * Snapdragon 8s Gen 3: ⭐⭐⭐⭐\n" +
-                                " * Snapdragon 7s Gen 2: ⭐⭐⭐\n" +
-                                " * Shap-E (GitHub) – Local model outputting implicit 3D functions.\n" +
-                                " * Desktop 5070 Ti (16GB): ⭐⭐⭐⭐⭐\n" +
-                                " * Laptop 5070 Ti (12GB): ⭐⭐⭐⭐⭐\n" +
-                                " * RTX 5060: ⭐⭐⭐⭐⭐\n" +
-                                " * Mac M4 (16GB): ⭐⭐⭐⭐⭐\n" +
-                                " * MX450: ⭐⭐\n" +
-                                " * Snapdragon 8 Elite Gen 5 (Termux): ⭐⭐ (CPU inference works inside PRoot, but rendering is slow)\n" +
-                                " * Snapdragon 8s Gen 3 (Termux): ⭐\n" +
-                                " * Snapdragon 7s Gen 2 (Termux): ❌\n" +
-                                "### \uD83D\uDCBB Local AI & Infrastructure (Launchers & LLMs) is this limit\n" +
-                                "Note: This is where Android phones using Termux natively shine! By using compiled llama.cpp or the ollama package directly in Termux, you can bypass Linux PRoot overhead and run AI directly on the Snapdragon chip, taking advantage of fast LPDDR RAM.\n" +
-                                " * Ollama / Llama.cpp (Local LLMs) (ollama.com) – C++ based local inference engine.\n" +
-                                " * Desktop 5070 Ti (16GB): ⭐⭐⭐⭐⭐ (Handles 14B+ models easily)\n" +
-                                " * Laptop 5070 Ti (12GB): ⭐⭐⭐⭐ (Handles 8B models beautifully)\n" +
-                                " * RTX 5060: ⭐⭐⭐ (Limited by 8GB VRAM)\n" +
-                                " * Mac M4 (16GB): ⭐⭐⭐⭐⭐ (Apple's Unified memory bandwidth is king here)\n" +
-                                " * MX450: ⭐ (Painfully slow 2 tokens/sec)\n" +
-                                " * Snapdragon 8 Elite Gen 5 (Termux Native): ⭐⭐⭐⭐⭐ (Has incredible memory bandwidth and Hexagon NPU. Runs 8B models at 25+ tokens/sec locally!)\n" +
-                                " * Snapdragon 8s Gen 3 (Termux Native): ⭐⭐⭐ (Can run 3B/4B models comfortably; 8B models will be slower but usable)\n" +
-                                " * Snapdragon 7s Gen 2 (Termux Native): ⭐ (Will struggle, memory bandwidth is too low. Expect 1-2 tokens/sec on tiny models)\n" +
-                                "### \uD83D\uDEE0\uFE0F Open-Source Editors & Image Tools (Local)\n" +
-                                " * ComfyUI (comfy.org) – Node-based GUI. On Android, requires Termux + PRoot Ubuntu + Termux-X11 + running in CPU mode (--cpu).\n" +
-                                " * Desktop 5070 Ti (16GB): ⭐⭐⭐⭐⭐\n" +
-                                " * Laptop 5070 Ti (12GB): ⭐⭐⭐⭐⭐\n" +
-                                " * RTX 5060: ⭐⭐⭐⭐\n" +
-                                " * Mac M4 (16GB): ⭐⭐⭐⭐\n" +
-                                " * MX450: ⭐⭐\n" +
-                                " * Snapdragon 8 Elite Gen 5 (Termux PRoot): ⭐⭐⭐ (With CPU mode, its massive raw CPU power can actually generate an SD 1.5 image in about 1-2 minutes. Usable for basic workflows!)\n" +
-                                " * Snapdragon 8s Gen 3 (Termux PRoot): ⭐⭐ (Takes 5-8 minutes per image. Phone will get very hot)\n" +
-                                " * Snapdragon 7s Gen 2 (Termux PRoot): ❌ (Android OS will violently kill the Termux process to save RAM)\n" +
-                                " * Qwen Image Edit (HuggingFace) – Instruction-based VLM editing.\n" +
-                                " * Desktop 5070 Ti (16GB): ⭐⭐⭐⭐⭐\n" +
-                                " * Laptop 5070 Ti (12GB): ⭐⭐⭐⭐\n" +
-                                " * RTX 5060: ⭐⭐⭐\n" +
-                                " * Mac M4 (16GB): ⭐⭐⭐⭐\n" +
-                                " * MX450: ❌\n" +
-                                " * Snapdragon 8 Elite Gen 5 (Termux PRoot): ⭐ (Too heavy for Android PRoot emulation overhead)\n" +
-                                " * Snapdragon 8s Gen 3 (Termux PRoot): ❌\n" +
-                                " * Snapdragon 7s Gen 2 (Termux PRoot): ❌\n" +
-                                "### \uD83D\uDC64 Portrait & Character Video (Local)\n" +
-                                " * Flash Portrait / StoryMem / InfCam – Specialized ControlNet wrappers for talking heads.\n" +
-                                " * Desktop 5070 Ti (16GB): ⭐⭐⭐⭐⭐\n" +
-                                " * Laptop 5070 Ti (12GB): ⭐⭐⭐⭐\n" +
-                                " * RTX 5060: ⭐⭐⭐\n" +
-                                " * Mac M4 (16GB): ⭐⭐\n" +
-                                " * MX450: ❌\n" +
-                                " * Snapdragon 8 Elite Gen 5 (Termux PRoot): ❌ (Running multiple ControlNets simultaneously inside a Linux container will instantly nuke Android's RAM management)\n" +
-                                " * Snapdragon 8s Gen 3 (Termux PRoot): ❌\n" +
-                                " * Snapdragon 7s Gen 2 (Termux PRoot): ❌" +
-                                "Ends here last....", textTypeParse.text)),
                         timeStamp = Timestamp(Date(2024 - 1900, 1, 25, 20, 18)),
                         senderId = "ThereSelf",
                         status = messageStatus.Send
                     ),
                     MessageReceived(
                         messageId = "3",
-                        content = "**Hello** this is **new markdown** message",
+                        content = "# Hello this is new markdown message",
                         contentType = ContentType.Md,
                         timeStamp = Timestamp(Date(2024 - 1900, 1, 25, 20, 20)),
                         senderId = "MyeSElf",
@@ -2502,7 +2351,8 @@ fun PreviewMessagebodySuccess() {
             deleteMessages = {},
             selectionBoth = {},
             navigateToMdSending = {},
-            setAndNavigateMdMessage = {},
+            setAndNavigateMdMessage = {}
+//            aiMessage = tags(listOf(OllamaModel(name="one",model="one")))
         )
     }
 }
