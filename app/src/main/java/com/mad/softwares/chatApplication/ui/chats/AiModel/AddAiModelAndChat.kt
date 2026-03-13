@@ -161,7 +161,7 @@ fun AiTagBodyPreview(){
                 tags = tags(listOf(OllamaModel("Loading...","loaingd.."),
                     OllamaModel("Loading...","loaingd.."),
                     OllamaModel("Loading...","loaingd.."))),
-                fetchStatus = AiModelStatus.Error
+                fetchStatus = AiModelStatus.Loading
             ),
             navigateUp = {},
             onChatButtonClick = {},

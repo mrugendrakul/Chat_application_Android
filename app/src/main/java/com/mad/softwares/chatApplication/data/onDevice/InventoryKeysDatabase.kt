@@ -23,7 +23,7 @@ abstract class InventoryKeysDatabase:RoomDatabase() {
         fun getDatabase(context: Context): InventoryKeysDatabase {
             return INSTANCE ?:synchronized(this) {
                 Room.databaseBuilder(context, InventoryKeysDatabase::class.java, "keys_database")
-                    .fallbackToDestructiveMigration()
+                    .fallbackToDestructiveMigration(false)
                     .build()
                     .also { INSTANCE = it }
             }

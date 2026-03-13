@@ -8,6 +8,7 @@ import com.mad.softwares.chatApplication.data.models.tags
 import kotlinx.serialization.json.Json
 import okhttp3.MediaType.Companion.toMediaType
 import okhttp3.OkHttpClient
+import okhttp3.ResponseBody
 import retrofit2.Retrofit
 import retrofit2.converter.gson.GsonConverterFactory
 import retrofit2.create
@@ -15,6 +16,7 @@ import retrofit2.http.Body
 import retrofit2.http.GET
 import retrofit2.http.Headers
 import retrofit2.http.POST
+import retrofit2.http.Streaming
 import java.util.concurrent.TimeUnit
 
 
@@ -26,15 +28,10 @@ val baseUrl =
     }
 val okHttpClient=  OkHttpClient.Builder()
         .connectTimeout(30, TimeUnit.SECONDS)
-    .readTimeout(1, TimeUnit.MINUTES)
+    .readTimeout(2, TimeUnit.MINUTES)
     .writeTimeout(30, TimeUnit.SECONDS)
     .build()
-val retroFitObject =
-    Retrofit.Builder()
-        .client(okHttpClient)
-        .addConverterFactory(GsonConverterFactory.create())
-        .baseUrl(baseUrl)
-        .build()
+
 
 interface AiApiLocalhostService {
     @GET("/api/tags")
@@ -42,14 +39,39 @@ interface AiApiLocalhostService {
 //@Headers("Read-Timeout: 120")
     @POST("api/chat")
     suspend fun sendMessage(@Body request: ollamaResponse): AiResponse
+
+    @Streaming
+    @POST("api/chat")
+    suspend fun sendMessageStream(@Body request: ollamaResponse): ResponseBody
 }
 interface AiApiLocalhostInterface{
 
     val aiTakling: AiApiLocalhostService
 }
 
-class AiApiLocalhost: AiApiLocalhostInterface {
+class AiApiLocalhost(
+    private val aiEndPoint:String
+): AiApiLocalhostInterface {
+    companion object{
+        private var cachedUrl:String = if (BuildConfig.DEBUG){
+            "http://10.0.2.2:11434"
+        } else {
+            "http://127.0.0.1:11434"
+        }
+        private var cachedRetrofitService: AiApiLocalhostService? = null
+    }
     override val aiTakling: AiApiLocalhostService by lazy {
-        retroFitObject.create(AiApiLocalhostService::class.java)
+        if(cachedUrl !=aiEndPoint || cachedRetrofitService == null){
+            val retroFitObject =
+                Retrofit.Builder()
+                    .client(okHttpClient)
+                    .addConverterFactory(GsonConverterFactory.create())
+                    .baseUrl("http://$aiEndPoint")
+                    .build()
+            cachedRetrofitService = retroFitObject.create(AiApiLocalhostService::class.java)
+            cachedUrl = aiEndPoint
+        }
+
+        return@lazy cachedRetrofitService!!
     }
 }

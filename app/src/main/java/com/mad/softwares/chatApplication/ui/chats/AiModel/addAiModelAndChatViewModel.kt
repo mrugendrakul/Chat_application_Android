@@ -81,7 +81,7 @@ class AddAiModelAndChatViewModel(
                 else->{
                     TagsUiState(
                         tags = tags(listOf(OllamaModel("Loading...","Loading..."))),
-                        fetchStatus = AiModelStatus.Error
+                        fetchStatus = AiModelStatus.Loading
                     )
                 }
             }
