@@ -5,9 +5,6 @@ import android.os.Build
 import android.util.Log
 import androidx.activity.compose.BackHandler
 import androidx.annotation.RequiresApi
-import androidx.compose.animation.EnterTransition
-import androidx.compose.animation.slideInHorizontally
-import androidx.compose.animation.slideOutHorizontally
 import androidx.compose.foundation.layout.RowScope
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
@@ -46,9 +43,6 @@ import com.mad.softwares.chatApplication.ui.chats.chatsScreenDestination
 import com.mad.softwares.chatApplication.ui.chats.groups.AddGroupViewModel
 import com.mad.softwares.chatApplication.ui.chats.groups.AddGroupWithName
 import com.mad.softwares.chatApplication.ui.chats.groups.addGroupWithNameDestination
-import com.mad.softwares.chatApplication.ui.messages.AiMessages
-import com.mad.softwares.chatApplication.ui.messages.AiMessagesDestinationData
-import com.mad.softwares.chatApplication.ui.messages.AiMessagesUiState
 import com.mad.softwares.chatApplication.ui.messages.MdMessageViewer
 import com.mad.softwares.chatApplication.ui.messages.MdMessageViewerDataDestination
 import com.mad.softwares.chatApplication.ui.messages.MdSenderScreen
@@ -65,8 +59,6 @@ import com.mad.softwares.chatApplication.ui.welcome.WelcomeScreen
 import com.mad.softwares.chatApplication.ui.messages.messagesdestinationData
 import com.mad.softwares.chatApplication.ui.migration.MigrationScreen
 import com.mad.softwares.chatApplication.ui.migration.migrationScreenDestination
-import com.mad.softwares.chatApplication.ui.userInfoAndPreferences.UserInfoAndPreference
-import com.mad.softwares.chatApplication.ui.userInfoAndPreferences.UserInfoAndPreferencesDestination
 
 val TAGnav = "navLog"
 
@@ -160,37 +152,6 @@ fun ApplicationScreen(
                 },
                 navigateToAddAiModel = {
                     navController.navigate(addAiModelAndChatDestination.route)
-                },
-                navigateToUserInfo = {
-                    navController.navigate(UserInfoAndPreferencesDestination.route)
-                },
-                navigateToAiChat = {
-                    navController.navigate("${AiMessagesDestinationData.route}/${it}")
-                }
-            )
-        }
-
-        navigation(
-            startDestination = AiMessagesDestinationData.routeWithArgs,
-            route = AiMessagesDestinationData.nestedGraphMessages
-        ){
-            composable(
-                route = AiMessagesDestinationData.routeWithArgs,
-                arguments = listOf(navArgument(AiMessagesDestinationData.chatIDAndUsername){
-                    type= NavType.StringType
-                    defaultValue= ""
-                })
-            ){
-                AiMessages()
-            }
-        }
-
-        composable(route = UserInfoAndPreferencesDestination.route,
-            enterTransition = { slideInHorizontally { it } },
-            exitTransition = { slideOutHorizontally { it } }) {
-            UserInfoAndPreference(
-                navigateUp = {
-                    navController.navigateUp()
                 }
             )
         }

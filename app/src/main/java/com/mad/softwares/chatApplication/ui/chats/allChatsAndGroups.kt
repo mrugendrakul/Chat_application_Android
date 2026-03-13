@@ -122,9 +122,7 @@ fun AllChatsAndGroups(
     navigateToAddAiModel : ()->Unit,
     navigateToWelcome: () -> Unit,
     navigateToCurrentChat: (String) -> Unit,
-    navigateToMigration :()->Unit,
-    navigateToUserInfo: () -> Unit,
-    navigateToAiChat : (String)->Unit,
+    navigateToMigration :()->Unit
 ) {
 
 
@@ -148,9 +146,7 @@ fun AllChatsAndGroups(
                 deSelectAll = viewModel::deSelectAll,
                 deleteChats = viewModel::deleteChats,
                 navigateToMigration = viewModel::startMigration,
-                removeMigrationStatus = viewModel::removeStatusMigration,
-                navigateToUserInfo = navigateToUserInfo,
-                navigateToAiChat = navigateToAiChat
+                removeMigrationStatus = viewModel::removeStatusMigration
             )
         }
 
@@ -207,9 +203,7 @@ fun UserChatsBody(
     deSelectAll: () -> Unit,
     deleteChats: () -> Unit,
     navigateToMigration: () -> Unit,
-    removeMigrationStatus: () -> Unit,
-    navigateToUserInfo :()->Unit,
-    navigateToAiChat :(String)->Unit,
+    removeMigrationStatus: () -> Unit
 ) {
     val scrollBehavior = TopAppBarDefaults.enterAlwaysScrollBehavior()
     val listState = rememberLazyListState()
@@ -288,19 +282,13 @@ fun UserChatsBody(
                             DropdownMenu(
                                 expanded = expandDDMenu,
                                 onDismissRequest = { expandDDMenu = !expandDDMenu }) {
-//                                DropdownMenuItem(
-//                                    text = { Text(text = chatsUiState.currentUser.username) },
-//                                    onClick = { /*TODO*/ }
-//                                )
-//                                DropdownMenuItem(
-//                                    text = { Text(text = "Logout from here") },
-//                                    onClick = logOut
-//                                )
                                 DropdownMenuItem(
-                                    text = {Text(text = "My Information")},
-                                    onClick = {
-                                        expandDDMenu = !expandDDMenu
-                                        navigateToUserInfo() }
+                                    text = { Text(text = chatsUiState.currentUser.username) },
+                                    onClick = { /*TODO*/ }
+                                )
+                                DropdownMenuItem(
+                                    text = { Text(text = "Logout from here") },
+                                    onClick = logOut
                                 )
 
                             }
@@ -508,14 +496,8 @@ fun UserChatsBody(
                     verticalArrangement = Arrangement.Top
                 ) {
                     ShowChats(
-                        chatsUiState = chatsUiState,
-                        paddingValues = paddingValues,
-                        listState = listState,
-                        navigateToCurrentChat = navigateToCurrentChat,
-                        isCardEnabled = isCardEnabled,
-                        setSelectionChats = setSelect,
-                        addToSelection = addToSelection,
-                        navigateToAiChat = navigateToAiChat,
+                        uiState = chatsUiState,
+                        paddingValues = paddingValues
                     )
                 }
             }
@@ -943,14 +925,7 @@ fun SingleChat(
                             )
                         )
                     }
-                    val shortenedMessage = if(
-                        chat.lastMessage.content.length>50
-                    ){
-                        chat.lastMessage.content.substring(0,50)
-                    }else{
-                        chat.lastMessage.content
-                    }
-                    val annotatedMessage = annotateMessage(shortenedMessage)
+                    val annotatedMessage = annotateMessage(chat.lastMessage.content)
 
                     Text(
                         text = if (chat.lastMessage.timestamp == Timestamp(0, 0)) {
@@ -995,35 +970,12 @@ fun SingleChat(
 
 @Composable
 fun ShowChats(
-    chatsUiState: ChatsUiState,
-    paddingValues: PaddingValues,
-    listState: LazyListState,
-    navigateToCurrentChat: (String) -> Unit,
-    isCardEnabled: Boolean,
-    setSelectionChats: () -> Unit,
-    addToSelection: (Boolean, ChatOrGroup) -> Unit,
-    navigateToAiChat:(String)->Unit,
+    uiState: ChatsUiState,
+    paddingValues: PaddingValues
 ){
-
-    val haptic = LocalHapticFeedback.current
-    if (chatsUiState.aiChats.isEmpty()) {
-        Column(
-            modifier = Modifier
-                .padding(paddingValues)
-//                .fillMaxSize()
-            ,
-            verticalArrangement = Arrangement.Center,
-            horizontalAlignment = Alignment.CenterHorizontally
-        ) {
-            Text(
-                text = "No Ai chats yet press below icon to add chat with AI model",
-                fontSize = 20.sp,
-                textAlign = TextAlign.Center
-            )
-        }
-    } else {LazyColumn(
+    LazyColumn(
         modifier = Modifier
-//            .fillMaxSize()
+            .fillMaxSize()
             .padding(paddingValues)
     ) {
 //        item {
@@ -1035,62 +987,18 @@ fun ShowChats(
 //                Text("Ai Chats Coming soon \uD83D\uDE09")
 //            }
 //        }
-        if (!chatsUiState.selectStatus) {
-            items(
-                items = chatsUiState.aiChats.sortedBy { it.lastMessage.timestamp }.reversed(),
-                key = {chat->chat.chatId}
-            ) {
-                SingleChat(
-                    chat = it,
-                    navigateToCurrentChat = navigateToCurrentChat,
-                    isCardEnabled = isCardEnabled,
-                    currentUsername = chatsUiState.currentUser.username,
-                    setSelectionChats = setSelectionChats,
-                    cardModifier = Modifier
-                        .fillMaxWidth()
-                        .combinedClickable(
-                            onClick = {
-                                haptic.performHapticFeedback(HapticFeedbackType.TextHandleMove)
-                                navigateToAiChat("${it.chatId},${chatsUiState.currentUser.username}")
-                            },
-                            onLongClick = {
-                                haptic.performHapticFeedback(HapticFeedbackType.LongPress)
-                                setSelectionChats()
-                                addToSelection(true, it)
-                            }
-                        ),
-                    isCardSelected = chatsUiState.selectedChatsOrGroups.contains(it)
-//                    addToSelection = addToSelection,
-//                    selectedStatus = chatsUiState.selectedChatsOrGroups.contains(it),
-                )
-
-            }
-        } else {
-            items(chatsUiState.aiChats.sortedBy { it.lastMessage.timestamp }.reversed()) { chat ->
-                SingleChat(
-                    chat = chat,
-                    navigateToCurrentChat = navigateToCurrentChat,
-                    isCardEnabled = isCardEnabled,
-                    currentUsername = chatsUiState.currentUser.username,
-                    setSelectionChats = setSelectionChats,
-                    isCardSelected = chatsUiState.selectedChatsOrGroups.contains(chat),
-//                        isCardSelected = true,
-                    cardModifier = Modifier
-                        .fillMaxWidth()
-                        .toggleable(
-                            value = chatsUiState.selectedChatsOrGroups.contains(chat),
-                            onValueChange = {
-                                haptic.performHapticFeedback(HapticFeedbackType.TextHandleMove)
-                                addToSelection(it, chat)
-                            }
-                        )
-
-//                    addToSelection = addToSelection,
-//                    selectedStatus = chatsUiState.selectedChatsOrGroups.contains(it)
-                )
-            }
+        items(
+            uiState.aiChats
+        ){
+            SingleChat(
+                chat = it,
+                navigateToCurrentChat = {},
+                isCardEnabled = true,
+                isCardSelected = false,
+                currentUsername = "",
+                setSelectionChats = {}
+            )
         }
-    }
     }
 }
 
@@ -1118,28 +1026,13 @@ fun AddChatFab(
 @Composable
 @Preview
 fun ShowChatsPreview(){
-    val listState = LazyListState()
     ChitChatTheme() {
         ShowChats(
-            chatsUiState = ChatsUiState(
-                aiChats = listOf(
-                    ChatOrGroup(
-                        chatName = "Ai 1",
-                        lastMessage = lastMessage(
-                            content = "Wow",
-                            sender = "me",
-                            timestamp = Timestamp.now()
-                        )
-                    )
-                )
-            ),
-            paddingValues = PaddingValues(),
-            listState = listState,
-            navigateToCurrentChat = { },
-            isCardEnabled = false,
-            setSelectionChats = { },
-            addToSelection = { _,_->Unit },
-            navigateToAiChat = { },
+            uiState = ChatsUiState(aiChats = listOf(ChatOrGroup(
+                chatName = "Ai 1",
+                lastMessage = lastMessage(content = "Wow", sender = "me", timestamp = Timestamp.now())
+            ))),
+            paddingValues = PaddingValues()
         )
     }
 }
@@ -1160,24 +1053,7 @@ fun UserChatsPreview() {
                     ChatOrGroup(
                         chatName = "mrg@123.com",
                         lastMessage = lastMessage(
-                            content = "Big text here *goed* to test the ~message~ capacity and the other things" +
-                                    "Big text here *goed* to test the ~message~ capacity and the other things" +
-                                    "Big text here *goed* to test the ~message~ capacity and the other things" +
-                                    "Big text here *goed* to test the ~message~ capacity and the other things" +
-                                    "Big text here *goed* to test the ~message~ capacity and the other things" +
-                                    "Big text here *goed* to test the ~message~ capacity and the other things" +
-                                    "Big text here *goed* to test the ~message~ capacity and the other things" +
-                                    "Big text here *goed* to test the ~message~ capacity and the other things" +
-                                    "Big text here *goed* to test the ~message~ capacity and the other things" +
-                                    "Big text here *goed* to test the ~message~ capacity and the other things" +
-                                    "Big text here *goed* to test the ~message~ capacity and the other things" +
-                                    "Big text here *goed* to test the ~message~ capacity and the other things" +
-                                    "Big text here *goed* to test the ~message~ capacity and the other things" +
-                                    "Big text here *goed* to test the ~message~ capacity and the other things" +
-                                    "Big text here *goed* to test the ~message~ capacity and the other things" +
-                                    "Big text here *goed* to test the ~message~ capacity and the other things" +
-                                    "Big text here *goed* to test the ~message~ capacity and the other things" +
-                                    "Big text here *goed* to test the ~message~ capacity and the other things",
+                            content = "Big text here *goed* to test the ~message~ capacity and the other things",
                             timestamp = Timestamp(1, 1),
                             sender = "mrg@123.com"
                         )
@@ -1333,9 +1209,7 @@ fun UserChatsPreview() {
             deSelectAll = { },
             deleteChats = {},
             navigateToMigration = {  },
-            removeMigrationStatus = {},
-            navigateToUserInfo = {},
-            navigateToAiChat = {}
+            removeMigrationStatus = {}
         )
     }
 

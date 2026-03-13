@@ -6,15 +6,14 @@ import androidx.lifecycle.viewmodel.CreationExtras
 import androidx.lifecycle.viewmodel.initializer
 import androidx.lifecycle.viewmodel.viewModelFactory
 import com.mad.softwares.chatApplication.MyApplication
+import com.mad.softwares.chatApplication.network.AiApiLocalhost
 import com.mad.softwares.chatApplication.ui.ShareHandle.ShareHandlerViewModel
 import com.mad.softwares.chatApplication.ui.chats.AiModel.AddAiModelAndChatViewModel
 import com.mad.softwares.chatApplication.ui.chats.singles.AddChatViewModel
 import com.mad.softwares.chatApplication.ui.chats.groups.AddGroupViewModel
 import com.mad.softwares.chatApplication.ui.chats.ChatsViewModel
-import com.mad.softwares.chatApplication.ui.messages.AiMessagesViewModel
 import com.mad.softwares.chatApplication.ui.messages.MessagesViewModel
 import com.mad.softwares.chatApplication.ui.migration.MigrateViewmodel
-import com.mad.softwares.chatApplication.ui.userInfoAndPreferences.UserInfoViewModel
 import com.mad.softwares.chatApplication.ui.welcome.welcomeViewModel
 
 object GodViewModelProvider {
@@ -43,7 +42,7 @@ object GodViewModelProvider {
             MessagesViewModel(
                 savedStateHandle = this.createSavedStateHandle(),
                 dataRepository = myApplication().container.dataRepository,
-//                aiApis = myApplication().container.aiWorkManagerRespository,
+                aiApis = myApplication().container.aiWorkManagerRespository,
             )
         }
 
@@ -72,21 +71,6 @@ object GodViewModelProvider {
                 savedStateHandle = this.createSavedStateHandle(),
                 dataRepository = myApplication().container.dataRepository,
                 aiApis = myApplication().container.aiWorkManagerRespository
-            )
-        }
-
-        initializer{
-            UserInfoViewModel(
-                dataRepository = myApplication().container.dataRepository,
-                prefRepository = myApplication().aiUrlPreferenceRepository
-            )
-        }
-
-        initializer {
-            AiMessagesViewModel(
-                savedStateHandle = this.createSavedStateHandle(),
-                dataRepository = myApplication().container.dataRepository,
-                aiApis = myApplication().container.aiWorkManagerRespository,
             )
         }
     }

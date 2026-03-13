@@ -649,7 +649,6 @@ class NetworkFirebaseApi(
             chatId = chat.getString("chatId") ?: "",
             chatName = chat.getString("chatName") ?: "",
             isGroup = chat.getBoolean("isGroup") ?: false,
-            isAiChat = chat.getBoolean("isAiChat")?:false,
             members = chat.get("members") as List<String>,
             secureAESKey = myEncryptedAESKey?.get("key").toString()
         )
@@ -840,7 +839,6 @@ class NetworkFirebaseApi(
                                         "audio" -> ContentType.audio
                                         "video" -> ContentType.video
                                         "deleted" -> ContentType.deleted
-                                        "Md" -> ContentType.Md
                                         else -> {
                                             ContentType.default
                                         }
@@ -870,7 +868,6 @@ class NetworkFirebaseApi(
                                         "audio" -> ContentType.audio
                                         "video" -> ContentType.video
                                         "deleted" -> ContentType.deleted
-                                        "Md" -> ContentType.Md
                                         else -> {
                                             ContentType.default
                                         }
