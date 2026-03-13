@@ -522,7 +522,7 @@ fun ApptopBarPreview() {
             welcomeDestinationTest,
             scrollBehavior = TopAppBarDefaults.enterAlwaysScrollBehavior(),
             navigateUp = {},
-            title = {Text("Title testing")},
+            title = {Text("App title testing here")},
 //            canGoBack = true
         )
     }
