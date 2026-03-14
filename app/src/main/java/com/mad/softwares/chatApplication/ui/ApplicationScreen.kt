@@ -1,6 +1,7 @@
 package com.mad.softwares.chatApplication.ui
 
 import android.annotation.SuppressLint
+import android.content.res.Configuration
 import android.os.Build
 import android.util.Log
 import androidx.activity.compose.BackHandler
@@ -8,22 +9,32 @@ import androidx.annotation.RequiresApi
 import androidx.compose.animation.EnterTransition
 import androidx.compose.animation.slideInHorizontally
 import androidx.compose.animation.slideOutHorizontally
+import androidx.compose.foundation.background
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.RowScope
+import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.padding
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material3.TopAppBar
 import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.ExperimentalMaterial3ExpressiveApi
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
 import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.material3.TopAppBarScrollBehavior
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.blur
+import androidx.compose.ui.graphics.Brush
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.tooling.preview.Preview
+import androidx.compose.ui.unit.dp
 import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.NavHostController
 import androidx.navigation.NavType
@@ -436,7 +447,7 @@ fun ApplicationScreen(
     }
 }
 
-@OptIn(ExperimentalMaterial3Api::class)
+@OptIn(ExperimentalMaterial3Api::class, ExperimentalMaterial3ExpressiveApi::class)
 @Composable
 fun ApptopBar(
     destinationData: destinationData,
@@ -449,6 +460,7 @@ fun ApptopBar(
     },
     navigateUp: () -> Unit,
     action: @Composable (RowScope.() -> Unit) = {},
+    subtitle: @Composable (()-> Unit)={},
     modifier: Modifier = Modifier,
     canGoBack:Boolean =false,
     goBack:()->Unit = {}
@@ -470,9 +482,11 @@ fun ApptopBar(
             titleContentColor = MaterialTheme.colorScheme.onPrimary,
             navigationIconContentColor = MaterialTheme.colorScheme.onPrimary,
             actionIconContentColor = MaterialTheme.colorScheme.onPrimary,
-            scrolledContainerColor = MaterialTheme.colorScheme.primary
+            scrolledContainerColor = MaterialTheme.colorScheme.primary,
+            subtitleContentColor = MaterialTheme.colorScheme.onPrimary,
 //            contentColor = MaterialTheme.colorScheme.onPrimary
         ),
+        subtitle = subtitle,
         navigationIcon =
         {
             if(canGoBack){
@@ -514,17 +528,34 @@ object welcomeDestinationTest : destinationData {
 }
 
 @OptIn(ExperimentalMaterial3Api::class)
-@Preview
+@Preview(device = "spec:width=1080px,height=2340px,dpi=440,isRound=true",
+    showSystemUi = true
+)
 @Composable
 fun ApptopBarPreview() {
     ChitChatTheme(dynamicColor = false) {
-        ApptopBar(
-            welcomeDestinationTest,
-            scrollBehavior = TopAppBarDefaults.enterAlwaysScrollBehavior(),
-            navigateUp = {},
-            title = {Text("App title testing here")},
+        Scaffold(
+            topBar = {ApptopBar(
+                welcomeDestinationTest,
+                scrollBehavior = TopAppBarDefaults.enterAlwaysScrollBehavior(),
+                navigateUp = {},
+                title = {Text("App title testing here")},
+                subtitle = {Text("Some things")}
 //            canGoBack = true
-        )
+            )}
+        ) {
+            paddingValues ->
+            Box(
+                modifier = Modifier
+                    .fillMaxSize()
+                    .padding(
+                        paddingValues
+                    )
+            ){
+                Text("Lorem ipsum dolor sit amet, consectetur adipiscing elit. Sed do eiusmod tempor incididunt ut labore et dolore magna aliqua. Ut enim ad minim veniam, quis nostrud exercitation ullamco laboris nisi ut aliquip ex ea commodo consequat. Duis aute irure dolor in reprehenderit in voluptate velit esse cillum dolore eu fugiat nulla pariatur. Excepteur sint occaecat cupidatat non proident, sunt in culpa qui officia deserunt mollit anim id est laborum.")
+            }
+
+        }
     }
 }
 

@@ -29,6 +29,7 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.blur
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.text.input.KeyboardType
@@ -42,8 +43,9 @@ import androidx.lifecycle.viewmodel.compose.viewModel
 import com.mad.softwares.chatApplication.R
 import com.mad.softwares.chatApplication.ui.ApptopBar
 import com.mad.softwares.chatApplication.ui.GodViewModelProvider
-import com.mad.softwares.chatApplication.ui.LoadingIndicator
+import com.mad.softwares.chatApplication.ui.FullScreenLoadingIndicator
 import com.mad.softwares.chatApplication.ui.destinationData
+import com.mad.softwares.chatApplication.ui.theme.ChitChatTheme
 
 object signupScreenDestination:destinationData
 {
@@ -93,6 +95,13 @@ fun SignUpScreenBody(
         ) },
         modifier = Modifier
             .imePadding()
+            .blur(
+                radius = if (startUiState.isLoading) {
+                    10.dp
+                } else {
+                    0.dp
+                }
+            )
     ){ it ->
         Column(
             modifier = modifier
@@ -173,7 +182,10 @@ fun SignUpScreenBody(
                 }
             )
             Spacer(modifier = modifier.height(20.dp))
-            Button(onClick =  login) {
+            Button(
+                onClick =  login,
+                enabled = !startUiState.isLoading
+                ) {
                 Text(text = stringResource(R.string.register_now))
             }
 
@@ -181,17 +193,21 @@ fun SignUpScreenBody(
 
         }
     }
-    LoadingIndicator(isLoading = startUiState.isLoading)
+    FullScreenLoadingIndicator(isLoading = startUiState.isLoading)
 }
 
 @Preview
 @Composable
 fun SignUpScreenPreview(){
-    SignUpScreenBody(
-        updateUsername = {  },
-        updatePassword = {},
-        startUiState = StartUiState(),
-        navigateUp = {},
-        login = {}
-    )
+    ChitChatTheme(dynamicColor = false){
+        SignUpScreenBody(
+            updateUsername = { },
+            updatePassword = {},
+            startUiState = StartUiState(
+                isLoading = false
+            ),
+            navigateUp = {},
+            login = {}
+        )
+    }
 }

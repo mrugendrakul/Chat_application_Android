@@ -40,7 +40,7 @@ import com.mad.softwares.chatApplication.R
 import com.mad.softwares.chatApplication.data.chatUser
 import com.mad.softwares.chatApplication.ui.ApptopBar
 import com.mad.softwares.chatApplication.ui.GodViewModelProvider
-import com.mad.softwares.chatApplication.ui.LoadingIndicator
+import com.mad.softwares.chatApplication.ui.FullScreenLoadingIndicator
 import com.mad.softwares.chatApplication.ui.chats.ShowErrorAndRetry
 import com.mad.softwares.chatApplication.ui.destinationData
 import com.mad.softwares.chatApplication.ui.theme.ChitChatTheme
@@ -220,7 +220,7 @@ fun AddChatBody(
         modifier = Modifier.nestedScroll(scrollBehavior.nestedScrollConnection)
     ) {
         if (addChatUiState.isLoading) {
-            LoadingIndicator(isLoading = addChatUiState.isLoading)
+            FullScreenLoadingIndicator(isLoading = addChatUiState.isLoading)
         } else if (addChatUiState.isError) {
             ShowErrorAndRetry {
                 searchChange("mrugen")

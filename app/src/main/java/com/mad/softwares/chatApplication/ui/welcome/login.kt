@@ -29,6 +29,7 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.blur
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.text.input.KeyboardType
@@ -43,8 +44,9 @@ import androidx.lifecycle.viewmodel.compose.viewModel
 import com.mad.softwares.chatApplication.R
 import com.mad.softwares.chatApplication.ui.ApptopBar
 import com.mad.softwares.chatApplication.ui.GodViewModelProvider
-import com.mad.softwares.chatApplication.ui.LoadingIndicator
+import com.mad.softwares.chatApplication.ui.FullScreenLoadingIndicator
 import com.mad.softwares.chatApplication.ui.destinationData
+import com.mad.softwares.chatApplication.ui.theme.ChitChatTheme
 
 object loginScreenDestination:destinationData {
     override val route = "login"
@@ -95,6 +97,13 @@ fun LoginScreenBody(
             navigateUp = navigateUp
         ) },
         modifier = Modifier
+            .blur(
+                radius = if (startUiState.isLoading) {
+                    10.dp
+                } else {
+                    0.dp
+                }
+            )
             .imePadding()
     ){ it ->
         Column(
@@ -194,21 +203,24 @@ fun LoginScreenBody(
 
         }
     }
-    LoadingIndicator(isLoading = startUiState.isLoading)
+    FullScreenLoadingIndicator(isLoading = startUiState.isLoading)
 }
 
 @Preview
 @Composable
 fun LoginScreenPreview(){
-    LoginScreenBody(
-        navigateUp = {},
-        updatePassword = {},
-        updateUsername = {},
-        startUiState = StartUiState(
-            isError = true,
-            errorMessage = "some error to see"
-        ),
-        navigateToChats = {},
-        login = {}
-    )
+    ChitChatTheme(dynamicColor = false){
+        LoginScreenBody(
+            navigateUp = {},
+            updatePassword = {},
+            updateUsername = {},
+            startUiState = StartUiState(
+                isError = false,
+                errorMessage = "some error to see",
+                isLoading = true
+            ),
+            navigateToChats = {},
+            login = {}
+        )
+    }
 }

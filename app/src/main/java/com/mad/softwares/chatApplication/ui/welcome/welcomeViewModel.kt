@@ -94,7 +94,7 @@ class welcomeViewModel(
 
             try {
 //                getFcmToken()
-                delay(1000)
+                delay(3000)
                 val newUser: Deferred<User> = async{
                     dataRepository.loginUser(
                         user = User(
@@ -130,13 +130,13 @@ class welcomeViewModel(
 
     fun signUpWithTheInfo(){
         Log.d(TAGview,"signup started Viewmodel")
+        startUiState.update { it.copy(isLoading = true) }
         if (isEmptyPassword() || isEmptyUsername()) {
             return
         }
-        startUiState.update { it.copy(isLoading = true) }
         viewModelScope.launch {
 
-            delay(1000)
+            delay(3000)
             try {
 //                val signupUser:Deferred<User> = async {
 //                    dataRepository.registerUser(
@@ -171,7 +171,7 @@ class welcomeViewModel(
                     ) }
                     throw Exception("User not found")
                     }
-                startUiState.update { it.copy(isUserInside = true) }
+                startUiState.update { it.copy(isUserInside = true, isLoading = false) }
                 Log.d(TAGview,"signup Success error message 1: ${startUiState.value.errorMessage}")
             }catch (e:Exception){
                 Log.d(TAGview,"signup failed error : $e")
@@ -180,8 +180,8 @@ class welcomeViewModel(
             }
             startUiState.update { it.copy(isLoading = false) }
         }
-        startUiState.update { it.copy(isError = true, isLoading = false) }
-        Log.d(TAGview,"signup failed error message 3: ${startUiState.value.errorMessage} ")
+//        startUiState.update { it.copy(isError = true, isLoading = false) }
+//        Log.d(TAGview,"signup failed error message 3: ${startUiState.value.errorMessage} ")
     }
 
     fun resetUserInside() {

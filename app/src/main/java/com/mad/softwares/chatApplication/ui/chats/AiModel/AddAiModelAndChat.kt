@@ -30,7 +30,7 @@ import com.mad.softwares.chatApplication.data.models.OllamaModel
 import com.mad.softwares.chatApplication.data.models.tags
 import com.mad.softwares.chatApplication.ui.ApptopBar
 import com.mad.softwares.chatApplication.ui.GodViewModelProvider
-import com.mad.softwares.chatApplication.ui.LoadingIndicator
+import com.mad.softwares.chatApplication.ui.FullScreenLoadingIndicator
 import com.mad.softwares.chatApplication.ui.destinationData
 import com.mad.softwares.chatApplication.ui.theme.ChitChatTheme
 
@@ -92,7 +92,7 @@ fun AiTagBody (
                     verticalArrangement = Arrangement.Center,
                     horizontalAlignment = Alignment.CenterHorizontally,
                 )
-                { LoadingIndicator(isLoading = true) }
+                { FullScreenLoadingIndicator(isLoading = true) }
                 }
             }
             else if (tagState.fetchStatus == AiModelStatus.Error){

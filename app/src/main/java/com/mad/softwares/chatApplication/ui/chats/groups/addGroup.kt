@@ -43,7 +43,7 @@ import androidx.compose.ui.unit.sp
 import com.mad.softwares.chatApplication.R
 import com.mad.softwares.chatApplication.data.chatUser
 import com.mad.softwares.chatApplication.ui.ApptopBar
-import com.mad.softwares.chatApplication.ui.LoadingIndicator
+import com.mad.softwares.chatApplication.ui.FullScreenLoadingIndicator
 import com.mad.softwares.chatApplication.ui.chats.ShowErrorAndRetry
 import com.mad.softwares.chatApplication.ui.chats.singles.addChatDestination
 import com.mad.softwares.chatApplication.ui.destinationData
@@ -166,7 +166,7 @@ fun AddGroupBody(
         modifier = Modifier.nestedScroll(scrollBehavior.nestedScrollConnection)
     ) {
         if (addGroupUiState.isLoading) {
-            LoadingIndicator(isLoading = addGroupUiState.isLoading)
+            FullScreenLoadingIndicator(isLoading = addGroupUiState.isLoading)
         } else if (addGroupUiState.isError) {
             ShowErrorAndRetry {
                 searchChange("mrugen")

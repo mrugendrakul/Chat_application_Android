@@ -87,7 +87,7 @@ class AiWorkManagerRespository(context: Context): WorkRespository {
     }
 
     private fun setInputDataForAiMessage (message:String,model: String, dataContext : List<messages>): Data{
-        val stringContext = Gson().toJson(dataContext)
+        val stringContext = Gson().toJson(dataContext).take(10240)
         val dataBuilder = Data.Builder()
         dataBuilder.put("AI_MESSAGE_USER",message)
         dataBuilder.put("AI_MODEL",model)

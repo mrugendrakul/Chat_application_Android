@@ -14,15 +14,19 @@ import com.mad.softwares.chatApplication.data.MessageReceived
 import com.mad.softwares.chatApplication.data.WorkRespository
 import com.mad.softwares.chatApplication.data.messageStatus
 import com.mad.softwares.chatApplication.data.models.AiResponse
+import com.mad.softwares.chatApplication.data.models.OllamaModel
 import com.mad.softwares.chatApplication.data.models.messages
+import com.mad.softwares.chatApplication.data.models.tags
 import com.mad.softwares.chatApplication.ui.updateElement
 import kotlinx.coroutines.Deferred
+import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.async
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.flatMapLatest
+import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.mapNotNull
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.flow.update
@@ -79,6 +83,44 @@ class AiMessagesViewModel(
             )
         )
 
+    val modelState: StateFlow<ModelState> = aiApis.TagsInfo
+        .map {
+            info ->
+            val currentUserName = aiMessagesUiState.value.currentUser
+            val model =
+                aiMessagesUiState.value.currChatInfo.members.firstOrNull { it -> it != currentUserName }
+                    ?: ""
+            val tagData = info.outputData.getString("AI_TAGS_RESPONSE")
+            when{
+                model == ""->{
+                    Log.d(AiMessagesTag,"No model init")
+                    ModelState.Loading
+                }
+                tagData == null ->{
+                    ModelState.Offline
+                }
+                info.state == WorkInfo.State.RUNNING ->{
+                    ModelState.Loading
+                }
+                info.state == WorkInfo.State.SUCCEEDED ->{
+                    val tagObj = Gson().fromJson(tagData, tags::class.java)
+                    Log.d(AiMessagesTag,"Got the tags -> $tagObj, model -> $model, got the model ->${tagObj.models.firstOrNull { it.model == model }}")
+                    if (tagObj.models.firstOrNull { it.model == model } !=null){
+                        Log.d(AiMessagesTag,"ONline sending from here...")
+                        ModelState.Online
+                    }
+                    else{
+                        ModelState.NotFound
+                    }
+                }
+                else -> {
+                    ModelState.Offline
+                }
+            }
+        }
+        .stateIn(scope = viewModelScope,
+        started = SharingStarted.WhileSubscribed(5_000),
+        initialValue = ModelState.Loading)
     fun mapInfoByUIState(info: WorkInfo): AiResponseUiState {
         Log.d(AiMessagesTag, "Getting the info as $info")
 //        if(info == null){
@@ -307,7 +349,7 @@ class AiMessagesViewModel(
                         state.copy(
                             messages = newMessageList,
                             aiMessages = newMessageList.map { mess->
-                                Log.d(AiMessagesTag,"Mapping this message text- ${mess.content}")
+//                                Log.d(AiMessagesTag,"Mapping this message text- ${mess.content}")
                                 val role = if(mess.senderId == aiMessagesUiState.value.currentUser){
                                     "user"
                                 }else{
@@ -369,7 +411,7 @@ class AiMessagesViewModel(
             aiMessagesUiState.value.currChatInfo.members.firstOrNull { it -> it != currentUserName }
                 ?: ""
         if (aiMessagesUiState.value.currChatInfo.isAiChat) {
-            val contextMessage:List<messages> = aiMessagesUiState.value.aiMessages.map { it-> messages(it.aiResponse.message.role,it.aiResponse.message.content) }
+            val contextMessage:List<messages> = aiMessagesUiState.value.aiMessages.map { it-> messages(it.aiResponse.message.role,it.aiResponse.message.content) }.takeLast(7)
             val returnUuid = aiApis.sendStreamMessage(tempMessage, model, context =contextMessage)
             Log.d(AiMessagesTag, "Got the UUId $returnUuid")
             aiMessageUUID.value = returnUuid
@@ -544,6 +586,7 @@ class AiMessagesViewModel(
 //                            messageScreen = MessageScreen.Success
                         )
                     }
+                    getModelOnlineStatus()
                     syncMessages()
                     Log.d(TAGmess, "Got chat info success")
                 }
@@ -562,6 +605,10 @@ class AiMessagesViewModel(
         }
     }
 
+    private fun getModelOnlineStatus(){
+        aiApis.getAiTags()
+    }
+
     fun editMessageToSend(msg: String) {
         aiMessagesUiState.update {
             it
@@ -577,6 +624,13 @@ enum class AiState() {
     Error,
     Success,
     Streaming
+}
+
+enum class ModelState(){
+    Online,
+    Offline,
+    NotFound,
+    Loading,
 }
 
 data class AiResponseUiState(

@@ -1,16 +1,14 @@
 package com.mad.softwares.chatApplication.ui.messages
 
-import StyledTextVisualTransformation
 import androidx.compose.animation.AnimatedContent
 import androidx.compose.animation.AnimatedVisibility
+import androidx.compose.animation.SizeTransform
 import androidx.compose.animation.animateContentSize
 import androidx.compose.animation.core.Spring
 import androidx.compose.animation.core.spring
 import androidx.compose.animation.core.tween
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
-import androidx.compose.animation.scaleIn
-import androidx.compose.animation.scaleOut
 import androidx.compose.animation.slideInHorizontally
 import androidx.compose.animation.slideInVertically
 import androidx.compose.animation.slideOutHorizontally
@@ -30,53 +28,47 @@ import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
-import androidx.compose.foundation.layout.wrapContentHeight
 import androidx.compose.foundation.layout.wrapContentWidth
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.Send
-import androidx.compose.material.icons.filled.Attachment
 import androidx.compose.material.icons.filled.Stop
-import androidx.compose.material3.Button
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
-import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.ElevatedCard
 import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.ExperimentalMaterial3ExpressiveApi
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.IconButtonDefaults
+import androidx.compose.material3.LoadingIndicator
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.OutlinedTextFieldDefaults
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
-import androidx.compose.material3.TextField
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
-import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.hapticfeedback.HapticFeedbackType
 import androidx.compose.ui.platform.LocalHapticFeedback
-import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.tooling.preview.Preview
+import androidx.compose.ui.unit.LayoutDirection
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.mad.softwares.chatApplication.R
 import com.mad.softwares.chatApplication.data.ChatOrGroup
-import com.mad.softwares.chatApplication.data.MessageReceived
 import com.mad.softwares.chatApplication.data.models.AiResponse
 import com.mad.softwares.chatApplication.data.models.messages
 import com.mad.softwares.chatApplication.ui.ApptopBar
 import com.mad.softwares.chatApplication.ui.GodViewModelProvider
-import com.mad.softwares.chatApplication.ui.LoadingIndicator
 import com.mad.softwares.chatApplication.ui.destinationData
 import com.mad.softwares.chatApplication.ui.theme.ChitChatTheme
 import com.mikepenz.markdown.m3.Markdown
@@ -105,6 +97,7 @@ fun AiMessages(
         updateMesssage = viewModel::editMessageToSend,
         sendTestMessage = viewModel::sendMessageToAi,
         sendStreamTest = viewModel::sendStreamingMessageToAi,
+        modelState = viewModel.modelState.collectAsState().value,
         navigateUp = navigateUp
     )
 }
@@ -118,6 +111,7 @@ fun AiMessageBody(
     sendTestMessage: () -> Unit,
     sendStreamTest: () -> Unit,
     navigateUp: () -> Unit,
+    modelState: ModelState
 ) {
 //    Column(
 //        modifier = Modifier
@@ -146,10 +140,50 @@ fun AiMessageBody(
             ApptopBar(
                 destinationData = AiMessagesDestinationData,
                 navigateUp = navigateUp,
-                title = { Text(uiState.currChatInfo.chatName) }
+                title = { Text(uiState.currChatInfo.chatName) },
+                subtitle = {
+                    AnimatedVisibility(
+                        visible = modelState != ModelState.Online,
+                        enter = fadeIn(initialAlpha = 1f),
+                        exit = slideOutVertically(
+                            animationSpec = tween(delayMillis = 2000),
+                            targetOffsetY = {-it/2}
+                        )+fadeOut(animationSpec = tween(delayMillis = 2000))
+                    ){
+                        AnimatedContent(
+                            targetState = modelState,
+                            transitionSpec = { (slideInVertically(
+                                initialOffsetY = {it},
+                                animationSpec = tween(delayMillis = 100)
+                            )+fadeIn(tween(delayMillis = 100) )  togetherWith slideOutVertically { -it/2 } + fadeOut()).using(SizeTransform(clip = false)) }
+                        ) { targetState ->
+                            when (targetState) {
+                                ModelState.Online -> Text("Online")
+                                ModelState.Offline -> Text("Offline")
+                                ModelState.NotFound -> Text("Model not Installed")
+                                ModelState.Loading -> Text("Loading...")
+                            }
+                        }
+                    }
+                }
             )
         },
-        bottomBar = {AiBottomMessageSend(uiState = uiState, sendMessage = sendStreamTest, updateMessage = updateMesssage, isLoading = false, liveAiUiState = liveAiUiState)},
+        bottomBar = {
+            AnimatedVisibility(
+                visible = modelState != ModelState.Offline,
+                enter = slideInVertically { it },
+                exit = slideOutVertically { it },
+                label = "Bottom Animated Visibiltiy"
+            ){
+                AiBottomMessageSend(
+                    uiState = uiState,
+                    sendMessage = sendStreamTest,
+                    updateMessage = updateMesssage,
+                    isLoading = false,
+                    liveAiUiState = liveAiUiState
+                )
+            }
+        },
         modifier = Modifier
             .imePadding()
             .navigationBarsPadding()
@@ -175,7 +209,7 @@ fun AiMessageBody(
         }
     }
 }
-
+@OptIn(ExperimentalMaterial3ExpressiveApi::class)
 @Composable
 fun AiResponseChat(message: AiResponseUiState){
     val markdownState = rememberMarkdownState(
@@ -197,12 +231,18 @@ fun AiResponseChat(message: AiResponseUiState){
         ) + fadeOut()
     ){
         Row(verticalAlignment = Alignment.CenterVertically){
-            CircularProgressIndicator(
+//            CircularProgressIndicator(
+//                modifier = Modifier
+//                    .padding(5.dp)
+//                    .width(24.dp)
+//                    .height(24.dp),
+//                strokeWidth = 3.dp
+//            )
+            LoadingIndicator(
                 modifier = Modifier
                     .padding(5.dp)
-                    .width(24.dp)
-                    .height(24.dp),
-                strokeWidth = 3.dp
+                    .width(36.dp)
+                    .height(36.dp)
             )
             AnimatedContent(
                 targetState = message.aiState,
@@ -250,13 +290,14 @@ fun UserChat(
             Text(
                 message.aiResponse.message.content,
                 modifier = Modifier
-                    .padding(8.dp, 4.dp),
+                    .padding(16.dp, 8.dp),
                 fontSize = 20.sp
             )
         }
     }
 }
 
+@OptIn(ExperimentalMaterial3ExpressiveApi::class)
 @Composable
 fun AiBottomMessageSend(
     modifier: Modifier = Modifier,
@@ -376,22 +417,62 @@ fun AiMessagePreview() {
                     chatName = "Testing Ai"
                 ),
                 aiMessages = listOf(
-                    AiResponseUiState(
-                        AiResponse(message = messages("user","helloSir"),done = true),
-                        aiState = AiState.Success
-                    ),
-                    AiResponseUiState(
-                        AiResponse(message = messages("assistant","Completed Ai response"),done = true),
-                        aiState = AiState.Loading
-                    ),
-                    AiResponseUiState(
-                        AiResponse(message = messages("user","helloSir"),done = true),
-                        aiState = AiState.Success
-                    ),
-                    AiResponseUiState(
-                        AiResponse(message = messages("assistant","Ai Response on going..."),done = true),
-                        aiState = AiState.Streaming
-                    )
+//                    AiResponseUiState(
+//                        AiResponse(message = messages("user","helloSir"),done = true),
+//                        aiState = AiState.Success
+//                    ),
+//                    AiResponseUiState(
+//                        AiResponse(message = messages("assistant","Completed Ai response"),done = true),
+//                        aiState = AiState.Loading
+//                    ),
+//                    AiResponseUiState(
+//                        AiResponse(message = messages("user","helloSir"),done = true),
+//                        aiState = AiState.Success
+//                    ),
+//                    AiResponseUiState(
+//                        AiResponse(message = messages("user","helloSir this is a long message"),done = true),
+//                        aiState = AiState.Success
+//                    ),
+//                    AiResponseUiState(
+//                        AiResponse(message = messages("user","helloSir"),done = true),
+//                        aiState = AiState.Success
+//                    ),
+//                    AiResponseUiState(
+//                        AiResponse(message = messages("assistant","Ai Response on going..."),done = true),
+//                        aiState = AiState.Streaming
+//                    ),
+//                    AiResponseUiState(
+//                        AiResponse(message = messages("user","helloSir"),done = true),
+//                        aiState = AiState.Success
+//                    ),
+//                    AiResponseUiState(
+//                        AiResponse(message = messages("assistant","Completed Ai response"),done = true),
+//                        aiState = AiState.Loading
+//                    ),
+//                    AiResponseUiState(
+//                        AiResponse(message = messages("user","helloSir"),done = true),
+//                        aiState = AiState.Success
+//                    ),
+//                    AiResponseUiState(
+//                        AiResponse(message = messages("assistant","Ai Response on going..."),done = true),
+//                        aiState = AiState.Streaming
+//                    ),
+//                    AiResponseUiState(
+//                        AiResponse(message = messages("user","helloSir"),done = true),
+//                        aiState = AiState.Success
+//                    ),
+//                    AiResponseUiState(
+//                        AiResponse(message = messages("assistant","Completed Ai response"),done = true),
+//                        aiState = AiState.Loading
+//                    ),
+//                    AiResponseUiState(
+//                        AiResponse(message = messages("user","helloSir"),done = true),
+//                        aiState = AiState.Success
+//                    ),
+//                    AiResponseUiState(
+//                        AiResponse(message = messages("assistant","Ai Response on going..."),done = true),
+//                        aiState = AiState.Streaming
+//                    )
                 )
             ),
             liveAiUiState = AiResponseUiState(
@@ -401,7 +482,8 @@ fun AiMessagePreview() {
             sendTestMessage = {},
             updateMesssage = {},
             sendStreamTest = {},
-            navigateUp = {}
+            navigateUp = {},
+            modelState = ModelState.Loading
         )
     }
 }
