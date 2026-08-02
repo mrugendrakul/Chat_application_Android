@@ -2282,169 +2282,202 @@ fun PreviewMessagebodySuccess() {
                     chatName = "ChatName@123"
                 ),
                 currentUser = "ThereSelf",
-                messages = mutableListOf(
-                    MessageReceived(
-                        messageId = "1",
-                        content = "Hello Friend",
-                        parsedContent = listOf(MessageSegement("Hello bro ~strid~ style *bold*", textTypeParse.text)),
-                        timeStamp = Timestamp(Date(2024 - 1900, 1, 25, 20, 15)),
-                        senderId = "ThereSelf",
-                        status = messageStatus.Send
-                    ),
-                    MessageReceived(
-                        messageId = "2",
-                        content = "Hello Friend How are you doing",
-                        parsedContent = listOf(MessageSegement("Hello !bro! how are you doing *another* this is at end here.", textTypeParse.text)),
-                        timeStamp = Timestamp(Date(2024 - 1900, 1, 25, 20, 18)),
-                        senderId = "ThereSelf",
-                        status = messageStatus.Send
-                    ),
-                    MessageReceived(
-                        messageId = "4",
-                        content = "Link here https://www.google.com",
-                        parsedContent = listOf(MessageSegement("https://www.google.com", textTypeParse.link)),
-                        timeStamp = Timestamp(Date(2024 - 1900, 1, 25, 20, 18)),
-                        senderId = "ThereSelf",
-                        status = messageStatus.Send
-                    ),
-                    MessageReceived(
-                        messageId = "4",
-                        content = "Link here https://www.google.com",
-                        parsedContent = listOf(MessageSegement("AI Tools Directory: Video, Image, 3D, and Local AI\n" +
-                                "### \uD83C\uDFA5 Text-to-Video Generators (Cloud-Based)\n" +
-                                "Note: These tools run on cloud servers. Your local GPU, Mac, or phone specs do not affect their generation speed, only your web browser experience. Even the oldest chips survive here!\n" +
-                                " * Pika (pika.art) – Cinematic, stylized motion from text prompts.\n" +
-                                " * Runway Gen-2 / Gen-3 Alpha ([suspicious link removed]) – Industry-leading photorealistic temporal consistency.\n" +
-                                " * Luma Dream Machine (lumalabs.ai/dream-machine) – Fast transformer model for realistic physics.\n" +
-                                " * Kling AI (klingai.com) – Framework capable of holding long (up to 2 mins) consistent shots.\n" +
-                                " * Kaiber AI (kaiber.ai) – Audio-reactive diffusion models for music synchronization.\n" +
-                                "Performance across all Cloud Video tools:\n" +
-                                " * Desktop 5070 Ti (16GB): ⭐⭐⭐⭐⭐\n" +
-                                " * Laptop 5070 Ti (12GB): ⭐⭐⭐⭐⭐\n" +
-                                " * RTX 5060: ⭐⭐⭐⭐⭐\n" +
-                                " * Mac M4 (16GB): ⭐⭐⭐⭐⭐\n" +
-                                " * MX450: ⭐⭐⭐⭐⭐\n" +
-                                " * Snapdragon 8 Elite Gen 5: ⭐⭐⭐⭐⭐ (Runs perfectly in mobile Chrome/Brave)\n" +
-                                " * Snapdragon 8s Gen 3: ⭐⭐⭐⭐⭐\n" +
-                                " * Snapdragon 7s Gen 2: ⭐⭐⭐⭐⭐\n" +
-                                "\uD83D\uDD13 Open-Source Video Models (Local / Self-Hosted)\n" +
-                                "Note: Local video generation is extremely VRAM hungry. Android devices running Linux PRoot environments lack dedicated VRAM and rely on CPU rendering with high overhead. Don't expect to run heavy video generation on a phone.\n" +
-                                " * Open-Sora 2.0 (GitHub) – 11B parameter DiT mapping text to video latents.\n" +
-                                " * Desktop 5070 Ti (16GB): ⭐⭐⭐⭐\n" +
-                                " * Laptop 5070 Ti (12GB): ⭐⭐ (Requires heavy quantization)\n" +
-                                " * RTX 5060: ⭐ (VRAM bottleneck)\n" +
-                                " * Mac M4 (16GB): ⭐ (Will struggle with unified memory limits)\n" +
-                                " * MX450: ❌ (Instant Crash)\n" +
-                                " * Snapdragon 8 Elite Gen 5 (Termux PRoot): ❌ (Linux PRoot overhead + RAM limits will cause an instant OOM kill)\n" +
-                                " * Snapdragon 8s Gen 3 (Termux PRoot): ❌\n" +
-                                " * Snapdragon 7s Gen 2 (Termux PRoot): ❌\n" +
-                                " * LTX-Video (GitHub) – Highly optimized, fast-stepping diffusion model.\n" +
-                                " * Desktop 5070 Ti (16GB): ⭐⭐⭐⭐⭐\n" +
-                                " * Laptop 5070 Ti (12GB): ⭐⭐⭐⭐⭐ (Perfect fit)\n" +
-                                " * RTX 5060: ⭐⭐⭐⭐\n" +
-                                " * Mac M4 (16GB): ⭐⭐⭐⭐\n" +
-                                " * MX450: ❌\n" +
-                                " * Snapdragon 8 Elite Gen 5 (Termux PRoot): ⭐ (Might theoretically boot a quantized version overnight, but practically unusable)\n" +
-                                " * Snapdragon 8s Gen 3 (Termux PRoot): ❌\n" +
-                                " * Snapdragon 7s Gen 2 (Termux PRoot): ❌\n" +
-                                " * CogVideoX (GitHub) – 3D RoPE and 3D VAE architecture.\n" +
-                                " * Desktop 5070 Ti (16GB): ⭐⭐⭐⭐⭐\n" +
-                                " * Laptop 5070 Ti (12GB): ⭐⭐⭐⭐⭐ (For 2B Model)\n" +
-                                " * RTX 5060: ⭐⭐⭐⭐⭐ (For 2B Model)\n" +
-                                " * Mac M4 (16GB): ⭐⭐⭐⭐\n" +
-                                " * MX450: ⭐\n" +
-                                " * Snapdragon 8 Elite Gen 5 (Termux PRoot): ❌ (No native PyTorch/CUDA support via PRoot makes 3D attention layers fail)\n" +
-                                " * Snapdragon 8s Gen 3 (Termux PRoot): ❌\n" +
-                                " * Snapdragon 7s Gen 2 (Termux PRoot): ❌\n" +
-                                "### \uD83C\uDFA8 Specialized & Design Video (Cloud)\n" +
-                                "Note: All cloud-based. Hardware does not matter.\n" +
-                                " * Reeroll (reeroll.com) – AI motion graphics templates.\n" +
-                                " * Golpo AI (video.golpoai.com) – Whiteboard explainers.\n" +
-                                " * Boba AI (boba.video) – Anime style with lip-sync.\n" +
-                                " * Hera (hera.video) – AI motion designer.\n" +
-                                " * Bazaar (bazaar.it) – App screenshots to demo videos.\n" +
-                                " * Lumen5 (lumen5.com) – Blog/Article to video.\n" +
-                                "Performance across all Cloud Design tools:\n" +
-                                " * Desktop 5070 Ti (16GB): ⭐⭐⭐⭐⭐\n" +
-                                " * Laptop 5070 Ti (12GB): ⭐⭐⭐⭐⭐\n" +
-                                " * RTX 5060: ⭐⭐⭐⭐⭐\n" +
-                                " * Mac M4 (16GB): ⭐⭐⭐⭐⭐\n" +
-                                " * MX450: ⭐⭐⭐⭐⭐\n" +
-                                " * Snapdragon 8 Elite Gen 5: ⭐⭐⭐⭐⭐\n" +
-                                " * Snapdragon 8s Gen 3: ⭐⭐⭐⭐⭐\n" +
-                                " * Snapdragon 7s Gen 2: ⭐⭐⭐⭐⭐\n" +
-                                "### \uD83E\uDDCA 3D Generation & Spatial AI\n" +
-                                " * Marble (marble.worldlabs.ai) – Cloud-based NeRF / Gaussian Splatting from text.\n" +
-                                " * Desktop 5070 Ti (16GB): ⭐⭐⭐⭐⭐\n" +
-                                " * Laptop 5070 Ti (12GB): ⭐⭐⭐⭐⭐\n" +
-                                " * RTX 5060: ⭐⭐⭐⭐⭐\n" +
-                                " * Mac M4 (16GB): ⭐⭐⭐⭐⭐\n" +
-                                " * MX450: ⭐⭐⭐⭐\n" +
-                                " * Snapdragon 8 Elite Gen 5: ⭐⭐⭐⭐⭐ (Handles WebGL rendering natively in browser flawlessly)\n" +
-                                " * Snapdragon 8s Gen 3: ⭐⭐⭐⭐\n" +
-                                " * Snapdragon 7s Gen 2: ⭐⭐⭐\n" +
-                                " * Shap-E (GitHub) – Local model outputting implicit 3D functions.\n" +
-                                " * Desktop 5070 Ti (16GB): ⭐⭐⭐⭐⭐\n" +
-                                " * Laptop 5070 Ti (12GB): ⭐⭐⭐⭐⭐\n" +
-                                " * RTX 5060: ⭐⭐⭐⭐⭐\n" +
-                                " * Mac M4 (16GB): ⭐⭐⭐⭐⭐\n" +
-                                " * MX450: ⭐⭐\n" +
-                                " * Snapdragon 8 Elite Gen 5 (Termux): ⭐⭐ (CPU inference works inside PRoot, but rendering is slow)\n" +
-                                " * Snapdragon 8s Gen 3 (Termux): ⭐\n" +
-                                " * Snapdragon 7s Gen 2 (Termux): ❌\n" +
-                                "### \uD83D\uDCBB Local AI & Infrastructure (Launchers & LLMs) is this limit\n" +
-                                "Note: This is where Android phones using Termux natively shine! By using compiled llama.cpp or the ollama package directly in Termux, you can bypass Linux PRoot overhead and run AI directly on the Snapdragon chip, taking advantage of fast LPDDR RAM.\n" +
-                                " * Ollama / Llama.cpp (Local LLMs) (ollama.com) – C++ based local inference engine.\n" +
-                                " * Desktop 5070 Ti (16GB): ⭐⭐⭐⭐⭐ (Handles 14B+ models easily)\n" +
-                                " * Laptop 5070 Ti (12GB): ⭐⭐⭐⭐ (Handles 8B models beautifully)\n" +
-                                " * RTX 5060: ⭐⭐⭐ (Limited by 8GB VRAM)\n" +
-                                " * Mac M4 (16GB): ⭐⭐⭐⭐⭐ (Apple's Unified memory bandwidth is king here)\n" +
-                                " * MX450: ⭐ (Painfully slow 2 tokens/sec)\n" +
-                                " * Snapdragon 8 Elite Gen 5 (Termux Native): ⭐⭐⭐⭐⭐ (Has incredible memory bandwidth and Hexagon NPU. Runs 8B models at 25+ tokens/sec locally!)\n" +
-                                " * Snapdragon 8s Gen 3 (Termux Native): ⭐⭐⭐ (Can run 3B/4B models comfortably; 8B models will be slower but usable)\n" +
-                                " * Snapdragon 7s Gen 2 (Termux Native): ⭐ (Will struggle, memory bandwidth is too low. Expect 1-2 tokens/sec on tiny models)\n" +
-                                "### \uD83D\uDEE0\uFE0F Open-Source Editors & Image Tools (Local)\n" +
-                                " * ComfyUI (comfy.org) – Node-based GUI. On Android, requires Termux + PRoot Ubuntu + Termux-X11 + running in CPU mode (--cpu).\n" +
-                                " * Desktop 5070 Ti (16GB): ⭐⭐⭐⭐⭐\n" +
-                                " * Laptop 5070 Ti (12GB): ⭐⭐⭐⭐⭐\n" +
-                                " * RTX 5060: ⭐⭐⭐⭐\n" +
-                                " * Mac M4 (16GB): ⭐⭐⭐⭐\n" +
-                                " * MX450: ⭐⭐\n" +
-                                " * Snapdragon 8 Elite Gen 5 (Termux PRoot): ⭐⭐⭐ (With CPU mode, its massive raw CPU power can actually generate an SD 1.5 image in about 1-2 minutes. Usable for basic workflows!)\n" +
-                                " * Snapdragon 8s Gen 3 (Termux PRoot): ⭐⭐ (Takes 5-8 minutes per image. Phone will get very hot)\n" +
-                                " * Snapdragon 7s Gen 2 (Termux PRoot): ❌ (Android OS will violently kill the Termux process to save RAM)\n" +
-                                " * Qwen Image Edit (HuggingFace) – Instruction-based VLM editing.\n" +
-                                " * Desktop 5070 Ti (16GB): ⭐⭐⭐⭐⭐\n" +
-                                " * Laptop 5070 Ti (12GB): ⭐⭐⭐⭐\n" +
-                                " * RTX 5060: ⭐⭐⭐\n" +
-                                " * Mac M4 (16GB): ⭐⭐⭐⭐\n" +
-                                " * MX450: ❌\n" +
-                                " * Snapdragon 8 Elite Gen 5 (Termux PRoot): ⭐ (Too heavy for Android PRoot emulation overhead)\n" +
-                                " * Snapdragon 8s Gen 3 (Termux PRoot): ❌\n" +
-                                " * Snapdragon 7s Gen 2 (Termux PRoot): ❌\n" +
-                                "### \uD83D\uDC64 Portrait & Character Video (Local)\n" +
-                                " * Flash Portrait / StoryMem / InfCam – Specialized ControlNet wrappers for talking heads.\n" +
-                                " * Desktop 5070 Ti (16GB): ⭐⭐⭐⭐⭐\n" +
-                                " * Laptop 5070 Ti (12GB): ⭐⭐⭐⭐\n" +
-                                " * RTX 5060: ⭐⭐⭐\n" +
-                                " * Mac M4 (16GB): ⭐⭐\n" +
-                                " * MX450: ❌\n" +
-                                " * Snapdragon 8 Elite Gen 5 (Termux PRoot): ❌ (Running multiple ControlNets simultaneously inside a Linux container will instantly nuke Android's RAM management)\n" +
-                                " * Snapdragon 8s Gen 3 (Termux PRoot): ❌\n" +
-                                " * Snapdragon 7s Gen 2 (Termux PRoot): ❌" +
-                                "Ends here last....", textTypeParse.text)),
-                        timeStamp = Timestamp(Date(2024 - 1900, 1, 25, 20, 18)),
-                        senderId = "ThereSelf",
-                        status = messageStatus.Send
-                    ),
-                    MessageReceived(
-                        messageId = "3",
-                        content = "**Hello** this is **new markdown** message",
-                        contentType = ContentType.Md,
-                        timeStamp = Timestamp(Date(2024 - 1900, 1, 25, 20, 20)),
-                        senderId = "MyeSElf",
-                        status = messageStatus.Send
-                    ),
+//                messages = mutableListOf(
+//                    MessageReceived(
+//                        messageId = "1",
+//                        content = "Hello Friend",
+//                        parsedContent = listOf(MessageSegement("Hello bro ~strid~ style *bold*", textTypeParse.text)),
+//                        timeStamp = Timestamp(Date(2024 - 1900, 1, 25, 20, 15)),
+//                        senderId = "ThereSelf",
+//                        status = messageStatus.Send
+//                    ),
+//                    MessageReceived(
+//                        messageId = "2",
+//                        content = "Hello Friend How are you doing",
+//                        parsedContent = listOf(MessageSegement("Hello !bro! how are you doing *another* this is at end here.", textTypeParse.text)),
+//                        timeStamp = Timestamp(Date(2024 - 1900, 1, 25, 20, 18)),
+//                        senderId = "ThereSelf",
+//                        status = messageStatus.Send
+//                    ),
+//                    MessageReceived(
+//                        messageId = "4",
+//                        content = "Link here https://www.google.com",
+//                        parsedContent = listOf(MessageSegement("https://www.google.com", textTypeParse.link)),
+//                        timeStamp = Timestamp(Date(2024 - 1900, 1, 25, 20, 18)),
+//                        senderId = "ThereSelf",
+//                        status = messageStatus.Send
+//                    ),
+//                    MessageReceived(
+//                        messageId = "4",
+//                        content = "Link here https://www.google.com",
+//                        parsedContent = listOf(MessageSegement("AI Tools Directory: Video, Image, 3D, and Local AI\n" +
+//                                "### \uD83C\uDFA5 Text-to-Video Generators (Cloud-Based)\n" +
+//                                "Note: These tools run on cloud servers. Your local GPU, Mac, or phone specs do not affect their generation speed, only your web browser experience. Even the oldest chips survive here!\n" +
+//                                " * Pika (pika.art) – Cinematic, stylized motion from text prompts.\n" +
+//                                " * Runway Gen-2 / Gen-3 Alpha ([suspicious link removed]) – Industry-leading photorealistic temporal consistency.\n" +
+//                                " * Luma Dream Machine (lumalabs.ai/dream-machine) – Fast transformer model for realistic physics.\n" +
+//                                " * Kling AI (klingai.com) – Framework capable of holding long (up to 2 mins) consistent shots.\n" +
+//                                " * Kaiber AI (kaiber.ai) – Audio-reactive diffusion models for music synchronization.\n" +
+//                                "Performance across all Cloud Video tools:\n" +
+//                                " * Desktop 5070 Ti (16GB): ⭐⭐⭐⭐⭐\n" +
+//                                " * Laptop 5070 Ti (12GB): ⭐⭐⭐⭐⭐\n" +
+//                                " * RTX 5060: ⭐⭐⭐⭐⭐\n" +
+//                                " * Mac M4 (16GB): ⭐⭐⭐⭐⭐\n" +
+//                                " * MX450: ⭐⭐⭐⭐⭐\n" +
+//                                " * Snapdragon 8 Elite Gen 5: ⭐⭐⭐⭐⭐ (Runs perfectly in mobile Chrome/Brave)\n" +
+//                                " * Snapdragon 8s Gen 3: ⭐⭐⭐⭐⭐\n" +
+//                                " * Snapdragon 7s Gen 2: ⭐⭐⭐⭐⭐\n" +
+//                                "\uD83D\uDD13 Open-Source Video Models (Local / Self-Hosted)\n" +
+//                                "Note: Local video generation is extremely VRAM hungry. Android devices running Linux PRoot environments lack dedicated VRAM and rely on CPU rendering with high overhead. Don't expect to run heavy video generation on a phone.\n" +
+//                                " * Open-Sora 2.0 (GitHub) – 11B parameter DiT mapping text to video latents.\n" +
+//                                " * Desktop 5070 Ti (16GB): ⭐⭐⭐⭐\n" +
+//                                " * Laptop 5070 Ti (12GB): ⭐⭐ (Requires heavy quantization)\n" +
+//                                " * RTX 5060: ⭐ (VRAM bottleneck)\n" +
+//                                " * Mac M4 (16GB): ⭐ (Will struggle with unified memory limits)\n" +
+//                                " * MX450: ❌ (Instant Crash)\n" +
+//                                " * Snapdragon 8 Elite Gen 5 (Termux PRoot): ❌ (Linux PRoot overhead + RAM limits will cause an instant OOM kill)\n" +
+//                                " * Snapdragon 8s Gen 3 (Termux PRoot): ❌\n" +
+//                                " * Snapdragon 7s Gen 2 (Termux PRoot): ❌\n" +
+//                                " * LTX-Video (GitHub) – Highly optimized, fast-stepping diffusion model.\n" +
+//                                " * Desktop 5070 Ti (16GB): ⭐⭐⭐⭐⭐\n" +
+//                                " * Laptop 5070 Ti (12GB): ⭐⭐⭐⭐⭐ (Perfect fit)\n" +
+//                                " * RTX 5060: ⭐⭐⭐⭐\n" +
+//                                " * Mac M4 (16GB): ⭐⭐⭐⭐\n" +
+//                                " * MX450: ❌\n" +
+//                                " * Snapdragon 8 Elite Gen 5 (Termux PRoot): ⭐ (Might theoretically boot a quantized version overnight, but practically unusable)\n" +
+//                                " * Snapdragon 8s Gen 3 (Termux PRoot): ❌\n" +
+//                                " * Snapdragon 7s Gen 2 (Termux PRoot): ❌\n" +
+//                                " * CogVideoX (GitHub) – 3D RoPE and 3D VAE architecture.\n" +
+//                                " * Desktop 5070 Ti (16GB): ⭐⭐⭐⭐⭐\n" +
+//                                " * Laptop 5070 Ti (12GB): ⭐⭐⭐⭐⭐ (For 2B Model)\n" +
+//                                " * RTX 5060: ⭐⭐⭐⭐⭐ (For 2B Model)\n" +
+//                                " * Mac M4 (16GB): ⭐⭐⭐⭐\n" +
+//                                " * MX450: ⭐\n" +
+//                                " * Snapdragon 8 Elite Gen 5 (Termux PRoot): ❌ (No native PyTorch/CUDA support via PRoot makes 3D attention layers fail)\n" +
+//                                " * Snapdragon 8s Gen 3 (Termux PRoot): ❌\n" +
+//                                " * Snapdragon 7s Gen 2 (Termux PRoot): ❌\n" +
+//                                "### \uD83C\uDFA8 Specialized & Design Video (Cloud)\n" +
+//                                "Note: All cloud-based. Hardware does not matter.\n" +
+//                                " * Reeroll (reeroll.com) – AI motion graphics templates.\n" +
+//                                " * Golpo AI (video.golpoai.com) – Whiteboard explainers.\n" +
+//                                " * Boba AI (boba.video) – Anime style with lip-sync.\n" +
+//                                " * Hera (hera.video) – AI motion designer.\n" +
+//                                " * Bazaar (bazaar.it) – App screenshots to demo videos.\n" +
+//                                " * Lumen5 (lumen5.com) – Blog/Article to video.\n" +
+//                                "Performance across all Cloud Design tools:\n" +
+//                                " * Desktop 5070 Ti (16GB): ⭐⭐⭐⭐⭐\n" +
+//                                " * Laptop 5070 Ti (12GB): ⭐⭐⭐⭐⭐\n" +
+//                                " * RTX 5060: ⭐⭐⭐⭐⭐\n" +
+//                                " * Mac M4 (16GB): ⭐⭐⭐⭐⭐\n" +
+//                                " * MX450: ⭐⭐⭐⭐⭐\n" +
+//                                " * Snapdragon 8 Elite Gen 5: ⭐⭐⭐⭐⭐\n" +
+//                                " * Snapdragon 8s Gen 3: ⭐⭐⭐⭐⭐\n" +
+//                                " * Snapdragon 7s Gen 2: ⭐⭐⭐⭐⭐\n" +
+//                                "### \uD83E\uDDCA 3D Generation & Spatial AI\n" +
+//                                " * Marble (marble.worldlabs.ai) – Cloud-based NeRF / Gaussian Splatting from text.\n" +
+//                                " * Desktop 5070 Ti (16GB): ⭐⭐⭐⭐⭐\n" +
+//                                " * Laptop 5070 Ti (12GB): ⭐⭐⭐⭐⭐\n" +
+//                                " * RTX 5060: ⭐⭐⭐⭐⭐\n" +
+//                                " * Mac M4 (16GB): ⭐⭐⭐⭐⭐\n" +
+//                                " * MX450: ⭐⭐⭐⭐\n" +
+//                                " * Snapdragon 8 Elite Gen 5: ⭐⭐⭐⭐⭐ (Handles WebGL rendering natively in browser flawlessly)\n" +
+//                                " * Snapdragon 8s Gen 3: ⭐⭐⭐⭐\n" +
+//                                " * Snapdragon 7s Gen 2: ⭐⭐⭐\n" +
+//                                " * Shap-E (GitHub) – Local model outputting implicit 3D functions.\n" +
+//                                " * Desktop 5070 Ti (16GB): ⭐⭐⭐⭐⭐\n" +
+//                                " * Laptop 5070 Ti (12GB): ⭐⭐⭐⭐⭐\n" +
+//                                " * RTX 5060: ⭐⭐⭐⭐⭐\n" +
+//                                " * Mac M4 (16GB): ⭐⭐⭐⭐⭐\n" +
+//                                " * MX450: ⭐⭐\n" +
+//                                " * Snapdragon 8 Elite Gen 5 (Termux): ⭐⭐ (CPU inference works inside PRoot, but rendering is slow)\n" +
+//                                " * Snapdragon 8s Gen 3 (Termux): ⭐\n" +
+//                                " * Snapdragon 7s Gen 2 (Termux): ❌\n" +
+//                                "### \uD83D\uDCBB Local AI & Infrastructure (Launchers & LLMs) is this limit\n" +
+//                                "Note: This is where Android phones using Termux natively shine! By using compiled llama.cpp or the ollama package directly in Termux, you can bypass Linux PRoot overhead and run AI directly on the Snapdragon chip, taking advantage of fast LPDDR RAM.\n" +
+//                                " * Ollama / Llama.cpp (Local LLMs) (ollama.com) – C++ based local inference engine.\n" +
+//                                " * Desktop 5070 Ti (16GB): ⭐⭐⭐⭐⭐ (Handles 14B+ models easily)\n" +
+//                                " * Laptop 5070 Ti (12GB): ⭐⭐⭐⭐ (Handles 8B models beautifully)\n" +
+//                                " * RTX 5060: ⭐⭐⭐ (Limited by 8GB VRAM)\n" +
+//                                " * Mac M4 (16GB): ⭐⭐⭐⭐⭐ (Apple's Unified memory bandwidth is king here)\n" +
+//                                " * MX450: ⭐ (Painfully slow 2 tokens/sec)\n" +
+//                                " * Snapdragon 8 Elite Gen 5 (Termux Native): ⭐⭐⭐⭐⭐ (Has incredible memory bandwidth and Hexagon NPU. Runs 8B models at 25+ tokens/sec locally!)\n" +
+//                                " * Snapdragon 8s Gen 3 (Termux Native): ⭐⭐⭐ (Can run 3B/4B models comfortably; 8B models will be slower but usable)\n" +
+//                                " * Snapdragon 7s Gen 2 (Termux Native): ⭐ (Will struggle, memory bandwidth is too low. Expect 1-2 tokens/sec on tiny models)\n" +
+//                                "### \uD83D\uDEE0\uFE0F Open-Source Editors & Image Tools (Local)\n" +
+//                                " * ComfyUI (comfy.org) – Node-based GUI. On Android, requires Termux + PRoot Ubuntu + Termux-X11 + running in CPU mode (--cpu).\n" +
+//                                " * Desktop 5070 Ti (16GB): ⭐⭐⭐⭐⭐\n" +
+//                                " * Laptop 5070 Ti (12GB): ⭐⭐⭐⭐⭐\n" +
+//                                " * RTX 5060: ⭐⭐⭐⭐\n" +
+//                                " * Mac M4 (16GB): ⭐⭐⭐⭐\n" +
+//                                " * MX450: ⭐⭐\n" +
+//                                " * Snapdragon 8 Elite Gen 5 (Termux PRoot): ⭐⭐⭐ (With CPU mode, its massive raw CPU power can actually generate an SD 1.5 image in about 1-2 minutes. Usable for basic workflows!)\n" +
+//                                " * Snapdragon 8s Gen 3 (Termux PRoot): ⭐⭐ (Takes 5-8 minutes per image. Phone will get very hot)\n" +
+//                                " * Snapdragon 7s Gen 2 (Termux PRoot): ❌ (Android OS will violently kill the Termux process to save RAM)\n" +
+//                                " * Qwen Image Edit (HuggingFace) – Instruction-based VLM editing.\n" +
+//                                " * Desktop 5070 Ti (16GB): ⭐⭐⭐⭐⭐\n" +
+//                                " * Laptop 5070 Ti (12GB): ⭐⭐⭐⭐\n" +
+//                                " * RTX 5060: ⭐⭐⭐\n" +
+//                                " * Mac M4 (16GB): ⭐⭐⭐⭐\n" +
+//                                " * MX450: ❌\n" +
+//                                " * Snapdragon 8 Elite Gen 5 (Termux PRoot): ⭐ (Too heavy for Android PRoot emulation overhead)\n" +
+//                                " * Snapdragon 8s Gen 3 (Termux PRoot): ❌\n" +
+//                                " * Snapdragon 7s Gen 2 (Termux PRoot): ❌\n" +
+//                                "### \uD83D\uDC64 Portrait & Character Video (Local)\n" +
+//                                " * Flash Portrait / StoryMem / InfCam – Specialized ControlNet wrappers for talking heads.\n" +
+//                                " * Desktop 5070 Ti (16GB): ⭐⭐⭐⭐⭐\n" +
+//                                " * Laptop 5070 Ti (12GB): ⭐⭐⭐⭐\n" +
+//                                " * RTX 5060: ⭐⭐⭐\n" +
+//                                " * Mac M4 (16GB): ⭐⭐\n" +
+//                                " * MX450: ❌\n" +
+//                                " * Snapdragon 8 Elite Gen 5 (Termux PRoot): ❌ (Running multiple ControlNets simultaneously inside a Linux container will instantly nuke Android's RAM management)\n" +
+//                                " * Snapdragon 8s Gen 3 (Termux PRoot): ❌\n" +
+//                                " * Snapdragon 7s Gen 2 (Termux PRoot): ❌" +
+//                                "Ends here last....", textTypeParse.text)),
+//                        timeStamp = Timestamp(Date(2024 - 1900, 1, 25, 20, 18)),
+//                        senderId = "ThereSelf",
+//                        status = messageStatus.Send
+//                    ),
+//                    MessageReceived(
+//                        messageId = "3",
+//                        content = "**Hello** this is **new markdown** message",
+//                        contentType = ContentType.Md,
+//                        timeStamp = Timestamp(Date(2024 - 1900, 1, 25, 20, 20)),
+//                        senderId = "MyeSElf",
+//                        status = messageStatus.Send
+//                    ),
+////                    MessageReceived(
+////                        messageId = "3",
+////                        content = "Hello Friend its nice to see you",
+////                        timeStamp = Timestamp(Date(2024 - 1900, 1, 25, 20, 19)),
+////                        senderId = "nys",
+////                        status = messageStatus.Send
+////                    ),
+////                    MessageReceived(
+////                        messageId = "4",
+////                        content = "Hello Friend good day",
+////                        timeStamp = Timestamp(Date(2024 - 1900, 1, 25, 20, 20)),
+////                        senderId = "nys",
+////                        status = messageStatus.Send
+////                    ),
+////                    MessageReceived(
+////                        messageId = "5",
+////                        content = "Hello Friend good day",
+////                        timeStamp = Timestamp(Date(2024 - 1900, 2, 25, 20, 18)),
+////                        senderId = "nys",
+////                        status = messageStatus.Send
+////                    ),
+//                ),
+                messageToSend = "",
+//                selectedSentMessages = listOf(
+//                    MessageReceived(
+//                        messageId = "1",
+//                        content = "Hello Friend",
+//                        timeStamp = Timestamp(Date(2024 - 1900, 1, 25, 20, 15)),
+//                        senderId = "ThereSelf",
+//                        status = messageStatus.Send
+//                    ),
+//                ),
+//                selectedReceivedMessages = listOf(
 //                    MessageReceived(
 //                        messageId = "3",
 //                        content = "Hello Friend its nice to see you",
@@ -2452,47 +2485,14 @@ fun PreviewMessagebodySuccess() {
 //                        senderId = "nys",
 //                        status = messageStatus.Send
 //                    ),
-//                    MessageReceived(
-//                        messageId = "4",
-//                        content = "Hello Friend good day",
-//                        timeStamp = Timestamp(Date(2024 - 1900, 1, 25, 20, 20)),
-//                        senderId = "nys",
-//                        status = messageStatus.Send
-//                    ),
-//                    MessageReceived(
-//                        messageId = "5",
-//                        content = "Hello Friend good day",
-//                        timeStamp = Timestamp(Date(2024 - 1900, 2, 25, 20, 18)),
-//                        senderId = "nys",
-//                        status = messageStatus.Send
-//                    ),
-                ),
-                messageToSend = "",
-                selectedSentMessages = listOf(
-                    MessageReceived(
-                        messageId = "1",
-                        content = "Hello Friend",
-                        timeStamp = Timestamp(Date(2024 - 1900, 1, 25, 20, 15)),
-                        senderId = "ThereSelf",
-                        status = messageStatus.Send
-                    ),
-                ),
-                selectedReceivedMessages = listOf(
-                    MessageReceived(
-                        messageId = "3",
-                        content = "Hello Friend its nice to see you",
-                        timeStamp = Timestamp(Date(2024 - 1900, 1, 25, 20, 19)),
-                        senderId = "nys",
-                        status = messageStatus.Send
-                    ),
-//                    MessageReceived(
-//                        messageId = "4",
-//                        content = "Hello Friend good day",
-//                        timeStamp = Timestamp(Date(2024 - 1900, 1, 25, 20, 20)),
-//                        senderId = "nys",
-//                        status = messageStatus.Send
-//                    ),
-                )
+////                    MessageReceived(
+////                        messageId = "4",
+////                        content = "Hello Friend good day",
+////                        timeStamp = Timestamp(Date(2024 - 1900, 1, 25, 20, 20)),
+////                        senderId = "nys",
+////                        status = messageStatus.Send
+////                    ),
+//                )
             ),
             updateMessage = {},
             getMessagesAgain = { },

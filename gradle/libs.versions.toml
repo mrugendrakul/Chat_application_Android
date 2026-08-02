@@ -3,47 +3,47 @@ accompanistPager = "0.36.0"
 accompanistPermissions = "0.37.3"
 activityCompose = "1.13.0"
 coilCompose = "2.7.0"
-composeBom = "2026.03.00"
-composeBomVersion = "2026.03.00"
+composeBom = "2026.06.01"
+composeBomVersion = "2026.06.01"
 converterGson = "3.0.0"
 converterMoshi = "3.0.0"
-coreKtx = "1.18.0"
+coreKtx = "1.19.0"
 datastorePreferences = "1.2.1"
 espressoCore = "3.7.0"
-firebaseAuth = "24.0.1"
-firebaseBom = "34.10.0"
+firebaseAuth = "24.2.0"
+firebaseBom = "34.17.0"
 firebaseDatabase = "22.0.1"
-firebaseFirestore = "26.1.1"
-firebaseMessaging = "25.0.1"
+firebaseFirestore = "26.5.0"
+firebaseMessaging = "25.1.1"
 firebaseUiAuth = "9.1.1"
 junit = "4.13.2"
 junitVersion = "1.3.0"
-kotlin = "2.3.10"
-kotlinxCoroutinesPlayServices = "1.10.2"
-kotlinxCoroutinesTest = "1.10.2"
-kotlinxSerializationJson = "1.10.0"
-lifecycleRuntimeKtx = "2.10.0"
+kotlin = "2.4.10"
+kotlinxCoroutinesPlayServices = "1.11.0"
+kotlinxCoroutinesTest = "1.11.0"
+kotlinxSerializationJson = "1.11.0"
+lifecycleRuntimeKtx = "2.11.0"
 materialIconsExtended = "1.7.8"
 mockitoCore = "5.23.0"
 moshi = "1.15.2"
 multidex = "2.0.1"
-navigationCompose = "2.9.7"
-playServicesAuth = "21.5.1"
+navigationCompose = "2.9.8"
+playServicesAuth = "21.6.0"
 retrofit = "3.0.0"
 retrofit2KotlinxSerializationConverter = "1.0.0"
 roomCompiler = "2.8.4"
 roomKtx = "2.8.4"
 roomRuntime = "2.8.4"
-uiTooling = "1.10.5"
-uiToolingPreview = "1.10.5"
+uiTooling = "1.11.4"
+uiToolingPreview = "1.11.4"
 volley = "1.2.1"
-workRuntimeKtx = "2.11.1"
-junitJupiter = "6.0.3"
-multiplatformMarkdownRendererM3 = "0.39.2"
-adaptive = "1.3.0-alpha09"
-adaptiveLayout = "1.3.0-alpha09"
-adaptiveNavigation = "1.3.0-alpha09"
-material3 = "1.5.0-alpha15"
+workRuntimeKtx = "2.11.2"
+junitJupiter = "6.1.2"
+multiplatformMarkdownRendererM3 = "0.43.0"
+adaptive = "1.3.0-rc01"
+adaptiveLayout = "1.3.0-rc01"
+adaptiveNavigation = "1.3.0-rc01"
+material3 = "1.5.0-alpha25"
 
 [libraries]
 accompanist-pager = { module = "com.google.accompanist:accompanist-pager", version.ref = "accompanistPager" }
@@ -69,13 +69,13 @@ androidx-room-runtime = { module = "androidx.room:room-runtime", version.ref = "
 androidx-ui = { module = "androidx.compose.ui:ui" }
 androidx-ui-graphics = { module = "androidx.compose.ui:ui-graphics" }
 androidx-ui-test-junit4 = { module = "androidx.compose.ui:ui-test-junit4" }
-androidx-ui-test-manifest = { module = "androidx.compose.ui:ui-test-manifest", version = "1.10.5" }
+androidx-ui-test-manifest = { module = "androidx.compose.ui:ui-test-manifest", version = "1.11.4" }
 androidx-ui-tooling = { module = "androidx.compose.ui:ui-tooling", version.ref = "uiTooling" }
 androidx-ui-tooling-preview = { module = "androidx.compose.ui:ui-tooling-preview", version.ref = "uiToolingPreview" }
 coil-compose = { module = "io.coil-kt:coil-compose", version.ref = "coilCompose" }
 converter-gson = { module = "com.squareup.retrofit2:converter-gson", version.ref = "converterGson" }
 converter-moshi = { module = "com.squareup.retrofit2:converter-moshi", version.ref = "converterMoshi" }
-firebase-analytics = { module = "com.google.firebase:firebase-analytics", version = "23.0.0" }
+firebase-analytics = { module = "com.google.firebase:firebase-analytics", version = "23.2.0" }
 firebase-auth = { module = "com.google.firebase:firebase-auth", version.ref = "firebaseAuth" }
 firebase-auth-ktx = { module = "com.google.firebase:firebase-auth-ktx", version = "23.2.1" }
 firebase-bom = { module = "com.google.firebase:firebase-bom", version.ref = "firebaseBom" }

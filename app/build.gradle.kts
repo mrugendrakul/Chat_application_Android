@@ -2,11 +2,11 @@ import org.gradle.kotlin.dsl.composeCompiler
 
 plugins {
     id("com.android.application")
-    id("org.jetbrains.kotlin.android")
+//    id("org.jetbrains.kotlin.android")
 
     id("com.google.gms.google-services")
     id("com.google.devtools.ksp")
-    id("org.jetbrains.kotlin.plugin.compose") version "2.3.10"
+    id("org.jetbrains.kotlin.plugin.compose") version "2.4.10"
 }
 
 
@@ -21,14 +21,14 @@ android {
         }
     }
     namespace = "com.mad.softwares.chatApplication"
-    compileSdk = 36
+    compileSdk = 37
 
     defaultConfig {
         applicationId = "com.mad.softwares.chatApplication"
         minSdk = 26
-        targetSdk = 36
+        targetSdk = 37
         versionCode = 3
-        versionName = "0.11.02-beta.1"
+        versionName = "0.12.0-beta.1"
 
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
         vectorDrawables {
@@ -59,12 +59,12 @@ android {
 //    kotlinOptions {
 //        jvmTarget = "17"
 //    }
-    kotlin{
-//        compileOptions{
-//            jvmTarget.set(org.jetbrains.kotlin.gradle.dsl.JvmTarget.JVM_23)
-//        }
-        jvmToolchain(17)
-    }
+//    kotlin{
+////        compileOptions{
+////            jvmTarget.set(org.jetbrains.kotlin.gradle.dsl.JvmTarget.JVM_23)
+////        }
+//        jvmToolchain(17)
+//    }
     buildFeatures {
         compose = true
         buildConfig = true
@@ -81,7 +81,7 @@ android {
 
 composeCompiler {
     reportsDestination = layout.buildDirectory.dir("compose_compiler")
-    stabilityConfigurationFile = rootProject.layout.projectDirectory.file("stability_config.conf")
+//    stabilityConfigurationFile = rootProject.layout.projectDirectory.file("stability_config.conf")
 }
 
 dependencies {
